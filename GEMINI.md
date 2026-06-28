@@ -11,12 +11,18 @@ You are building Questine, an ultimate AI-powered time management app i.e Routin
 - Backend: Supabase
 - Frontend: Next (TypeScript) with tailwind CSS
 - Database: Supabase
+- Deployment: Vercel Free tier
 
 ## Git usage
 Make sure you are on a branch which correlates to your task. 
+
+## Write sustainable code
+Always write code that has proper Error Messages, Error notifications must have a proper CTA (if possible).
 
 ## Naming Conventions
 - Variable and Function Names: camelCase
 - Classes and Constructors: PascalCase
 - Global Constraints: UPPER_SNAKE_CASE
+- Database Fields: snake_case
+- Database Tables: plural snake_case
 - Follow all typescript, next.js and supabase naming conventions standards too. 

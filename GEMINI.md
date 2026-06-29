@@ -34,7 +34,7 @@ You are building Questine, an ultimate AI-powered time management app i.e Routin
 **Navigation:** Bottom tab bar with exactly 4 items: **Home, Routine, History, Profile**. Quests (alpha2) fold into the Routine tab — do not add a 5th tab for them.
 
 **Smart Animation** All transitions to different pages must be animated. 
-**Page Layouts** Content should be stuck in the center, Use the whole screen real-estate well and make responsive pages (mobile, desktop)
+**Page Layouts** Content should be stuck in the center, Main Content should be centered vertically and horiztonally. Use the whole screen real-estate well and make responsive pages (mobile, desktop)
 **Notifications:** Toast/sonner style, positioned bottom of screen, with a CTA button when actionable (e.g. "Log your Catch-Up" → button → navigates to `/catchup`). Do not use top-banner or blocking modal patterns for nudges.
 
 ## Git usage

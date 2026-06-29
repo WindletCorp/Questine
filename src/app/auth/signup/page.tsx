@@ -9,6 +9,8 @@ import { Input } from "@/components/ui/Input";
 import { FloatingBackground } from "@/components/ui/FloatingBackground";
 import Link from "next/link";
 import confetti from "canvas-confetti";
+import { claimTrialData } from "@/app/actions/claimTrialData";
+import { toast } from "sonner";
 
 export default function SignupPage() {
   const [email, setEmail] = useState("");
@@ -53,15 +55,37 @@ export default function SignupPage() {
     });
 
     if (error) {
-      handleClientError(
-        createError("AUTH", error.message, "Try Again", () => setLoading(false))
-      );
+      if (error.message.toLowerCase().includes("already registered")) {
+        handleClientError(
+          createError("AUTH", "An account with this email already exists.", "Log In", () => router.push("/auth/login"))
+        );
+      } else {
+        handleClientError(
+          createError("AUTH", error.message, "Try Again", () => setLoading(false))
+        );
+      }
       setLoading(false);
       return;
     }
 
-    // Success, trigger middleware refresh and redirect
-    router.push("/");
+    // Success: process trial data if it exists
+    try {
+      const trialDataStr = sessionStorage.getItem("trial_data");
+      if (trialDataStr) {
+        const { globalContext, blocks } = JSON.parse(trialDataStr);
+        const result = await claimTrialData(globalContext, blocks);
+        if (result?.error) {
+          console.error("Failed to claim trial data:", result.error);
+          toast.error(result.error);
+        } else {
+          sessionStorage.removeItem("trial_data");
+        }
+      }
+    } catch (err) {
+      console.error("Failed to parse or claim trial data", err);
+    }
+
+    router.push("/home");
     router.refresh();
   };
 

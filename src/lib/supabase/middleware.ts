@@ -35,9 +35,12 @@ export async function updateSession(request: NextRequest) {
   const isAuthPage = request.nextUrl.pathname.startsWith('/auth')
   const isApi = request.nextUrl.pathname.startsWith('/api')
   const isStaticFile = request.nextUrl.pathname.includes('.')
+  
+  // Routes that should be accessible without logging in
+  const isPublicRoute = request.nextUrl.pathname === '/' || request.nextUrl.pathname === '/onboarding'
 
   // Protect all internal routes
-  if (!user && !isAuthPage && !isApi && !isStaticFile) {
+  if (!user && !isAuthPage && !isApi && !isStaticFile && !isPublicRoute) {
     const url = request.nextUrl.clone()
     url.pathname = '/auth/login'
     return NextResponse.redirect(url)

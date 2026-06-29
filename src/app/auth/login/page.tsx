@@ -8,16 +8,34 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { FloatingBackground } from "@/components/ui/FloatingBackground";
 import Link from "next/link";
+import confetti from "canvas-confetti";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState<{email?: string, password?: string}>({});
   const router = useRouter();
   const supabase = createClient();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrors({});
+    let newErrors: {email?: string, password?: string} = {};
+    if (!email) newErrors.email = "Email is required";
+    if (!password) newErrors.password = "Password is required";
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+    
+    confetti({
+      particleCount: 60,
+      spread: 70,
+      origin: { y: 0.8 },
+      colors: ['#7EC8E3', '#F4A8C0', '#1CB854']
+    });
+
     setLoading(true);
 
     const { error } = await supabase.auth.signInWithPassword({
@@ -42,7 +60,7 @@ export default function LoginPage() {
     <div className="flex min-h-screen flex-col items-center justify-center p-6 bg-background relative overflow-hidden">
       <FloatingBackground />
       <div className="w-full max-w-sm flex flex-col items-center gap-10 z-10 relative">
-        <div className="text-center">
+        <div className="text-center w-full">
           <h1 className="text-4xl font-black text-foreground mb-3 tracking-tight">
             Welcome Back!
           </h1>
@@ -51,24 +69,26 @@ export default function LoginPage() {
           </p>
         </div>
 
-        <form onSubmit={handleLogin} className="w-full flex flex-col gap-5">
+        <form onSubmit={handleLogin} className="w-full flex flex-col gap-5" noValidate>
           <Input 
             label="Email" 
             type="email" 
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => { setEmail(e.target.value); setErrors(prev => ({...prev, email: undefined})); }}
             placeholder="you@example.com"
             required
             disabled={loading}
+            error={errors.email}
           />
           <Input 
             label="Password" 
             type="password" 
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={(e) => { setPassword(e.target.value); setErrors(prev => ({...prev, password: undefined})); }}
             placeholder="••••••••"
             required
             disabled={loading}
+            error={errors.password}
           />
           
           <div className="mt-4">

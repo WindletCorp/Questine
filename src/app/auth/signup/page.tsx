@@ -77,6 +77,9 @@ export default function SignupPage() {
         if (result?.error) {
           console.error("Failed to claim trial data:", result.error);
           toast.error(result.error);
+        } else if (result?.alreadyClaimed) {
+          toast.success("Welcome back! We've loaded your saved routine. (Trial generations can only be claimed once per account).");
+          sessionStorage.removeItem("trial_data");
         } else {
           sessionStorage.removeItem("trial_data");
         }
@@ -84,9 +87,7 @@ export default function SignupPage() {
     } catch (err) {
       console.error("Failed to parse or claim trial data", err);
     }
-
-    router.push("/home");
-    router.refresh();
+    window.location.href = "/home";
   };
 
   return (

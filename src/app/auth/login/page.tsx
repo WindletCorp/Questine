@@ -51,9 +51,29 @@ export default function LoginPage() {
       return;
     }
 
-    // Success, redirect to home. Middleware will now allow this.
-    router.push("/");
-    router.refresh();
+    // Success: process trial data if it exists
+    try {
+      const trialDataStr = sessionStorage.getItem("trial_data");
+      if (trialDataStr) {
+        const { globalContext, blocks } = JSON.parse(trialDataStr);
+        const { claimTrialData } = await import("@/app/actions/claimTrialData");
+        const result = await claimTrialData(globalContext, blocks);
+        if (result?.error) {
+          console.error("Failed to claim trial data:", result.error);
+          import("sonner").then(m => m.toast.error(result.error));
+        } else if (result?.alreadyClaimed) {
+          import("sonner").then(m => m.toast.success("Welcome back! We've loaded your saved routine. (Trial generations can only be claimed once per account)."));
+          sessionStorage.removeItem("trial_data");
+        } else {
+          sessionStorage.removeItem("trial_data");
+        }
+      }
+    } catch (err) {
+      console.error("Failed to parse or claim trial data", err);
+    }
+
+    // Success, redirect to home.
+    window.location.href = "/home";
   };
 
   return (

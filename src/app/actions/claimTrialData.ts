@@ -12,10 +12,28 @@ export async function claimTrialData(globalContext: string, blocks: Omit<Routine
       return { error: "You must be logged in to claim trial data. Please check if your account requires email confirmation." };
     }
 
-    // 1. Update profile with global context
+    // 1. Fetch profile to check if trial was already claimed
+    const { data: profile, error: fetchProfileError } = await supabase
+      .from("profiles")
+      .select("has_claimed_trial")
+      .eq("id", user.id)
+      .single();
+
+    if (fetchProfileError) {
+      return { error: `Profile fetch failed: ${fetchProfileError.message}` };
+    }
+
+    if (profile?.has_claimed_trial) {
+      return { alreadyClaimed: true };
+    }
+
+    // 2. Update profile with global context and set has_claimed_trial
     const { error: profileError } = await supabase
       .from("profiles")
-      .update({ global_context: globalContext })
+      .update({ 
+        global_context: globalContext,
+        has_claimed_trial: true 
+      })
       .eq("id", user.id);
     
     if (profileError) return { error: `Profile update failed: ${profileError.message}` };
@@ -61,6 +79,7 @@ export async function claimTrialData(globalContext: string, blocks: Omit<Routine
       end_time: b.end_time,
       label: b.label,
       source: b.source,
+      category: b.category,
       order_index: b.order_index || idx
     }));
 

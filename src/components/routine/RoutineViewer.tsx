@@ -3,7 +3,7 @@
 import React, { useMemo, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Lock, Plus, Edit3 } from 'lucide-react';
+import { Lock, Edit3 } from 'lucide-react';
 
 export type RoutineBlockSource = 'ai' | 'manual';
 
@@ -13,6 +13,8 @@ export interface RoutineBlock {
   end_time: string;
   label: string;
   source: RoutineBlockSource;
+  category?: string;
+  color_override?: string;
   order_index?: number;
 }
 
@@ -29,6 +31,20 @@ const PIXELS_PER_MINUTE = 2;
 const HOUR_HEIGHT = 60 * PIXELS_PER_MINUTE; // 120px per hour
 const TOTAL_HOURS = 24;
 
+const CATEGORY_COLORS: Record<string, { bg: string, border: string, text: string, shadow: string }> = {
+  health: { bg: 'bg-emerald-100', border: 'border-emerald-200', text: 'text-emerald-900', shadow: '#34d399' },
+  work: { bg: 'bg-blue-100', border: 'border-blue-200', text: 'text-blue-900', shadow: '#60a5fa' },
+  rest: { bg: 'bg-indigo-100', border: 'border-indigo-200', text: 'text-indigo-900', shadow: '#818cf8' },
+  social: { bg: 'bg-pink-100', border: 'border-pink-200', text: 'text-pink-900', shadow: '#f472b6' },
+  errand: { bg: 'bg-orange-100', border: 'border-orange-200', text: 'text-orange-900', shadow: '#fb923c' },
+  other: { bg: 'bg-gray-100', border: 'border-gray-200', text: 'text-gray-900', shadow: '#9ca3af' },
+};
+
+const getBlockColor = (block: RoutineBlock) => {
+  const key = block.color_override || block.category || (block.source === 'ai' ? 'work' : 'social');
+  return CATEGORY_COLORS[key] || CATEGORY_COLORS.other;
+};
+
 // Helper to convert "HH:mm" to minutes since midnight
 const timeToMinutes = (timeStr: string) => {
   const [hours, minutes] = timeStr.split(':').map(Number);
@@ -42,7 +58,7 @@ const minutesToTime = (totalMinutes: number) => {
   return `${h}:${m}`;
 };
 
-// Helper to format "HH:mm" for display (e.g. "8:00 AM")
+// Helper to format "HH:mm" for display
 const formatDisplayTime = (timeStr: string) => {
   const [hours, minutes] = timeStr.split(':').map(Number);
   const ampm = hours >= 12 ? 'PM' : 'AM';
@@ -61,10 +77,8 @@ export function RoutineViewer({
 }: RoutineViewerProps) {
   const [editingBlockId, setEditingBlockId] = useState<string | null>(null);
 
-  // Generate grid hours
   const hoursGrid = Array.from({ length: TOTAL_HOURS }).map((_, i) => i);
 
-  // Parse blocks into renderable items
   const renderableBlocks = useMemo(() => {
     return blocks.map(block => {
       const startMin = timeToMinutes(block.start_time);
@@ -84,22 +98,21 @@ export function RoutineViewer({
   const handleGridClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (readOnly) return;
     
-    // Simple add logic based on click position
     const rect = e.currentTarget.getBoundingClientRect();
     const y = e.clientY - rect.top;
     const clickedMinute = Math.floor(y / PIXELS_PER_MINUTE);
     
-    // Snap to 15 min intervals
     const snappedMinute = Math.floor(clickedMinute / 15) * 15;
-    const start_time = minutesToTime(snappedMinute);
-    const end_time = minutesToTime(snappedMinute + 60); // default 1 hour block
+    const start_time = minutesToTime(snappedMinute) + ":00";
+    const end_time = minutesToTime(snappedMinute + 60) + ":00";
     
     if (onBlockAdd) {
       onBlockAdd({
         start_time,
         end_time,
         label: 'New Routine Block',
-        source: 'manual'
+        source: 'manual',
+        category: 'other'
       });
     }
   };
@@ -110,12 +123,52 @@ export function RoutineViewer({
     setEditingBlockId(blockId);
   };
 
+  const handleResizeStart = (e: React.PointerEvent, blockId: string, edge: 'top' | 'bottom') => {
+    e.stopPropagation();
+    e.preventDefault();
+    if (readOnly) return;
+    
+    const startY = e.clientY;
+    const initialBlock = blocks.find(b => b.id === blockId)!;
+    const initialStartMin = timeToMinutes(initialBlock.start_time);
+    const initialEndMin = timeToMinutes(initialBlock.end_time);
+
+    const handlePointerMove = (moveEvent: PointerEvent) => {
+      const deltaY = moveEvent.clientY - startY;
+      const deltaMins = Math.round((deltaY / PIXELS_PER_MINUTE) / 15) * 15;
+      
+      let newStartMin = initialStartMin;
+      let newEndMin = initialEndMin;
+      
+      if (edge === 'top') {
+        newStartMin = Math.max(0, Math.min(initialStartMin + deltaMins, initialEndMin - 15));
+      } else {
+        newEndMin = Math.min(TOTAL_HOURS * 60, Math.max(initialEndMin + deltaMins, initialStartMin + 15));
+      }
+      
+      if (onBlockUpdate) {
+        onBlockUpdate({
+          ...initialBlock,
+          start_time: minutesToTime(newStartMin) + ':00',
+          end_time: minutesToTime(newEndMin) + ':00'
+        });
+      }
+    };
+
+    const handlePointerUp = () => {
+      window.removeEventListener('pointermove', handlePointerMove);
+      window.removeEventListener('pointerup', handlePointerUp);
+    };
+
+    window.addEventListener('pointermove', handlePointerMove);
+    window.addEventListener('pointerup', handlePointerUp);
+  };
+
   const editingBlock = blocks.find(b => b.id === editingBlockId);
 
   return (
     <div className={cn('relative w-full h-[50vh] min-h-[400px] overflow-y-auto bg-gray-50 rounded-3xl border-4 border-gray-200 hide-scrollbar', className)}>
       
-      {/* Read Only Overlay Badge */}
       {readOnly && (
         <div className="sticky top-4 z-20 flex justify-center w-full pointer-events-none">
           <div className="bg-gray-800/80 backdrop-blur-md text-white px-4 py-2 rounded-full font-bold text-sm flex items-center gap-2 shadow-lg">
@@ -126,7 +179,6 @@ export function RoutineViewer({
 
       <div className="relative min-w-[300px] select-none" style={{ height: `${TOTAL_HOURS * HOUR_HEIGHT}px` }}>
         
-        {/* Time Grid Axis */}
         <div className="absolute left-0 top-0 bottom-0 w-16 border-r-2 border-gray-100 bg-white/50 z-0">
           {hoursGrid.map(hour => (
             <div 
@@ -139,7 +191,6 @@ export function RoutineViewer({
           ))}
         </div>
 
-        {/* Grid Lines & Clickable Area */}
         <div 
           className={cn(
             "absolute left-16 right-0 top-0 bottom-0 z-0",
@@ -156,53 +207,71 @@ export function RoutineViewer({
           ))}
         </div>
 
-        {/* Render Blocks */}
         <div className="absolute left-16 right-0 top-0 bottom-0 px-2 pt-0 z-10 pointer-events-none">
           <AnimatePresence>
-            {renderableBlocks.map(block => (
-              <motion.div
-                key={block.id}
-                layoutId={block.id}
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.9 }}
-                className={cn(
-                  "absolute left-2 right-2 rounded-2xl p-3 flex flex-col justify-between overflow-hidden shadow-sm transition-opacity",
-                  !readOnly && "pointer-events-auto cursor-pointer hover:shadow-md active:scale-[0.98]",
-                  readOnly && "pointer-events-none opacity-90",
-                  block.source === 'ai' 
-                    ? "bg-blue-100 border-2 border-blue-200 text-blue-900" 
-                    : "bg-pink-100 border-2 border-pink-200 text-pink-900"
-                )}
-                style={{ 
-                  top: `${block.top}px`, 
-                  height: `${block.height}px`,
-                  // Add a chunky shadow dynamically matching the color
-                  boxShadow: !readOnly ? `0 4px 0 0 ${block.source === 'ai' ? '#bfdbfe' : '#fbcfe8'}` : 'none'
-                }}
-                onClick={(e) => handleBlockClick(e, block.id)}
-              >
-                <div>
-                  <div className="font-bold text-sm leading-tight line-clamp-2">{block.label}</div>
-                  <div className={cn(
-                    "text-xs font-semibold mt-1",
-                    block.source === 'ai' ? "text-blue-500" : "text-pink-500"
-                  )}>
-                    {formatDisplayTime(block.start_time)} - {formatDisplayTime(block.end_time)}
+            {renderableBlocks.map(block => {
+              const colors = getBlockColor(block);
+              return (
+                <motion.div
+                  key={block.id}
+                  layoutId={block.id}
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  className={cn(
+                    "absolute left-2 right-2 rounded-2xl p-3 flex flex-col justify-between shadow-sm transition-opacity border-2",
+                    !readOnly && "pointer-events-auto cursor-pointer hover:shadow-md active:scale-[0.99]",
+                    readOnly && "pointer-events-none opacity-90",
+                    colors.bg,
+                    colors.border,
+                    colors.text
+                  )}
+                  style={{ 
+                    top: `${block.top}px`, 
+                    height: `${block.height}px`,
+                    boxShadow: !readOnly ? `0 4px 0 0 ${colors.shadow}` : 'none'
+                  }}
+                  onClick={(e) => handleBlockClick(e, block.id)}
+                >
+                  {!readOnly && (
+                    <div 
+                      className="absolute top-0 left-0 right-0 h-4 cursor-ns-resize z-20 flex justify-center group"
+                      onPointerDown={(e) => handleResizeStart(e, block.id, 'top')}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <div className="w-8 h-1 bg-black/10 rounded-full mt-1 group-hover:bg-black/20" />
+                    </div>
+                  )}
+
+                  <div className="overflow-hidden mt-1 mb-1 pointer-events-none">
+                    <div className="font-bold text-sm leading-tight line-clamp-2">{block.label}</div>
+                    <div className="text-xs font-semibold mt-1 opacity-80">
+                      {formatDisplayTime(block.start_time)} - {formatDisplayTime(block.end_time)}
+                    </div>
                   </div>
-                </div>
-                {!readOnly && (
-                  <div className="absolute bottom-2 right-2 opacity-50">
-                    <Edit3 size={16} />
-                  </div>
-                )}
-              </motion.div>
-            ))}
+                  
+                  {!readOnly && (
+                    <div className="absolute bottom-2 right-2 opacity-50 pointer-events-none">
+                      <Edit3 size={16} />
+                    </div>
+                  )}
+
+                  {!readOnly && (
+                    <div 
+                      className="absolute bottom-0 left-0 right-0 h-4 cursor-ns-resize z-20 flex justify-center group items-end pb-1"
+                      onPointerDown={(e) => handleResizeStart(e, block.id, 'bottom')}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <div className="w-8 h-1 bg-black/10 rounded-full group-hover:bg-black/20" />
+                    </div>
+                  )}
+                </motion.div>
+              );
+            })}
           </AnimatePresence>
         </div>
       </div>
 
-      {/* Full Screen Edit Modal (Simplified for now, can be expanded) */}
       <AnimatePresence>
         {editingBlock && !readOnly && (
           <motion.div
@@ -249,6 +318,30 @@ export function RoutineViewer({
                       }}
                       className="w-full text-lg font-bold bg-gray-50 border-4 border-gray-200 rounded-2xl p-4 focus:outline-none focus:border-blue-400 focus:bg-white transition-colors"
                     />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-bold text-gray-500 mb-2 uppercase tracking-wide">Color</label>
+                  <div className="flex gap-3">
+                    {Object.entries(CATEGORY_COLORS).map(([key, colorObj]) => (
+                      <button
+                        key={key}
+                        onClick={() => {
+                          if (onBlockUpdate) {
+                            onBlockUpdate({ ...editingBlock, color_override: key });
+                          }
+                        }}
+                        className={cn(
+                          "w-10 h-10 rounded-full border-2 transition-transform",
+                          colorObj.bg,
+                          colorObj.border,
+                          (editingBlock.color_override || editingBlock.category) === key 
+                            ? "scale-110 shadow-md ring-2 ring-gray-400 ring-offset-2" 
+                            : "hover:scale-105"
+                        )}
+                      />
+                    ))}
                   </div>
                 </div>
               </div>

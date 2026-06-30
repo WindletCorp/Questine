@@ -2,6 +2,7 @@
 
 import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
+import { generateRoutine } from "@/lib/ai/generateRoutine";
 
 export async function generateTrial(globalContext: string) {
   const supabase = await createClient();
@@ -36,49 +37,28 @@ export async function generateTrial(globalContext: string) {
   }
   */
 
-  // Generate routine using AI
-  // TODO: Replace with actual AI API call using process.env.DEVELOPER_AI_KEY
-  // For MVP/Demo purposes, we'll simulate an AI response based on the context
-  await new Promise(resolve => setTimeout(resolve, 2000)); // simulate network latency
-  
-  const generatedBlocks = [
-    {
-      start_time: "08:00:00",
-      end_time: "09:00:00",
-      label: "Morning Routine & Breakfast",
-      source: "ai" as const
-    },
-    {
-      start_time: "09:00:00",
-      end_time: "12:00:00",
-      label: "Deep Work Session",
-      source: "ai" as const
-    },
-    {
-      start_time: "12:00:00",
-      end_time: "13:00:00",
-      label: "Lunch Break",
-      source: "ai" as const
-    },
-    {
-      start_time: "13:00:00",
-      end_time: "17:00:00",
-      label: "Meetings & Light Tasks",
-      source: "ai" as const
-    },
-    {
-      start_time: "18:00:00",
-      end_time: "19:00:00",
-      label: "Exercise",
-      source: "ai" as const
-    },
-    {
-      start_time: "20:00:00",
-      end_time: "21:00:00",
-      label: "Relax & Read",
-      source: "ai" as const
-    }
-  ];
+  const apiKey = process.env.DEVELOPER_AI_KEY;
+  const model = process.env.DEVELOPER_AI_MODEL || "gemini-2.5-flash";
+
+  if (!apiKey) {
+    throw new Error("Developer AI key is not configured.");
+  }
+
+  const rawBlocks = await generateRoutine({
+    globalContext,
+    apiKey,
+    provider: "google",
+    model,
+  });
+
+  const generatedBlocks = rawBlocks.map((b, idx) => ({
+    start_time: b.start_time,
+    end_time: b.end_time,
+    label: b.label,
+    category: b.category,
+    source: "ai" as const,
+    order_index: idx
+  }));
 
   // Log this trial generation to enforce rate limits
   const { error: logError } = await supabase

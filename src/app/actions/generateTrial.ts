@@ -44,12 +44,19 @@ export async function generateTrial(globalContext: string) {
     throw new Error("Developer AI key is not configured.");
   }
 
-  const rawBlocks = await generateRoutine({
-    globalContext,
+  const response = await generateRoutine({
+    systemContext: "You are generating a one-shot trial routine for a new user. Always generate the routine, do not ask for clarification.",
+    messages: [{ role: 'user', content: globalContext }],
     apiKey,
     provider: "google",
     model,
   });
+
+  if (response.type === 'clarification') {
+    throw new Error("AI requested clarification unexpectedly: " + response.message);
+  }
+
+  const rawBlocks = response.blocks || [];
 
   const generatedBlocks = rawBlocks.map((b, idx) => ({
     start_time: b.start_time,

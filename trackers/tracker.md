@@ -16,6 +16,7 @@ This tracker documents the high-level progress of the Questine routine builder a
 - `/` (Landing page)
 - `/onboarding` (Try-Before-Signup flow)
 - `/home` (Home tab with date selection & past/future routines)
+- `/generate` (Dedicated interactive AI routine generation page)
 - `MumbleBar` (Core component: Voice/Text input)
 - `RoutineViewer` (Core component: Calendar day view)
 - `DateSelector` (Core component: Chunk week view for date navigation)

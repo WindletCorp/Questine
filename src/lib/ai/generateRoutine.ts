@@ -1,9 +1,10 @@
-import { generateObject } from 'ai';
+import { generateObject, CoreMessage } from 'ai';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { z } from 'zod';
 
 export type GenerateRoutineOptions = {
-  globalContext: string;
+  systemContext?: string;
+  messages: CoreMessage[];
   apiKey: string;
   provider?: string;
   model?: string;
@@ -17,11 +18,13 @@ const routineBlockSchema = z.object({
   category: z.enum(['health', 'work', 'rest', 'social', 'errand', 'other']).describe("The broad category this activity falls under"),
 });
 
-const routineSchema = z.object({
-  blocks: z.array(routineBlockSchema).describe("An array of chronological, non-overlapping time blocks representing the user's routine.")
+const aiResponseSchema = z.object({
+  type: z.enum(['routine', 'clarification']).describe("Whether you successfully generated the routine blocks, or if you need to ask a clarifying question because critical information is missing."),
+  message: z.string().describe("A conversational message to the user. E.g. 'What time is your dentist appointment?' or 'Here is your generated routine for today!'"),
+  blocks: z.array(routineBlockSchema).optional().describe("An array of chronological, non-overlapping time blocks. Only include this if type is 'routine'.")
 });
 
-export async function generateRoutine({ globalContext, apiKey, provider = 'google', model = 'gemini-2.5-flash' }: GenerateRoutineOptions) {
+export async function generateRoutine({ systemContext, messages, apiKey, provider = 'google', model = 'gemini-1.5-flash' }: GenerateRoutineOptions) {
   if (provider !== 'google') {
     throw new Error(`Provider ${provider} is not supported yet.`);
   }
@@ -30,22 +33,33 @@ export async function generateRoutine({ globalContext, apiKey, provider = 'googl
     apiKey,
   });
 
+  const baseSystemPrompt = `You are a helpful AI assistant that builds realistic daily routines.
+Cover a full day (you can decide appropriate start and end times based on context).
+Routine blocks MUST NOT overlap and MUST be in chronological order.
+${systemContext ? `\nContext:\n${systemContext}` : ''}`;
+
   try {
     const { object } = await generateObject({
       model: google(model),
-      schema: routineSchema,
-      prompt: `Generate a realistic daily routine as a sequence of time blocks based on the following context about the user.
-Cover a full day (you can decide the appropriate start and end times based on the context, e.g., 07:00 to 22:00).
-Blocks MUST NOT overlap and MUST be in chronological order.
-
-User Context:
-${globalContext}
-`,
+      schema: aiResponseSchema,
+      system: baseSystemPrompt,
+      messages: messages,
+      maxRetries: 0,
     });
 
-    return object.blocks;
+    return object;
   } catch (error: any) {
     console.error("AI Generation Error:", error);
-    throw new Error(error.message || "Failed to generate routine. Please check your AI API key and try again.");
+    const msg = error.message || "";
+    
+    if (msg.includes("API key not valid") || msg.includes("API_KEY_INVALID")) {
+      throw new Error("API_KEY_INVALID: Your AI API key is invalid.");
+    }
+    
+    if (msg.includes("quota") || msg.includes("429")) {
+      throw new Error("QUOTA_EXCEEDED: You have exceeded your AI provider's quota or rate limit.");
+    }
+
+    throw new Error("Failed to generate routine. Please try again.");
   }
 }

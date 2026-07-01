@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/Button";
 import { redirect } from "next/navigation";
 import { RoutineViewer, RoutineBlock } from "@/components/routine/RoutineViewer";
 import { DateSelector } from "@/components/ui/DateSelector";
+import { TodayEmptyState } from "@/components/routine/TodayEmptyState";
 import { SeedButton } from "@/components/ui/SeedButton";
 
 type Props = {
@@ -92,18 +93,14 @@ export default async function Home(props: Props) {
             <h2 className="text-2xl font-black text-gray-800">No routine logged.</h2>
             <p className="text-gray-500 font-bold">Looks like you took it easy on this day.</p>
           </div>
-        ) : (
-          <div className="bg-blue-50 p-8 rounded-3xl border-2 border-blue-200 text-center flex flex-col gap-6 shadow-[0_4px_0_0_rgba(191,219,254,1)]">
-            <div>
-              <h2 className="text-2xl font-black text-blue-900 mb-2">Let's build your routine!</h2>
-              <p className="text-blue-700 font-bold">Head over to settings to provide your context and AI API key.</p>
-            </div>
-            <a href="/settings" className="mx-auto">
-              <Button type="button" variant="primary">
-                Go to Settings
-              </Button>
-            </a>
+        ) : selectedDate > todayStr ? (
+          <div className="bg-gray-50 p-8 rounded-3xl border-2 border-gray-200 text-center flex flex-col gap-4 shadow-[0_4px_0_0_rgba(229,231,235,1)]">
+            <div className="text-5xl mb-2">🌅</div>
+            <h2 className="text-2xl font-black text-gray-800">No routine planned yet.</h2>
+            <p className="text-gray-500 font-bold">Wait for the day to arrive to plan your schedule!</p>
           </div>
+        ) : (
+          <TodayEmptyState />
         )}
         
         <div className="flex justify-center mt-4">

@@ -16,7 +16,7 @@ type ModalView = 'none' | 'context' | 'byok';
 export default function SettingsPage() {
   const [globalContext, setGlobalContext] = useState("");
   const [apiKey, setApiKey] = useState("");
-  const [aiModel, setAiModel] = useState("gemini-2.5-flash");
+  const [aiModel, setAiModel] = useState("gemini-1.5-flash");
   
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -225,7 +225,7 @@ export default function SettingsPage() {
                         Model Selection
                       </label>
                       <div className="flex flex-col gap-3">
-                        {['gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-2.0-flash-lite'].map((model) => (
+                        {['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-2.5-flash', 'gemini-2.0-flash-lite'].map((model) => (
                           <button
                             key={model}
                             type="button"

@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { FloatingBackground } from "@/components/ui/FloatingBackground";
 import { generateAuthenticatedRoutine } from "@/app/actions/generateAuthenticatedRoutine";
 import { saveRoutine } from "@/app/actions/saveRoutine";
-import { CoreMessage } from "ai";
+import { ModelMessage } from "ai";
 import { toast } from "sonner";
 import { ArrowLeft, Sparkles, Check, X } from "lucide-react";
 
@@ -19,7 +19,7 @@ export default function GeneratePage() {
   const [saving, setSaving] = useState(false);
   
   // State for the conversation
-  const [messages, setMessages] = useState<CoreMessage[]>([]);
+  const [messages, setMessages] = useState<ModelMessage[]>([]);
   const [aiClarification, setAiClarification] = useState<string>("Tell me about your day!");
   const [generatedBlocks, setGeneratedBlocks] = useState<RoutineBlock[]>([]);
 
@@ -44,7 +44,7 @@ export default function GeneratePage() {
     setLoading(true);
     
     // Add user's message to the conversation history
-    const newUserMessage: CoreMessage = { role: "user", content: inputValue || "Generate my routine." };
+    const newUserMessage: ModelMessage = { role: "user", content: inputValue || "Generate my routine." };
     const updatedMessages = [...messages, newUserMessage];
     setMessages(updatedMessages);
     setInputValue("");
@@ -54,7 +54,7 @@ export default function GeneratePage() {
       const response = await generateAuthenticatedRoutine(updatedMessages, aiConfig.apiKey, aiConfig.model);
       
       // Add the AI's response to the history so it remembers its own questions/blocks
-      const newAiMessage: CoreMessage = { 
+      const newAiMessage: ModelMessage = { 
         role: "assistant", 
         content: response.message + (response.blocks ? JSON.stringify(response.blocks) : "") 
       };
@@ -62,7 +62,12 @@ export default function GeneratePage() {
       setAiClarification(response.message);
 
       if (response.type === "routine" && response.blocks) {
-        setGeneratedBlocks(response.blocks as RoutineBlock[]);
+        const blocksWithIds = response.blocks.map(b => ({
+          ...b,
+          id: Math.random().toString(),
+          source: 'ai' as const
+        }));
+        setGeneratedBlocks(blocksWithIds as RoutineBlock[]);
         toast.success("Routine updated!");
       }
     } catch (err: any) {
@@ -83,8 +88,12 @@ export default function GeneratePage() {
           }
         );
         setAiClarification("Please update your API Key or Model in Settings.");
+      } else if (errMsg.includes("PROVIDER_ERROR:")) {
+        const cleanMsg = errMsg.split("PROVIDER_ERROR:")[1].trim();
+        toast.error(cleanMsg, { duration: 5000 });
+        setAiClarification("The AI provider had an issue. Please wait a moment and try again.");
       } else {
-        toast.error("Failed to generate routine.");
+        toast.error("Failed to generate routine. Please try again.");
         setAiClarification("Oops, something went wrong. Try again.");
       }
       
@@ -104,7 +113,13 @@ export default function GeneratePage() {
     const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
 
     try {
-      await saveRoutine(dateStr, generatedBlocks);
+      await saveRoutine(dateStr, generatedBlocks.map(b => ({
+        start_time: b.start_time,
+        end_time: b.end_time,
+        label: b.label,
+        category: b.category || "other",
+        source: b.source
+      })));
       toast.success("Routine saved successfully!");
       router.push("/home");
     } catch (err: any) {

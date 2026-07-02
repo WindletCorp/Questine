@@ -1,10 +1,11 @@
-import { generateObject, CoreMessage } from 'ai';
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { generateObject, ModelMessage } from 'ai';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { z } from 'zod';
 
 export type GenerateRoutineOptions = {
   systemContext?: string;
-  messages: CoreMessage[];
+  messages: ModelMessage[];
   apiKey: string;
   provider?: string;
   model?: string;
@@ -60,6 +61,15 @@ ${systemContext ? `\nContext:\n${systemContext}` : ''}`;
       throw new Error("QUOTA_EXCEEDED: You have exceeded your AI provider's quota or rate limit.");
     }
 
-    throw new Error("Failed to generate routine. Please try again.");
+    const apiErrMsg = error.data?.error?.message;
+    if (apiErrMsg) {
+      throw new Error(`PROVIDER_ERROR: ${apiErrMsg}`);
+    }
+    
+    if (error.statusCode === 503) {
+      throw new Error(`PROVIDER_ERROR: The AI model is currently experiencing high demand. Please try again later.`);
+    }
+
+    throw new Error(msg || "Failed to generate routine. Please try again.");
   }
 }

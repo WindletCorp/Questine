@@ -21,7 +21,7 @@ export default function LoginPage() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrors({});
-    let newErrors: {email?: string, password?: string} = {};
+    const newErrors: {email?: string, password?: string} = {};
     if (!email) newErrors.email = "Email is required";
     if (!password) newErrors.password = "Password is required";
     if (Object.keys(newErrors).length > 0) {

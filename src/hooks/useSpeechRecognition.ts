@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
@@ -27,7 +28,10 @@ export function useSpeechRecognition({
   onError,
   onEnd
 }: SpeechRecognitionOptions = {}) {
-  const [isSupported, setIsSupported] = useState(false);
+  const [isSupported, setIsSupported] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return !!(window.SpeechRecognition || window.webkitSpeechRecognition);
+  });
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState('');
   
@@ -40,7 +44,6 @@ export function useSpeechRecognition({
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     
     if (SpeechRecognition) {
-      setIsSupported(true);
       recognitionRef.current = new SpeechRecognition();
       
       recognitionRef.current.lang = lang;

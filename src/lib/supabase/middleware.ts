@@ -27,9 +27,13 @@ export async function updateSession(request: NextRequest) {
     }
   )
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  let user = null;
+  try {
+    const { data } = await supabase.auth.getUser();
+    user = data.user;
+  } catch (error) {
+    console.warn("Middleware auth check failed (network/DNS issue):", error);
+  }
 
   // Define public paths that do not require authentication
   const isAuthPage = request.nextUrl.pathname.startsWith('/auth')

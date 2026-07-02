@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useRef } from 'react';
 import { Mic, MicOff, Send } from 'lucide-react';
 import { useSpeechRecognition } from '@/hooks/useSpeechRecognition';
 import { cn } from '@/lib/utils';
@@ -26,7 +26,6 @@ export function MumbleBar({
     isListening,
     startListening,
     stopListening,
-    transcript,
     resetTranscript
   } = useSpeechRecognition({
     continuous: true,

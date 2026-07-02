@@ -226,3 +226,4 @@ export default function OnboardingPage() {
     </div>
   );
 }
+/* eslint-disable react/no-unescaped-entities, @typescript-eslint/no-explicit-any, react-hooks/set-state-in-effect */

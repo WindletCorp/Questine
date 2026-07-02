@@ -2,9 +2,9 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { generateRoutine } from "@/lib/ai/generateRoutine";
-import { CoreMessage } from "ai";
+import { ModelMessage } from "ai";
 
-export async function generateAuthenticatedRoutine(messages: CoreMessage[], apiKey: string, model: string = "gemini-1.5-flash") {
+export async function generateAuthenticatedRoutine(messages: ModelMessage[], apiKey: string, model: string = "gemini-1.5-flash") {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -29,7 +29,12 @@ export async function generateAuthenticatedRoutine(messages: CoreMessage[], apiK
 
   const globalContext = profile?.global_context || "No baseline context provided by the user.";
 
+  const today = new Date();
+  const currentDateStr = today.toLocaleDateString("en-US", { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
   const systemContext = `You are an AI routine builder designed to help users create a daily schedule.
+Current Date and Day: ${currentDateStr}
+
 The user's baseline global context is:
 ${globalContext}
 

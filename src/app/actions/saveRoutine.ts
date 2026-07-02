@@ -19,7 +19,7 @@ export async function saveRoutine(date: string, blocks: SaveRoutineBlock[]) {
   }
 
   // 1. Find or create day_snapshot
-  let { data: snapshot, error: snapshotError } = await supabase
+  const { data: snapshot, error: snapshotError } = await supabase
     .from("day_snapshots")
     .select("id, plan_routine_id")
     .eq("user_id", user.id)

@@ -158,8 +158,8 @@ export default function SettingsPage() {
             className="fixed inset-0 z-50 bg-background flex flex-col"
           >
             {activeModal === 'context' && (
-              <div className="p-6 md:p-12 flex-1 flex flex-col max-w-2xl mx-auto w-full relative h-full">
-                <div className="flex-1 flex flex-col pt-12">
+              <div className="p-6 md:p-12 flex-1 flex flex-col max-w-2xl mx-auto w-full relative h-full overflow-hidden">
+                <div className="flex-1 flex flex-col pt-12 overflow-y-auto pb-6 hide-scrollbar">
                   <h2 className="text-3xl font-black text-gray-800 mb-2">Global Context</h2>
                   <p className="text-gray-500 font-bold mb-8">
                     The AI uses this baseline to structure your daily routines. Give it your typical wake up time, work hours, and mandatory habits.
@@ -185,8 +185,8 @@ export default function SettingsPage() {
             )}
 
             {activeModal === 'byok' && (
-              <div className="p-6 md:p-12 flex-1 flex flex-col max-w-2xl mx-auto w-full relative h-full">
-                <div className="flex-1 flex flex-col pt-12">
+              <div className="p-6 md:p-12 flex-1 flex flex-col max-w-2xl mx-auto w-full relative h-full overflow-hidden">
+                <div className="flex-1 flex flex-col pt-12 overflow-y-auto pb-6 hide-scrollbar">
                   <h2 className="text-3xl font-black text-gray-800 mb-2">AI Settings</h2>
                   <p className="text-gray-500 font-bold mb-8">
                     Bring your own Gemini API key. Stored securely in your browser's local storage.
@@ -240,6 +240,15 @@ export default function SettingsPage() {
                             {model}
                           </button>
                         ))}
+                        <div className="mt-2">
+                          <Input 
+                            label="Or type a custom model string" 
+                            type="text" 
+                            value={!['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-2.5-flash', 'gemini-2.0-flash-lite'].includes(aiModel) ? aiModel : ""}
+                            onChange={(e) => setAiModel(e.target.value)}
+                            placeholder="e.g. gemini-2.5-pro"
+                          />
+                        </div>
                       </div>
                     </div>
                   </div>

@@ -24,7 +24,7 @@ export default function SignupPage() {
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrors({});
-    let newErrors: {email?: string, password?: string, username?: string} = {};
+    const newErrors: {email?: string, password?: string, username?: string} = {};
     if (!username) newErrors.username = "Display name is required";
     if (!email) newErrors.email = "Email is required";
     if (!password) newErrors.password = "Password is required";

@@ -10,6 +10,7 @@ import { TaskCard } from "@/components/ui/TaskCard";
 import Link from "next/link";
 import { Plus } from "lucide-react";
 
+
 type Props = {
   searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
 };
@@ -30,7 +31,7 @@ export default async function JournalPage(props: Props) {
   const month = String(todayDateObj.getMonth() + 1).padStart(2, '0');
   const day = String(todayDateObj.getDate()).padStart(2, '0');
   const todayStr = `${year}-${month}-${day}`;
-  
+
   const selectedDate = dateParam || todayStr;
 
   const startOfDay = new Date(`${selectedDate}T00:00:00.000Z`).toISOString();
@@ -44,12 +45,25 @@ export default async function JournalPage(props: Props) {
     .lt("start_time", endOfDay)
     .order("start_time", { ascending: true });
 
-  const { data: tasks } = await supabase
+  const { data: tasksData1 } = await supabase
     .from("tasks")
     .select("*")
     .eq("user_id", user.id)
-    .eq("target_date", selectedDate)
-    .order("created_at", { ascending: true });
+    .eq("target_date", selectedDate);
+
+  const { data: tasksData2 } = await supabase
+    .from("tasks")
+    .select("*")
+    .eq("user_id", user.id)
+    .eq("status", "completed")
+    .gte("completed_at", startOfDay)
+    .lt("completed_at", endOfDay);
+
+  const tasksMap = new Map();
+  [...(tasksData1 || []), ...(tasksData2 || [])].forEach(t => tasksMap.set(t.id, t));
+  const tasks = Array.from(tasksMap.values()).sort((a, b) =>
+    new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+  );
 
   const { data: metricLogs } = await supabase
     .from("metric_logs")
@@ -81,13 +95,19 @@ export default async function JournalPage(props: Props) {
   }
 
   return (
-    <div className="flex flex-col flex-1 items-center bg-background p-6 md:p-12">
+    <div className="flex flex-col flex-1 items-center bg-background p-6 pt-28 md:p-12 md:pt-32">
+
+      {/* Top CTA Island */}
+      <div className="fixed top-6 left-1/2 -translate-x-1/2 w-[92%] max-w-md bg-white border-4 border-gray-200 rounded-[2rem] p-4 z-50 flex justify-center items-center shadow-[0_8px_0_0_#e5e7eb]">
+        <Link
+          href="/journal/new"
+          className="flex items-center justify-center gap-2 px-6 py-2 rounded-xl bg-amber-400 text-amber-950 font-black shadow-[0_4px_0_0_#d97706] hover:bg-amber-300 hover:translate-y-[-2px] hover:shadow-[0_6px_0_0_#d97706] active:translate-y-[4px] active:shadow-none transition-all w-full"
+        >
+          <Plus strokeWidth={3} size={18} /> New Entry
+        </Link>
+      </div>
+
       <div className="w-full max-w-2xl flex flex-col gap-8">
-        
-        <div className="text-center w-full mb-2">
-          <h1 className="text-3xl font-black text-foreground tracking-tight">Journal & History</h1>
-          <p className="text-zinc-500 font-bold text-sm">Review your past days and log your thoughts.</p>
-        </div>
 
         <DateSelector selectedDate={selectedDate} />
 
@@ -95,8 +115,8 @@ export default async function JournalPage(props: Props) {
           <h2 className="text-2xl font-black text-gray-800">Routine History</h2>
           {blocks.length > 0 ? (
             <div className="bg-white p-6 rounded-3xl shadow-sm border-2 border-gray-100 opacity-80 scale-[0.98]">
-              <RoutineViewerWithToggle 
-                blocks={blocks} 
+              <RoutineViewerWithToggle
+                blocks={blocks}
                 viewDateStr={selectedDate}
                 defaultMode={blocks.some(b => b.type === 'actual') ? (blocks.some(b => b.type === 'plan') ? 'overlay' : 'actual') : 'plan'}
                 initialScrollTime="08:00"
@@ -115,12 +135,12 @@ export default async function JournalPage(props: Props) {
             {metricLogs?.map((m: any, i: number) => {
               const themes = ["indigo", "pink", "blue", "emerald", "orange"] as const;
               return (
-                <MetricCard 
-                  key={m.id} 
+                <MetricCard
+                  key={m.id}
                   id={m.id}
-                  name={m.metric_definitions?.name || "Unknown"} 
-                  value={m.value} 
-                  unit={m.metric_definitions?.unit} 
+                  name={m.metric_definitions?.name || "Unknown"}
+                  value={m.value}
+                  unit={m.metric_definitions?.unit}
                   colorTheme={themes[i % themes.length]}
                 />
               );
@@ -133,12 +153,12 @@ export default async function JournalPage(props: Props) {
           <h2 className="text-2xl font-black text-gray-800">Tasks</h2>
           <div className="flex flex-col gap-3">
             {tasks?.length ? tasks.map((t: any) => (
-              <TaskCard 
-                key={t.id} 
-                id={t.id} 
-                title={t.title} 
-                status={t.status} 
-                targetDate={t.target_date} 
+              <TaskCard
+                key={t.id}
+                id={t.id}
+                title={t.title}
+                status={t.status}
+                targetDate={t.target_date}
                 linkedBlockId={t.linked_block_id}
                 availableBlocks={blocks}
               />
@@ -156,15 +176,8 @@ export default async function JournalPage(props: Props) {
             )) : (
               <div className="text-gray-400 font-bold italic py-4">No journal entries.</div>
             )}
-            <Link 
-              href="/journal/new"
-              className="flex items-center justify-center gap-2 w-full p-4 rounded-3xl border-4 border-dashed border-amber-300 bg-amber-50 text-amber-600 font-black hover:bg-amber-100 transition-colors"
-            >
-              <Plus strokeWidth={3} /> New Journal Entry
-            </Link>
           </div>
         </div>
-        
       </div>
     </div>
   );

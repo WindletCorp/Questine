@@ -93,18 +93,17 @@ export default function SettingsPage() {
   if (loading) return null;
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center p-6 bg-background relative overflow-hidden">
+    <div className="flex min-h-screen flex-col items-center justify-center p-6 pt-28 md:p-12 md:pt-32 bg-background relative overflow-hidden">
       <FloatingBackground />
-      
-      <div className="w-full max-w-lg flex flex-col gap-6 z-10 relative">
-        <div className="text-center w-full mb-4">
-          <h1 className="text-4xl font-black text-foreground mb-3 tracking-tight">
-            Settings
-          </h1>
-          <p className="text-zinc-500 font-bold text-lg">
-            Configure your Questine experience.
-          </p>
+
+      {/* Top CTA Island */}
+      <div className="fixed top-6 left-1/2 -translate-x-1/2 w-[92%] max-w-md bg-white border-4 border-gray-200 rounded-[2rem] p-4 z-50 flex justify-center items-center shadow-[0_8px_0_0_#e5e7eb]">
+        <div className="flex items-center justify-center px-6 py-2 rounded-xl bg-gray-100 text-gray-500 font-black shadow-inner w-full cursor-default select-none">
+          <Settings size={18} className="mr-2" /> Engine Room
         </div>
+      </div>
+
+      <div className="w-full max-w-lg flex flex-col gap-6 z-10 relative">
 
         <div className="flex flex-col gap-4">
           <button 

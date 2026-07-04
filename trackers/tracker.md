@@ -23,3 +23,6 @@ This tracker documents the high-level progress of the Questine routine builder a
 - `RoutineViewerWithToggle` (Core component: Overlay Plan/Actual toggle)
 - `DateSelector` (Core component: Chunk week view for date navigation)
 - `/catchup` (Catch-up screen for logging actual routines vs plan)
+
+## Post-MVP Optimizations
+- [ ] Implement Optimistic Updates (`useOptimistic`) for Tasks and Metrics to eliminate network latency lag.

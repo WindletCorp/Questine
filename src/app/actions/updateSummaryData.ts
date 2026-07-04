@@ -24,7 +24,7 @@ export async function toggleTaskStatus(taskId: string, newStatus: "pending" | "c
     throw new Error("Failed to update task status");
   }
 
-  revalidatePath("/home");
+  revalidatePath("/", "layout");
   revalidatePath("/catchup");
   return { success: true };
 }
@@ -47,7 +47,7 @@ export async function updateMetricValue(metricLogId: string, newValue: number) {
     throw new Error("Failed to update metric value");
   }
 
-  revalidatePath("/home");
+  revalidatePath("/", "layout");
   revalidatePath("/catchup");
   return { success: true };
 }
@@ -66,7 +66,7 @@ export async function updateJournalLog(logId: string, newContent: string) {
 
   if (error) throw new Error("Failed to update journal log");
   
-  revalidatePath("/home");
+  revalidatePath("/", "layout");
   revalidatePath("/catchup");
   return { success: true };
 }
@@ -82,7 +82,7 @@ export async function createJournalLog(content: string) {
   });
 
   if (error) throw new Error("Failed to create journal log");
-  revalidatePath("/home");
+  revalidatePath("/", "layout");
   return { success: true };
 }
 
@@ -99,7 +99,7 @@ export async function createTask(title: string, date: string) {
   });
 
   if (error) throw new Error("Failed to create task");
-  revalidatePath("/home");
+  revalidatePath("/", "layout");
   return { success: true };
 }
 
@@ -115,7 +115,7 @@ export async function updateTaskDetails(taskId: string, title: string, targetDat
   }).eq("id", taskId).eq("user_id", user.id);
 
   if (error) throw new Error("Failed to update task");
-  revalidatePath("/home");
+  revalidatePath("/", "layout");
   return { success: true };
 }
 
@@ -126,7 +126,7 @@ export async function deleteTask(taskId: string) {
 
   const { error } = await supabase.from("tasks").delete().eq("id", taskId).eq("user_id", user.id);
   if (error) throw new Error("Failed to delete task");
-  revalidatePath("/home");
+  revalidatePath("/", "layout");
   return { success: true };
 }
 
@@ -156,6 +156,6 @@ export async function createMetric(name: string, value: number, unit?: string) {
   });
 
   if (error) throw new Error("Failed to create metric");
-  revalidatePath("/home");
+  revalidatePath("/", "layout");
   return { success: true };
 }

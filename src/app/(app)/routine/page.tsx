@@ -4,7 +4,6 @@ import { RoutineBlock } from "@/components/routine/RoutineViewer";
 import { RoutineViewerWithToggle } from "@/components/routine/RoutineViewerWithToggle";
 import { DateSelector } from "@/components/ui/DateSelector";
 import { TodayEmptyState } from "@/components/routine/TodayEmptyState";
-import { SeedButton } from "@/components/ui/SeedButton";
 import { TaskCard } from "@/components/ui/TaskCard";
 import { CreateTaskInline } from "@/components/ui/CreateTaskInline";
 import Link from "next/link";
@@ -55,12 +54,25 @@ export default async function RoutinePage(props: Props) {
     .lt("start_time", endOfDay)
     .order("start_time", { ascending: true });
 
-  const { data: tasks } = await supabase
+  const { data: tasksData1 } = await supabase
     .from("tasks")
     .select("*")
     .eq("user_id", user.id)
-    .eq("target_date", selectedDate)
-    .order("created_at", { ascending: true });
+    .eq("target_date", selectedDate);
+
+  const { data: tasksData2 } = await supabase
+    .from("tasks")
+    .select("*")
+    .eq("user_id", user.id)
+    .eq("status", "completed")
+    .gte("completed_at", startOfDay)
+    .lt("completed_at", endOfDay);
+
+  const tasksMap = new Map();
+  [...(tasksData1 || []), ...(tasksData2 || [])].forEach(t => tasksMap.set(t.id, t));
+  const tasks = Array.from(tasksMap.values()).sort((a, b) => 
+    new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+  );
 
   let blocks: RoutineBlock[] = [];
   if (timelineBlocks) {
@@ -76,12 +88,20 @@ export default async function RoutinePage(props: Props) {
   }
 
   return (
-    <div className="flex flex-col flex-1 items-center bg-background p-6 md:p-12">
-      <div className="w-full max-w-2xl flex flex-col gap-8">
-        <div className="text-center w-full mb-2">
-          <h1 className="text-3xl font-black text-foreground tracking-tight">Routine</h1>
-          <p className="text-zinc-500 font-bold text-sm">Plan and track your day</p>
+    <div className={`flex flex-col flex-1 items-center bg-background p-6 md:p-12 ${canCatchUp ? 'pt-28 md:pt-32' : ''}`}>
+      
+      {/* Top CTA Island */}
+      {canCatchUp && (
+        <div className="fixed top-6 left-1/2 -translate-x-1/2 w-[92%] max-w-md bg-white border-4 border-gray-200 rounded-[2rem] p-4 z-50 flex justify-center items-center shadow-[0_8px_0_0_#e5e7eb]">
+          <Link href={`/catchup?date=${selectedDate}`} className="w-full">
+            <Button type="button" variant="primary" className="py-3 px-4 shadow-[0_4px_0_0_rgba(251,207,232,1)] flex items-center justify-center gap-2 w-full text-lg">
+              <Play size={20} fill="currentColor" /> Log Reality
+            </Button>
+          </Link>
         </div>
+      )}
+
+      <div className="w-full max-w-2xl flex flex-col gap-8">
 
         <DateSelector selectedDate={selectedDate} />
 
@@ -91,13 +111,6 @@ export default async function RoutinePage(props: Props) {
               <h2 className="text-2xl font-black text-foreground">
                 {selectedDate === todayStr ? "Today's Routine" : "Routine"}
               </h2>
-              {canCatchUp && (
-                <Link href={`/catchup?date=${selectedDate}`}>
-                  <Button type="button" variant="primary" className="py-2 px-4 shadow-[0_4px_0_0_rgba(251,207,232,1)] flex items-center gap-2">
-                    <Play size={16} fill="currentColor" /> Log Reality
-                  </Button>
-                </Link>
-              )}
             </div>
             <div className="bg-white p-6 rounded-3xl shadow-sm border-2 border-gray-100">
               <RoutineViewerWithToggle 
@@ -124,10 +137,6 @@ export default async function RoutinePage(props: Props) {
           <TodayEmptyState />
         )}
         
-        <div className="flex justify-center mt-2">
-          <SeedButton />
-        </div>
-
         <div className="flex flex-col gap-4 mt-8">
           <h3 className="text-xl font-black text-gray-800">Tasks</h3>
           <div className="flex flex-col gap-3">

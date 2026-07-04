@@ -49,6 +49,7 @@ export function TaskCard({
   const [editTargetDate, setEditTargetDate] = useState(targetDate || dateStr || "");
   const [editLinkedBlock, setEditLinkedBlock] = useState(linkedBlockId);
   const [loading, setLoading] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const controls = useAnimation();
   const isCompleted = status === "completed";
@@ -95,13 +96,8 @@ export function TaskCard({
     }
   };
 
-  const handleDelete = async () => {
+  const confirmDelete = async () => {
     if (!id) return;
-    if (!confirm("Are you sure you want to delete this task?")) {
-      controls.start({ x: 0 });
-      return;
-    }
-    
     setLoading(true);
     try {
       await deleteTask(id);
@@ -110,7 +106,13 @@ export function TaskCard({
       toast.error("Failed to delete task");
       controls.start({ x: 0 });
       setLoading(false);
+      setShowDeleteConfirm(false);
     }
+  };
+
+  const handleDelete = () => {
+    if (!id) return;
+    setShowDeleteConfirm(true);
   };
 
   const onDragEnd = (event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
@@ -194,17 +196,14 @@ export function TaskCard({
         </div>
       </div>
 
-      <motion.button
-        type="button"
+      <motion.div
         drag="x"
         dragConstraints={{ left: 0, right: 0 }}
         dragElastic={0.2}
         onDragEnd={onDragEnd}
         animate={controls}
-        onClick={handleToggle}
-        disabled={!id || loading}
         className={cn(
-          "relative z-10 flex items-center gap-4 p-4 rounded-2xl border-4 shadow-sm transition-colors duration-200 text-left w-full outline-none focus-visible:ring-4 focus-visible:ring-emerald-200",
+          "relative z-10 flex items-center gap-4 p-4 rounded-2xl border-4 shadow-sm transition-colors duration-200 text-left w-full",
           isCompleted
             ? "bg-emerald-50 border-emerald-500"
             : "bg-white border-gray-200 hover:bg-gray-50",
@@ -212,16 +211,41 @@ export function TaskCard({
           (!id || loading) && "cursor-not-allowed pointer-events-none brightness-95"
         )}
       >
-        <div
+        {showDeleteConfirm ? (
+          <div className="absolute inset-0 z-20 flex items-center justify-between px-4 bg-red-50 rounded-xl border-4 border-red-400 m-[-4px]">
+            <span className="font-bold text-red-600">Delete task?</span>
+            <div className="flex gap-2">
+              <button 
+                type="button"
+                onClick={(e) => { e.stopPropagation(); setShowDeleteConfirm(false); controls.start({ x: 0 }); }} 
+                className="px-4 py-2 rounded-xl bg-gray-200 text-gray-700 font-bold hover:bg-gray-300 transition-colors"
+              >
+                Cancel
+              </button>
+              <button 
+                type="button"
+                onClick={(e) => { e.stopPropagation(); confirmDelete(); }} 
+                className="px-4 py-2 rounded-xl bg-red-500 text-white font-bold hover:bg-red-600 transition-colors shadow-[0_4px_0_0_#b91c1c] active:translate-y-1 active:shadow-none"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        ) : null}
+
+        <button
+          type="button"
+          onClick={handleToggle}
+          disabled={!id || loading}
           className={cn(
-            "w-8 h-8 rounded-xl flex items-center justify-center border-2 shrink-0 transition-colors",
+            "w-8 h-8 rounded-xl flex items-center justify-center border-2 shrink-0 transition-colors focus:outline-none focus-visible:ring-4 focus-visible:ring-emerald-200",
             isCompleted
               ? "bg-emerald-500 border-emerald-600 text-white"
-              : "bg-gray-100 border-gray-300 text-transparent"
+              : "bg-gray-100 border-gray-300 text-transparent hover:border-gray-400 hover:bg-gray-200"
           )}
         >
           <Check strokeWidth={4} size={18} />
-        </div>
+        </button>
         <div className="flex-1 overflow-hidden">
           <span
             className={cn(
@@ -235,7 +259,7 @@ export function TaskCard({
              <span className="text-xs font-bold text-gray-400 block mt-1">Due: {targetDate}</span>
           )}
         </div>
-      </motion.button>
+      </motion.div>
     </div>
   );
 }

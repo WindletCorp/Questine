@@ -48,16 +48,20 @@ export default async function HomePage() {
     currentBlock = actual || plan || null;
   }
 
+  const hour = todayDateObj.getHours();
+  let greeting = "Good Evening";
+  if (hour < 12) greeting = "Good Morning";
+  else if (hour < 17) greeting = "Good Afternoon";
+
   return (
-    <div className="flex flex-col flex-1 items-center bg-background p-6 md:p-12">
+    <div className="flex flex-col flex-1 items-center bg-background p-6 pt-28 md:p-12 md:pt-32">
+      
+      {/* Top CTA Island */}
+      <div className="fixed top-6 left-1/2 -translate-x-1/2 w-[92%] max-w-md bg-white border-4 border-gray-200 rounded-[2rem] p-4 z-50 flex justify-center items-center shadow-[0_8px_0_0_#e5e7eb]">
+        <span className="font-black text-gray-800 text-lg">{greeting}!</span>
+      </div>
+
       <div className="w-full max-w-2xl flex flex-col gap-8">
-        
-        <div className="flex justify-between items-center w-full">
-          <div>
-            <h1 className="text-3xl font-black text-foreground mb-1">Questine</h1>
-            <p className="text-zinc-500 font-bold text-sm">Hello, {user.email?.split('@')[0]}</p>
-          </div>
-        </div>
 
         {/* Current Block Widget */}
         <div className="flex flex-col gap-4 mt-4">

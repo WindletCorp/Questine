@@ -19,7 +19,7 @@ export default async function EditJournalPage({ params }: { params: Promise<{ id
     .single();
 
   if (error || !log) {
-    redirect("/home");
+    redirect("/journal");
   }
 
   return <JournalEditor id={log.id} initialContent={log.content} />;

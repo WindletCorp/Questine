@@ -140,11 +140,7 @@ export default function SettingsPage() {
           </button>
         </div>
 
-        <div className="mt-6 flex justify-center">
-          <Button variant="secondary" onClick={() => router.push("/home")}>
-            Back to Dashboard
-          </Button>
-        </div>
+
       </div>
 
       {/* FULL SCREEN MODALS */}

@@ -1,4 +1,5 @@
 import { BottomNav } from "@/components/layout/BottomNav";
+import { GlobalAIAssistant } from "@/components/ui/GlobalAIAssistant";
 
 export default function AppLayout({
   children,
@@ -11,6 +12,7 @@ export default function AppLayout({
         {children}
       </div>
       <BottomNav />
+      <GlobalAIAssistant />
     </div>
   );
 }

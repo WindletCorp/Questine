@@ -1,15 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import { DateSelector } from "@/components/ui/DateSelector";
-import { JournalLogBubble } from "@/components/ui/JournalLogBubble";
-import { MetricCard } from "@/components/ui/MetricCard";
-import { CreateMetricInline } from "@/components/ui/CreateMetricInline";
-import { RoutineViewerWithToggle } from "@/components/routine/RoutineViewerWithToggle";
 import { RoutineBlock } from "@/components/routine/RoutineViewer";
-import { TaskCard } from "@/components/ui/TaskCard";
 import Link from "next/link";
 import { Plus } from "lucide-react";
-
+import { JournalDashboard } from "@/components/journal/JournalDashboard";
 
 type Props = {
   searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
@@ -108,76 +102,13 @@ export default async function JournalPage(props: Props) {
       </div>
 
       <div className="w-full max-w-2xl flex flex-col gap-8">
-
-        <DateSelector selectedDate={selectedDate} />
-
-        <div className="flex flex-col gap-4 mt-4">
-          <h2 className="text-2xl font-black text-gray-800">Routine History</h2>
-          {blocks.length > 0 ? (
-            <div className="bg-white p-6 rounded-3xl shadow-sm border-2 border-gray-100 opacity-80 scale-[0.98]">
-              <RoutineViewerWithToggle
-                blocks={blocks}
-                viewDateStr={selectedDate}
-                defaultMode={blocks.some(b => b.type === 'actual') ? (blocks.some(b => b.type === 'plan') ? 'overlay' : 'actual') : 'plan'}
-                initialScrollTime="08:00"
-              />
-            </div>
-          ) : (
-            <div className="bg-gray-50 p-8 rounded-3xl border-2 border-gray-200 text-center font-bold text-gray-500 shadow-inner">
-              No routine logged on this date.
-            </div>
-          )}
-        </div>
-
-        <div className="flex flex-col gap-4 mt-8">
-          <h2 className="text-2xl font-black text-gray-800">Metrics</h2>
-          <div className="flex flex-wrap gap-4">
-            {metricLogs?.map((m: any, i: number) => {
-              const themes = ["indigo", "pink", "blue", "emerald", "orange"] as const;
-              return (
-                <MetricCard
-                  key={m.id}
-                  id={m.id}
-                  name={m.metric_definitions?.name || "Unknown"}
-                  value={m.value}
-                  unit={m.metric_definitions?.unit}
-                  colorTheme={themes[i % themes.length]}
-                />
-              );
-            })}
-            <CreateMetricInline dateStr={selectedDate} />
-          </div>
-        </div>
-
-        <div className="flex flex-col gap-4 mt-8">
-          <h2 className="text-2xl font-black text-gray-800">Tasks</h2>
-          <div className="flex flex-col gap-3">
-            {tasks?.length ? tasks.map((t: any) => (
-              <TaskCard
-                key={t.id}
-                id={t.id}
-                title={t.title}
-                status={t.status}
-                targetDate={t.target_date}
-                linkedBlockId={t.linked_block_id}
-                availableBlocks={blocks}
-              />
-            )) : (
-              <div className="text-gray-400 font-bold italic py-4">No tasks logged.</div>
-            )}
-          </div>
-        </div>
-
-        <div className="flex flex-col gap-4 mt-8">
-          <h2 className="text-2xl font-black text-gray-800">Journal Logs</h2>
-          <div className="flex flex-col gap-6">
-            {journalLogs?.length ? journalLogs.map((log: any) => (
-              <JournalLogBubble key={log.id} id={log.id} content={log.content} timestamp={log.logged_at} />
-            )) : (
-              <div className="text-gray-400 font-bold italic py-4">No journal entries.</div>
-            )}
-          </div>
-        </div>
+        <JournalDashboard 
+          selectedDate={selectedDate}
+          blocks={blocks}
+          tasks={tasks}
+          journalLogs={journalLogs || []}
+          metricLogs={metricLogs || []}
+        />
       </div>
     </div>
   );

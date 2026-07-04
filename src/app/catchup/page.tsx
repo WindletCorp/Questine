@@ -17,7 +17,7 @@ import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 
-type WizardState = "loading" | "no_plan" | "review" | "generating" | "final";
+type WizardState = "loading" | "no_plan" | "review" | "mind_dump" | "generating" | "final";
 
 interface BlockReview {
   block: RoutineBlock;
@@ -259,11 +259,48 @@ export default function CatchUpPage() {
             </motion.div>
           )}
 
+          {wizardState === "mind_dump" && (
+            <motion.div key="minddump" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="w-full max-w-2xl flex flex-col gap-6">
+              <div className="bg-purple-50 border-4 border-purple-200 rounded-3xl p-6 shadow-sm flex items-start gap-4">
+                <div className="bg-white p-3 rounded-2xl shadow-sm text-purple-500">
+                  <Sparkles size={24} />
+                </div>
+                <div className="flex-1 pt-2 min-h-[40px] flex items-center">
+                  <p className="text-lg font-bold text-purple-900 leading-tight">
+                    Skip the block-by-block review. Just tell me what you did today!
+                  </p>
+                </div>
+              </div>
+              <MumbleBar 
+                value={fallbackInput} 
+                onChange={setFallbackInput} 
+                onSubmit={() => executeAI([], true)}
+                placeholder="e.g. I followed the plan until noon, but then I had to go to the dentist..."
+              />
+              <div className="flex gap-4">
+                <Button variant="secondary" onClick={() => setWizardState("review")} className="flex-1">
+                  Back to Review
+                </Button>
+                <Button onClick={() => executeAI([], true)} disabled={!fallbackInput.trim()} className="flex-1 bg-purple-500 hover:bg-purple-600 shadow-[0_4px_0_0_#9333ea]">
+                  Process Reality
+                </Button>
+              </div>
+            </motion.div>
+          )}
+
           {wizardState === "review" && currentBlock && (
             <motion.div key="review" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} className="w-full max-w-xl flex flex-col gap-6">
               
-              <div className="text-center font-bold text-gray-400 text-sm tracking-widest uppercase">
-                Reviewing Block {reviewIndex + 1} of {plannedBlocks.length}
+              <div className="flex items-center justify-between w-full">
+                <div className="font-bold text-gray-400 text-sm tracking-widest uppercase">
+                  Reviewing Block {reviewIndex + 1} of {plannedBlocks.length}
+                </div>
+                <button
+                  onClick={() => setWizardState("mind_dump")}
+                  className="text-xs font-bold bg-purple-100 text-purple-700 hover:bg-purple-200 px-3 py-1.5 rounded-full transition-colors flex items-center gap-1"
+                >
+                  <Sparkles size={14} /> AI Mind Dump
+                </button>
               </div>
 
               <div className="bg-white p-8 rounded-[2rem] shadow-sm border-4 border-gray-100 flex flex-col items-center text-center gap-4">

@@ -46,10 +46,13 @@ const formatMonthYear = (date: Date) => {
 
 export function DateSelector({ selectedDate }: DateSelectorProps) {
   const router = useRouter();
+  const [isPending, startTransition] = React.useTransition();
+  const [pendingDateStr, setPendingDateStr] = useState<string | null>(null);
   
   const [viewedWeekStart, setViewedWeekStart] = useState<Date>(getWeekStart(selectedDate));
   
   useEffect(() => {
+    setPendingDateStr(null);
     const selectedWeekStart = getWeekStart(selectedDate);
     if (formatDate(viewedWeekStart) !== formatDate(selectedWeekStart)) {
       setViewedWeekStart(selectedWeekStart);
@@ -66,7 +69,11 @@ export function DateSelector({ selectedDate }: DateSelectorProps) {
 
   const handleDateClick = (dateStr: string) => {
     if (dateStr !== selectedDate) {
-      router.push(`?date=${dateStr}`);
+      setPendingDateStr(dateStr);
+      startTransition(() => {
+        // We use scroll: false to prevent jumping to top on query param change
+        router.push(`?date=${dateStr}`, { scroll: false });
+      });
     }
   };
 
@@ -78,7 +85,8 @@ export function DateSelector({ selectedDate }: DateSelectorProps) {
       <div className="flex items-center justify-between w-full max-w-sm px-4">
         <button 
           onClick={handlePrevWeek}
-          className="p-2 rounded-xl bg-white border-2 border-gray-200 shadow-[0_4px_0_0_rgba(229,231,235,1)] hover:bg-gray-50 active:translate-y-1 active:shadow-none transition-all text-gray-500"
+          disabled={isPending}
+          className="p-2 rounded-xl bg-white border-2 border-gray-200 shadow-[0_4px_0_0_rgba(229,231,235,1)] hover:bg-gray-50 active:translate-y-1 active:shadow-none transition-all text-gray-500 disabled:opacity-50"
         >
           <ChevronLeft size={24} />
         </button>
@@ -89,7 +97,8 @@ export function DateSelector({ selectedDate }: DateSelectorProps) {
 
         <button 
           onClick={handleNextWeek}
-          className="p-2 rounded-xl bg-white border-2 border-gray-200 shadow-[0_4px_0_0_rgba(229,231,235,1)] hover:bg-gray-50 active:translate-y-1 active:shadow-none transition-all text-gray-500"
+          disabled={isPending}
+          className="p-2 rounded-xl bg-white border-2 border-gray-200 shadow-[0_4px_0_0_rgba(229,231,235,1)] hover:bg-gray-50 active:translate-y-1 active:shadow-none transition-all text-gray-500 disabled:opacity-50"
         >
           <ChevronRight size={24} />
         </button>
@@ -100,25 +109,38 @@ export function DateSelector({ selectedDate }: DateSelectorProps) {
           const dateStr = formatDate(date);
           const isSelected = dateStr === selectedDate;
           const isToday = dateStr === todayStr;
+          const isThisPending = isPending && pendingDateStr === dateStr;
 
           return (
             <button
               key={dateStr}
               onClick={() => handleDateClick(dateStr)}
+              disabled={isPending}
               className={cn(
                 "relative flex flex-col items-center justify-center w-12 h-16 rounded-2xl border-2 transition-all active:translate-y-1 active:shadow-none",
                 isSelected 
                   ? "bg-blue-100 border-blue-300 shadow-[0_4px_0_0_rgba(147,197,253,1)] text-blue-900" 
-                  : "bg-white border-gray-200 shadow-[0_4px_0_0_rgba(229,231,235,1)] text-gray-600 hover:bg-gray-50"
+                  : "bg-white border-gray-200 shadow-[0_4px_0_0_rgba(229,231,235,1)] text-gray-600 hover:bg-gray-50",
+                isPending && !isThisPending && "opacity-50"
               )}
             >
               <span className={cn("text-xs font-bold mb-1 opacity-70", isSelected && "opacity-100")}>
                 {formatDayShort(date)}
               </span>
-              <span className="text-lg font-black leading-none">
-                {formatDayNumber(date)}
-              </span>
-              {isToday && !isSelected && (
+              
+              {isThisPending ? (
+                <div className="flex items-center gap-0.5 mt-0.5">
+                  <div className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '-0.3s' }}></div>
+                  <div className="w-1.5 h-1.5 bg-pink-400 rounded-full animate-bounce" style={{ animationDelay: '-0.15s' }}></div>
+                  <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-bounce"></div>
+                </div>
+              ) : (
+                <span className="text-lg font-black leading-none">
+                  {formatDayNumber(date)}
+                </span>
+              )}
+              
+              {isToday && !isSelected && !isThisPending && (
                 <div className="absolute -bottom-1 w-2 h-2 rounded-full bg-blue-400" />
               )}
             </button>

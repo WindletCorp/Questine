@@ -50,8 +50,21 @@ export default function GeneratePage() {
     setInputValue("");
     setAiClarification("Thinking...");
 
+    // Inject current blocks state into the prompt for the AI so it respects manual edits
+    const apiMessages = [...updatedMessages];
+    if (generatedBlocks.length > 0) {
+      const lastMsgIndex = apiMessages.length - 1;
+      const lastMsg = apiMessages[lastMsgIndex];
+      if (lastMsg.role === 'user' && typeof lastMsg.content === 'string') {
+        apiMessages[lastMsgIndex] = {
+          ...lastMsg,
+          content: `Current routine state (includes manual edits):\n${JSON.stringify(generatedBlocks)}\n\nUser request: ${lastMsg.content}`
+        };
+      }
+    }
+
     try {
-      const response = await generateAuthenticatedRoutine(updatedMessages, aiConfig.apiKey, aiConfig.model);
+      const response = await generateAuthenticatedRoutine(apiMessages, aiConfig.apiKey, aiConfig.model);
       
       // Add the AI's response to the history so it remembers its own questions/blocks
       const newAiMessage: ModelMessage = { 
@@ -60,6 +73,10 @@ export default function GeneratePage() {
       };
       setMessages([...updatedMessages, newAiMessage]);
       setAiClarification(response.message);
+
+      if (response.updated_global_context) {
+        toast.success("✨ AI updated your permanent preferences!");
+      }
 
       if (response.type === "routine" && response.blocks) {
         const blocksWithIds = response.blocks.map(b => ({
@@ -199,6 +216,7 @@ export default function GeneratePage() {
                 onBlockUpdate={(b) => setGeneratedBlocks(prev => prev.map(old => old.id === b.id ? b : old))}
                 onBlockAdd={(b) => setGeneratedBlocks(prev => [...prev, { ...b, id: Math.random().toString() } as RoutineBlock])}
                 onBlockDelete={(id) => setGeneratedBlocks(prev => prev.filter(b => b.id !== id))}
+                initialScrollTime="current"
               />
             </div>
             

@@ -22,7 +22,8 @@ const routineBlockSchema = z.object({
 const aiResponseSchema = z.object({
   type: z.enum(['routine', 'clarification']).describe("Whether you successfully generated the routine blocks, or if you need to ask a clarifying question because critical information is missing."),
   message: z.string().describe("A conversational message to the user. E.g. 'What time is your dentist appointment?' or 'Here is your generated routine for today!'"),
-  blocks: z.array(routineBlockSchema).optional().describe("An array of chronological, non-overlapping time blocks. Only include this if type is 'routine'.")
+  blocks: z.array(routineBlockSchema).optional().describe("An array of chronological, non-overlapping time blocks. Only include this if type is 'routine'."),
+  updated_global_context: z.string().optional().describe("If the user's prompt implies a permanent change to their lifestyle, habits, or schedule (e.g. 'I now work from 9-5'), provide a comprehensive updated version of their global context incorporating this new fact. Otherwise, leave undefined.")
 });
 
 export async function generateRoutine({ systemContext, messages, apiKey, provider = 'google', model = 'gemini-1.5-flash' }: GenerateRoutineOptions) {

@@ -25,6 +25,7 @@ interface RoutineViewerProps {
   onBlockAdd?: (newBlock: Omit<RoutineBlock, 'id'>) => void;
   onBlockDelete?: (blockId: string) => void;
   className?: string;
+  initialScrollTime?: 'current' | string;
 }
 
 const PIXELS_PER_MINUTE = 2; 
@@ -73,9 +74,50 @@ export function RoutineViewer({
   onBlockUpdate,
   onBlockAdd,
   onBlockDelete,
-  className
+  className,
+  initialScrollTime
 }: RoutineViewerProps) {
+  const scrollRef = React.useRef<HTMLDivElement>(null);
   const [editingBlockId, setEditingBlockId] = useState<string | null>(null);
+  const [currentTimeMinutes, setCurrentTimeMinutes] = useState<number | null>(null);
+
+  React.useEffect(() => {
+    if (!scrollRef.current) return;
+    
+    let targetMinutes = 0;
+    
+    if (initialScrollTime === "current") {
+      const now = new Date();
+      targetMinutes = now.getHours() * 60 + now.getMinutes();
+    } else if (initialScrollTime) {
+      targetMinutes = timeToMinutes(initialScrollTime);
+    } else {
+      return; // no auto-scroll needed
+    }
+    
+    // Offset by ~100px so the target time isn't flushed against the very top edge
+    const targetY = (targetMinutes * PIXELS_PER_MINUTE) - 100;
+    
+    // Use a small timeout to ensure the grid is fully rendered before scrolling
+    setTimeout(() => {
+      if (scrollRef.current) {
+        scrollRef.current.scrollTo({
+          top: Math.max(0, targetY),
+          behavior: 'smooth'
+        });
+      }
+    }, 100);
+  }, [initialScrollTime]);
+
+  React.useEffect(() => {
+    const updateTime = () => {
+      const now = new Date();
+      setCurrentTimeMinutes(now.getHours() * 60 + now.getMinutes());
+    };
+    updateTime();
+    const interval = setInterval(updateTime, 60000);
+    return () => clearInterval(interval);
+  }, []);
 
   const hoursGrid = Array.from({ length: TOTAL_HOURS }).map((_, i) => i);
 
@@ -117,10 +159,72 @@ export function RoutineViewer({
     }
   };
 
-  const handleBlockClick = (e: React.MouseEvent, blockId: string) => {
-    e.stopPropagation();
+  const handleMoveStart = (e: React.PointerEvent, blockId: string) => {
     if (readOnly) return;
-    setEditingBlockId(blockId);
+    e.stopPropagation();
+    
+    const startY = e.clientY;
+    const initialBlock = blocks.find(b => b.id === blockId)!;
+    const initialStartMin = timeToMinutes(initialBlock.start_time);
+    const duration = timeToMinutes(initialBlock.end_time) - initialStartMin;
+
+    let minAllowableStart = 0;
+    let maxAllowableEndForBlock = TOTAL_HOURS * 60;
+
+    blocks.forEach(b => {
+      if (b.id === blockId) return;
+      const bStart = timeToMinutes(b.start_time);
+      const bEnd = timeToMinutes(b.end_time);
+
+      if (bEnd <= initialStartMin) {
+        if (bEnd > minAllowableStart) {
+          minAllowableStart = bEnd;
+        }
+      }
+      
+      if (bStart >= initialStartMin + duration) {
+        if (bStart < maxAllowableEndForBlock) {
+          maxAllowableEndForBlock = bStart;
+        }
+      }
+    });
+
+    const maxAllowableStart = maxAllowableEndForBlock - duration;
+    let moved = false;
+
+    const handlePointerMove = (moveEvent: PointerEvent) => {
+      const deltaY = moveEvent.clientY - startY;
+      if (Math.abs(deltaY) > 5) {
+        moved = true;
+      }
+      
+      if (!moved) return;
+
+      const deltaMins = Math.round((deltaY / PIXELS_PER_MINUTE) / 15) * 15;
+      
+      const newStartMin = Math.max(minAllowableStart, Math.min(initialStartMin + deltaMins, maxAllowableStart));
+      const newEndMin = newStartMin + duration;
+      
+      if (onBlockUpdate) {
+        onBlockUpdate({
+          ...initialBlock,
+          start_time: minutesToTime(newStartMin) + ':00',
+          end_time: minutesToTime(newEndMin) + ':00'
+        });
+      }
+    };
+
+    const handlePointerUp = () => {
+      window.removeEventListener('pointermove', handlePointerMove);
+      window.removeEventListener('pointerup', handlePointerUp);
+      
+      if (!moved && !readOnly) {
+         setEditingBlockId(blockId);
+      }
+    };
+
+    window.addEventListener('pointermove', handlePointerMove);
+    window.addEventListener('pointerup', handlePointerUp);
   };
 
   const handleResizeStart = (e: React.PointerEvent, blockId: string, edge: 'top' | 'bottom') => {
@@ -133,6 +237,27 @@ export function RoutineViewer({
     const initialStartMin = timeToMinutes(initialBlock.start_time);
     const initialEndMin = timeToMinutes(initialBlock.end_time);
 
+    let minAllowableStart = 0;
+    let maxAllowableEnd = TOTAL_HOURS * 60;
+
+    blocks.forEach(b => {
+      if (b.id === blockId) return;
+      const bStart = timeToMinutes(b.start_time);
+      const bEnd = timeToMinutes(b.end_time);
+
+      if (edge === 'top' && bEnd <= initialStartMin) {
+        if (bEnd > minAllowableStart) {
+          minAllowableStart = bEnd;
+        }
+      }
+      
+      if (edge === 'bottom' && bStart >= initialEndMin) {
+        if (bStart < maxAllowableEnd) {
+          maxAllowableEnd = bStart;
+        }
+      }
+    });
+
     const handlePointerMove = (moveEvent: PointerEvent) => {
       const deltaY = moveEvent.clientY - startY;
       const deltaMins = Math.round((deltaY / PIXELS_PER_MINUTE) / 15) * 15;
@@ -141,9 +266,9 @@ export function RoutineViewer({
       let newEndMin = initialEndMin;
       
       if (edge === 'top') {
-        newStartMin = Math.max(0, Math.min(initialStartMin + deltaMins, initialEndMin - 15));
+        newStartMin = Math.max(minAllowableStart, Math.min(initialStartMin + deltaMins, initialEndMin - 15));
       } else {
-        newEndMin = Math.min(TOTAL_HOURS * 60, Math.max(initialEndMin + deltaMins, initialStartMin + 15));
+        newEndMin = Math.min(maxAllowableEnd, Math.max(initialEndMin + deltaMins, initialStartMin + 15));
       }
       
       if (onBlockUpdate) {
@@ -167,7 +292,7 @@ export function RoutineViewer({
   const editingBlock = blocks.find(b => b.id === editingBlockId);
 
   return (
-    <div className={cn('relative w-full h-[50vh] min-h-[400px] overflow-y-auto bg-gray-50 rounded-3xl border-4 border-gray-200 hide-scrollbar', className)}>
+    <div ref={scrollRef} className={cn('relative w-full h-[50vh] min-h-[400px] overflow-y-auto bg-gray-50 rounded-3xl border-4 border-gray-200 hide-scrollbar', className)}>
       
       {readOnly && (
         <div className="sticky top-4 z-20 flex justify-center w-full pointer-events-none">
@@ -211,6 +336,9 @@ export function RoutineViewer({
           <AnimatePresence>
             {renderableBlocks.map(block => {
               const colors = getBlockColor(block);
+              const isShort = block.duration <= 25;
+              const isVeryShort = block.duration <= 15;
+
               return (
                 <motion.div
                   key={block.id}
@@ -219,7 +347,8 @@ export function RoutineViewer({
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.9 }}
                   className={cn(
-                    "absolute left-2 right-2 rounded-2xl p-3 flex flex-col justify-between shadow-sm transition-opacity border-2",
+                    "absolute left-2 right-2 rounded-2xl flex shadow-sm transition-opacity border-2",
+                    isShort ? "p-1 px-3 flex-row items-center gap-2 overflow-hidden" : "p-3 flex-col justify-between",
                     !readOnly && "pointer-events-auto cursor-pointer hover:shadow-md active:scale-[0.99]",
                     readOnly && "pointer-events-none opacity-90",
                     colors.bg,
@@ -229,11 +358,12 @@ export function RoutineViewer({
                   style={{ 
                     top: `${block.top}px`, 
                     height: `${block.height}px`,
-                    boxShadow: !readOnly ? `0 4px 0 0 ${colors.shadow}` : 'none'
+                    boxShadow: !readOnly ? `0 4px 0 0 ${colors.shadow}` : 'none',
+                    touchAction: 'none'
                   }}
-                  onClick={(e) => handleBlockClick(e, block.id)}
+                  onPointerDown={(e) => handleMoveStart(e, block.id)}
                 >
-                  {!readOnly && (
+                  {!readOnly && !isVeryShort && (
                     <div 
                       className="absolute top-0 left-0 right-0 h-4 cursor-ns-resize z-20 flex justify-center group"
                       onPointerDown={(e) => handleResizeStart(e, block.id, 'top')}
@@ -243,20 +373,22 @@ export function RoutineViewer({
                     </div>
                   )}
 
-                  <div className="overflow-hidden mt-1 mb-1 pointer-events-none">
-                    <div className="font-bold text-sm leading-tight line-clamp-2">{block.label}</div>
-                    <div className="text-xs font-semibold mt-1 opacity-80">
-                      {formatDisplayTime(block.start_time)} - {formatDisplayTime(block.end_time)}
-                    </div>
+                  <div className={cn("pointer-events-none flex-1 min-w-0", isShort ? "flex items-center gap-2" : "mt-1 mb-1 overflow-hidden")}>
+                    <div className={cn("font-bold leading-tight truncate", isShort ? "text-xs" : "text-sm line-clamp-2")}>{block.label}</div>
+                    {!isShort && (
+                      <div className="text-xs font-semibold mt-1 opacity-80 truncate">
+                        {formatDisplayTime(block.start_time)} - {formatDisplayTime(block.end_time)}
+                      </div>
+                    )}
                   </div>
                   
-                  {!readOnly && (
+                  {!readOnly && !isShort && (
                     <div className="absolute bottom-2 right-2 opacity-50 pointer-events-none">
                       <Edit3 size={16} />
                     </div>
                   )}
 
-                  {!readOnly && (
+                  {!readOnly && !isVeryShort && (
                     <div 
                       className="absolute bottom-0 left-0 right-0 h-4 cursor-ns-resize z-20 flex justify-center group items-end pb-1"
                       onPointerDown={(e) => handleResizeStart(e, block.id, 'bottom')}
@@ -269,6 +401,13 @@ export function RoutineViewer({
               );
             })}
           </AnimatePresence>
+          
+          {currentTimeMinutes !== null && (
+            <div 
+              className="absolute -left-2 z-30 pointer-events-none w-4 h-4 bg-red-500 rounded-full shadow-sm border-2 border-white"
+              style={{ top: `${currentTimeMinutes * PIXELS_PER_MINUTE - 8}px` }}
+            />
+          )}
         </div>
       </div>
 

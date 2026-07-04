@@ -84,7 +84,11 @@ export default async function Home(props: Props) {
               {selectedDate === todayStr ? "Today's Routine" : "Routine Plan"}
             </h2>
             <div className="bg-white p-6 rounded-3xl shadow-sm border-2 border-gray-100">
-              <RoutineViewer blocks={blocks} readOnly={true} />
+              <RoutineViewer 
+                blocks={blocks} 
+                readOnly={true} 
+                initialScrollTime={selectedDate === todayStr ? "current" : blocks.length > 0 ? blocks[0].start_time : "08:00"}
+              />
             </div>
           </div>
         ) : isPast ? (

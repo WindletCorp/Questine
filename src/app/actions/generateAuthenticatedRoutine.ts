@@ -40,7 +40,9 @@ ${globalContext}
 
 If the user provides enough information for a full day, output the routine blocks.
 If the user's request is ambiguous or missing critical information (e.g. they say "I have a meeting" but don't say when), you should ask for clarification instead of generating blocks.
-Keep your clarification messages concise and friendly, matching a Duolingo-style energetic tone.`;
+Keep your clarification messages concise and friendly, matching a Duolingo-style energetic tone.
+
+IMPORTANT: If the user mentions a permanent lifestyle change, a new strict habit, or a recurring preference (e.g., 'I want to start waking up at 5AM every day' or 'I now work from 9-5'), output an updated, comprehensive \`updated_global_context\` string combining their old context with the new facts. Do not update it for one-off events (like 'I have a doctor appointment today').`;
 
   const response = await generateRoutine({
     systemContext,
@@ -49,6 +51,17 @@ Keep your clarification messages concise and friendly, matching a Duolingo-style
     provider: "google",
     model,
   });
+
+  if (response.updated_global_context) {
+    const { error: updateError } = await supabase
+      .from("profiles")
+      .update({ global_context: response.updated_global_context })
+      .eq("id", user.id);
+      
+    if (updateError) {
+      console.error("Failed to update global context:", updateError);
+    }
+  }
 
   return response;
 }

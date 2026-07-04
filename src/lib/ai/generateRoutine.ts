@@ -19,10 +19,24 @@ const routineBlockSchema = z.object({
   category: z.enum(['health', 'work', 'rest', 'social', 'errand', 'other']).describe("The broad category this activity falls under"),
 });
 
+const taskSchema = z.object({
+  title: z.string().describe("The description of the task, e.g., 'Do laundry'"),
+  status: z.enum(['pending', 'completed']).describe("Whether the task is pending or completed"),
+  target_date: z.string().optional().describe("YYYY-MM-DD if applicable, otherwise omit"),
+});
+
+const metricSchema = z.object({
+  name: z.string().describe("The name of the metric being tracked, e.g., 'Water Drank' or 'Kilometers Ran'"),
+  unit: z.string().optional().describe("The unit of measurement, e.g., 'Liters', 'km', 'pages', or omit if it's a simple count"),
+  value: z.number().describe("The numeric value logged, e.g., 2 or 5"),
+});
+
 const aiResponseSchema = z.object({
   type: z.enum(['routine', 'clarification']).describe("Whether you successfully generated the routine blocks, or if you need to ask a clarifying question because critical information is missing."),
   message: z.string().describe("A conversational message to the user. E.g. 'What time is your dentist appointment?' or 'Here is your generated routine for today!'"),
   blocks: z.array(routineBlockSchema).optional().describe("An array of chronological, non-overlapping time blocks. Only include this if type is 'routine'."),
+  tasks: z.array(taskSchema).optional().describe("Any discrete tasks the user mentioned they plan to do or have completed."),
+  metrics: z.array(metricSchema).optional().describe("Any quantifiable metrics the user explicitly mentioned in their journal/update."),
   updated_global_context: z.string().optional().describe("If the user's prompt implies a permanent change to their lifestyle, habits, or schedule (e.g. 'I now work from 9-5'), provide a comprehensive updated version of their global context incorporating this new fact. Otherwise, leave undefined.")
 });
 

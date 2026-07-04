@@ -38,53 +38,35 @@ export async function claimTrialData(globalContext: string, blocks: Omit<Routine
     
     if (profileError) return { error: `Profile update failed: ${profileError.message}` };
 
-    // 2. Create day_snapshot for today
+    // 3. Create timeline_blocks for today (plan type)
     const today = new Date().toISOString().split('T')[0];
-    const { data: snapshot, error: snapshotError } = await supabase
-      .from("day_snapshots")
-      .insert({
+
+    const blocksToInsert = blocks.map((b) => {
+      // Ensure format HH:mm:ss
+      const st = b.start_time.length === 5 ? `${b.start_time}:00` : b.start_time;
+      const et = b.end_time.length === 5 ? `${b.end_time}:00` : b.end_time;
+
+      const startTimestamp = new Date(`${today}T${st}.000Z`);
+      let endTimestamp = new Date(`${today}T${et}.000Z`);
+
+      // Handle blocks that cross midnight
+      if (endTimestamp < startTimestamp) {
+        endTimestamp = new Date(endTimestamp.getTime() + 24 * 60 * 60 * 1000);
+      }
+
+      return {
         user_id: user.id,
-        date: today
-      })
-      .select()
-      .single();
-
-    if (snapshotError) return { error: `Snapshot creation failed: ${snapshotError.message}` };
-
-    // 3. Create a plan routine
-    const { data: routine, error: routineError } = await supabase
-      .from("routines")
-      .insert({
-        day_snapshot_id: snapshot.id,
-        type: "plan",
-        generated_at: new Date().toISOString()
-      })
-      .select()
-      .single();
-    
-    if (routineError) return { error: `Routine creation failed: ${routineError.message}` };
-
-    // 4. Update the snapshot with the plan_routine_id
-    const { error: snapshotUpdateError } = await supabase
-      .from("day_snapshots")
-      .update({ plan_routine_id: routine.id })
-      .eq("id", snapshot.id);
-      
-    if (snapshotUpdateError) return { error: `Snapshot link failed: ${snapshotUpdateError.message}` };
-
-    // 5. Insert blocks
-    const blocksToInsert = blocks.map((b, idx) => ({
-      routine_id: routine.id,
-      start_time: b.start_time,
-      end_time: b.end_time,
-      label: b.label,
-      source: b.source,
-      category: b.category,
-      order_index: b.order_index || idx
-    }));
+        start_time: startTimestamp.toISOString(),
+        end_time: endTimestamp.toISOString(),
+        label: b.label,
+        color: b.category,
+        type: "plan" as const,
+        source: b.source,
+      };
+    });
 
     const { error: blocksError } = await supabase
-      .from("routine_blocks")
+      .from("timeline_blocks")
       .insert(blocksToInsert);
       
     if (blocksError) return { error: `Blocks insertion failed: ${blocksError.message}` };
@@ -95,5 +77,3 @@ export async function claimTrialData(globalContext: string, blocks: Omit<Routine
     return { error: err.message || "An unexpected error occurred." };
   }
 }
-
-

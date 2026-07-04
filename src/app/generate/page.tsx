@@ -11,6 +11,7 @@ import { saveRoutine } from "@/app/actions/saveRoutine";
 import { ModelMessage } from "ai";
 import { toast } from "sonner";
 import { ArrowLeft, Sparkles, Check, X } from "lucide-react";
+import { TypingIndicator } from "@/components/ui/TypingIndicator";
 
 export default function GeneratePage() {
   const router = useRouter();
@@ -79,11 +80,29 @@ export default function GeneratePage() {
       }
 
       if (response.type === "routine" && response.blocks) {
-        const blocksWithIds = response.blocks.map(b => ({
-          ...b,
-          id: Math.random().toString(),
-          source: 'ai' as const
-        }));
+        // Map HH:mm to absolute ISO strings for the current day
+        const today = new Date();
+        const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+        
+        const blocksWithIds = response.blocks.map((b: any) => {
+          const st = b.start_time.length === 5 ? `${b.start_time}:00` : b.start_time;
+          const et = b.end_time.length === 5 ? `${b.end_time}:00` : b.end_time;
+
+          const startTimestamp = new Date(`${dateStr}T${st}.000Z`);
+          let endTimestamp = new Date(`${dateStr}T${et}.000Z`);
+
+          if (endTimestamp < startTimestamp) {
+            endTimestamp = new Date(endTimestamp.getTime() + 24 * 60 * 60 * 1000);
+          }
+          
+          return {
+            ...b,
+            start_time: startTimestamp.toISOString(),
+            end_time: endTimestamp.toISOString(),
+            id: Math.random().toString(),
+            source: 'ai' as const
+          };
+        });
         setGeneratedBlocks(blocksWithIds as RoutineBlock[]);
         toast.success("Routine updated!");
       }
@@ -175,10 +194,14 @@ export default function GeneratePage() {
             <div className="bg-white p-3 rounded-2xl shadow-sm text-pink-500">
               <Sparkles size={24} />
             </div>
-            <div className="flex-1 pt-2">
-              <p className="text-lg font-bold text-pink-900 leading-tight">
-                {aiClarification}
-              </p>
+            <div className="flex-1 pt-2 min-h-[40px] flex items-center">
+              {loading ? (
+                <TypingIndicator />
+              ) : (
+                <p className="text-lg font-bold text-pink-900 leading-tight">
+                  {aiClarification}
+                </p>
+              )}
             </div>
           </div>
           
@@ -212,6 +235,7 @@ export default function GeneratePage() {
               </div>
               <RoutineViewer 
                 blocks={generatedBlocks} 
+                viewDateStr={`${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(new Date().getDate()).padStart(2, '0')}`}
                 readOnly={false} 
                 onBlockUpdate={(b) => setGeneratedBlocks(prev => prev.map(old => old.id === b.id ? b : old))}
                 onBlockAdd={(b) => setGeneratedBlocks(prev => [...prev, { ...b, id: Math.random().toString() } as RoutineBlock])}

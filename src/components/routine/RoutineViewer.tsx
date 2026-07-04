@@ -9,23 +9,26 @@ export type RoutineBlockSource = 'ai' | 'manual';
 
 export interface RoutineBlock {
   id: string;
-  start_time: string; // "HH:mm" or "HH:mm:ss"
-  end_time: string;
+  start_time: string; // Absolute ISO string
+  end_time: string;   // Absolute ISO string
   label: string;
   source: RoutineBlockSource;
   category?: string;
   color_override?: string;
   order_index?: number;
+  type?: 'plan' | 'actual';
 }
 
 interface RoutineViewerProps {
   blocks: RoutineBlock[];
+  viewDateStr: string; // YYYY-MM-DD
+  viewMode?: 'plan' | 'actual' | 'overlay';
   readOnly?: boolean;
   onBlockUpdate?: (updatedBlock: RoutineBlock) => void;
   onBlockAdd?: (newBlock: Omit<RoutineBlock, 'id'>) => void;
   onBlockDelete?: (blockId: string) => void;
   className?: string;
-  initialScrollTime?: 'current' | string;
+  initialScrollTime?: 'current' | string; // "HH:mm"
 }
 
 const PIXELS_PER_MINUTE = 2; 
@@ -46,30 +49,33 @@ const getBlockColor = (block: RoutineBlock) => {
   return CATEGORY_COLORS[key] || CATEGORY_COLORS.other;
 };
 
-// Helper to convert "HH:mm" to minutes since midnight
-const timeToMinutes = (timeStr: string) => {
-  const [hours, minutes] = timeStr.split(':').map(Number);
-  return (hours || 0) * 60 + (minutes || 0);
+// Format absolute date to display time (assuming UTC to match app assumptions)
+const formatDisplayTime = (isoString: string) => {
+  try {
+    const d = new Date(isoString);
+    let hours = d.getUTCHours();
+    const minutes = d.getUTCMinutes();
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12 || 12;
+    const m = minutes.toString().padStart(2, '0');
+    return `${hours}:${m} ${ampm}`;
+  } catch (e) {
+    return "";
+  }
 };
 
-// Helper to convert minutes to "HH:mm"
-const minutesToTime = (totalMinutes: number) => {
-  const h = Math.floor(totalMinutes / 60).toString().padStart(2, '0');
-  const m = (totalMinutes % 60).toString().padStart(2, '0');
-  return `${h}:${m}`;
-};
-
-// Helper to format "HH:mm" for display
-const formatDisplayTime = (timeStr: string) => {
-  const [hours, minutes] = timeStr.split(':').map(Number);
-  const ampm = hours >= 12 ? 'PM' : 'AM';
-  const h = hours % 12 || 12;
-  const m = (minutes || 0).toString().padStart(2, '0');
-  return `${h}:${m} ${ampm}`;
+const extractHHMM = (isoString: string) => {
+  try {
+    return new Date(isoString).toISOString().substring(11, 16);
+  } catch (e) {
+    return "00:00";
+  }
 };
 
 export function RoutineViewer({
   blocks,
+  viewDateStr,
+  viewMode = 'plan',
   readOnly = false,
   onBlockUpdate,
   onBlockAdd,
@@ -90,15 +96,14 @@ export function RoutineViewer({
       const now = new Date();
       targetMinutes = now.getHours() * 60 + now.getMinutes();
     } else if (initialScrollTime) {
-      targetMinutes = timeToMinutes(initialScrollTime);
+      const [h, m] = initialScrollTime.split(':').map(Number);
+      targetMinutes = (h || 0) * 60 + (m || 0);
     } else {
-      return; // no auto-scroll needed
+      return; 
     }
     
-    // Offset by ~100px so the target time isn't flushed against the very top edge
     const targetY = (targetMinutes * PIXELS_PER_MINUTE) - 100;
     
-    // Use a small timeout to ensure the grid is fully rendered before scrolling
     setTimeout(() => {
       if (scrollRef.current) {
         scrollRef.current.scrollTo({
@@ -121,21 +126,50 @@ export function RoutineViewer({
 
   const hoursGrid = Array.from({ length: TOTAL_HOURS }).map((_, i) => i);
 
+  const viewStartMs = new Date(`${viewDateStr}T00:00:00.000Z`).getTime();
+  const viewEndMs = viewStartMs + 24 * 60 * 60 * 1000;
+
   const renderableBlocks = useMemo(() => {
-    return blocks.map(block => {
-      const startMin = timeToMinutes(block.start_time);
-      const endMin = timeToMinutes(block.end_time);
-      const duration = endMin - startMin;
-      
-      return {
-        ...block,
-        top: startMin * PIXELS_PER_MINUTE,
-        height: duration * PIXELS_PER_MINUTE,
-        startMin,
-        duration
-      };
-    });
-  }, [blocks]);
+    return blocks
+      .filter(block => {
+        if (viewMode === 'plan' && block.type === 'actual') return false;
+        if (viewMode === 'actual' && block.type === 'plan') return false;
+        return true;
+      })
+      .map(block => {
+        const startMs = new Date(block.start_time).getTime();
+        const endMs = new Date(block.end_time).getTime();
+        
+        const clampedStartMs = Math.max(startMs, viewStartMs);
+        const clampedEndMs = Math.min(endMs, viewEndMs);
+        
+        if (clampedEndMs <= clampedStartMs) return null;
+        
+        const startMin = (clampedStartMs - viewStartMs) / 60000;
+        const durationMin = (clampedEndMs - clampedStartMs) / 60000;
+        
+        let leftOffset = '0.5rem';
+        let rightOffset = '0.5rem';
+        if (viewMode === 'overlay') {
+          if (block.type === 'plan') {
+            rightOffset = '50%';
+          } else {
+            leftOffset = '50%';
+          }
+        }
+        
+        return {
+          ...block,
+          top: startMin * PIXELS_PER_MINUTE,
+          height: durationMin * PIXELS_PER_MINUTE,
+          startMin,
+          duration: durationMin,
+          leftOffset,
+          rightOffset
+        };
+      })
+      .filter((b): b is NonNullable<typeof b> => b !== null);
+  }, [blocks, viewDateStr, viewMode, viewStartMs, viewEndMs]);
 
   const handleGridClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (readOnly) return;
@@ -145,16 +179,18 @@ export function RoutineViewer({
     const clickedMinute = Math.floor(y / PIXELS_PER_MINUTE);
     
     const snappedMinute = Math.floor(clickedMinute / 15) * 15;
-    const start_time = minutesToTime(snappedMinute) + ":00";
-    const end_time = minutesToTime(snappedMinute + 60) + ":00";
     
+    const newStartMs = viewStartMs + snappedMinute * 60000;
+    const newEndMs = newStartMs + 60 * 60000;
+
     if (onBlockAdd) {
       onBlockAdd({
-        start_time,
-        end_time,
+        start_time: new Date(newStartMs).toISOString(),
+        end_time: new Date(newEndMs).toISOString(),
         label: 'New Routine Block',
         source: 'manual',
-        category: 'other'
+        category: 'other',
+        type: viewMode === 'overlay' ? 'actual' : (viewMode === 'actual' ? 'actual' : 'plan')
       });
     }
   };
@@ -165,31 +201,10 @@ export function RoutineViewer({
     
     const startY = e.clientY;
     const initialBlock = blocks.find(b => b.id === blockId)!;
-    const initialStartMin = timeToMinutes(initialBlock.start_time);
-    const duration = timeToMinutes(initialBlock.end_time) - initialStartMin;
+    const initialStartMs = new Date(initialBlock.start_time).getTime();
+    const initialEndMs = new Date(initialBlock.end_time).getTime();
+    const durationMs = initialEndMs - initialStartMs;
 
-    let minAllowableStart = 0;
-    let maxAllowableEndForBlock = TOTAL_HOURS * 60;
-
-    blocks.forEach(b => {
-      if (b.id === blockId) return;
-      const bStart = timeToMinutes(b.start_time);
-      const bEnd = timeToMinutes(b.end_time);
-
-      if (bEnd <= initialStartMin) {
-        if (bEnd > minAllowableStart) {
-          minAllowableStart = bEnd;
-        }
-      }
-      
-      if (bStart >= initialStartMin + duration) {
-        if (bStart < maxAllowableEndForBlock) {
-          maxAllowableEndForBlock = bStart;
-        }
-      }
-    });
-
-    const maxAllowableStart = maxAllowableEndForBlock - duration;
     let moved = false;
 
     const handlePointerMove = (moveEvent: PointerEvent) => {
@@ -201,15 +216,16 @@ export function RoutineViewer({
       if (!moved) return;
 
       const deltaMins = Math.round((deltaY / PIXELS_PER_MINUTE) / 15) * 15;
+      const deltaMs = deltaMins * 60000;
       
-      const newStartMin = Math.max(minAllowableStart, Math.min(initialStartMin + deltaMins, maxAllowableStart));
-      const newEndMin = newStartMin + duration;
+      const newStartMs = initialStartMs + deltaMs;
+      const newEndMs = newStartMs + durationMs;
       
       if (onBlockUpdate) {
         onBlockUpdate({
           ...initialBlock,
-          start_time: minutesToTime(newStartMin) + ':00',
-          end_time: minutesToTime(newEndMin) + ':00'
+          start_time: new Date(newStartMs).toISOString(),
+          end_time: new Date(newEndMs).toISOString()
         });
       }
     };
@@ -234,48 +250,28 @@ export function RoutineViewer({
     
     const startY = e.clientY;
     const initialBlock = blocks.find(b => b.id === blockId)!;
-    const initialStartMin = timeToMinutes(initialBlock.start_time);
-    const initialEndMin = timeToMinutes(initialBlock.end_time);
-
-    let minAllowableStart = 0;
-    let maxAllowableEnd = TOTAL_HOURS * 60;
-
-    blocks.forEach(b => {
-      if (b.id === blockId) return;
-      const bStart = timeToMinutes(b.start_time);
-      const bEnd = timeToMinutes(b.end_time);
-
-      if (edge === 'top' && bEnd <= initialStartMin) {
-        if (bEnd > minAllowableStart) {
-          minAllowableStart = bEnd;
-        }
-      }
-      
-      if (edge === 'bottom' && bStart >= initialEndMin) {
-        if (bStart < maxAllowableEnd) {
-          maxAllowableEnd = bStart;
-        }
-      }
-    });
+    const initialStartMs = new Date(initialBlock.start_time).getTime();
+    const initialEndMs = new Date(initialBlock.end_time).getTime();
 
     const handlePointerMove = (moveEvent: PointerEvent) => {
       const deltaY = moveEvent.clientY - startY;
       const deltaMins = Math.round((deltaY / PIXELS_PER_MINUTE) / 15) * 15;
+      const deltaMs = deltaMins * 60000;
       
-      let newStartMin = initialStartMin;
-      let newEndMin = initialEndMin;
+      let newStartMs = initialStartMs;
+      let newEndMs = initialEndMs;
       
       if (edge === 'top') {
-        newStartMin = Math.max(minAllowableStart, Math.min(initialStartMin + deltaMins, initialEndMin - 15));
+        newStartMs = Math.min(initialStartMs + deltaMs, initialEndMs - 15 * 60000);
       } else {
-        newEndMin = Math.min(maxAllowableEnd, Math.max(initialEndMin + deltaMins, initialStartMin + 15));
+        newEndMs = Math.max(initialEndMs + deltaMs, initialStartMs + 15 * 60000);
       }
       
       if (onBlockUpdate) {
         onBlockUpdate({
           ...initialBlock,
-          start_time: minutesToTime(newStartMin) + ':00',
-          end_time: minutesToTime(newEndMin) + ':00'
+          start_time: new Date(newStartMs).toISOString(),
+          end_time: new Date(newEndMs).toISOString()
         });
       }
     };
@@ -347,17 +343,20 @@ export function RoutineViewer({
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.9 }}
                   className={cn(
-                    "absolute left-2 right-2 rounded-2xl flex shadow-sm transition-opacity border-2",
+                    "absolute rounded-2xl flex shadow-sm transition-opacity border-2",
                     isShort ? "p-1 px-3 flex-row items-center gap-2 overflow-hidden" : "p-3 flex-col justify-between",
                     !readOnly && "pointer-events-auto cursor-pointer hover:shadow-md active:scale-[0.99]",
                     readOnly && "pointer-events-none opacity-90",
                     colors.bg,
                     colors.border,
-                    colors.text
+                    colors.text,
+                    block.type === 'actual' && viewMode === 'overlay' && "opacity-80 border-dashed"
                   )}
                   style={{ 
                     top: `${block.top}px`, 
                     height: `${block.height}px`,
+                    left: block.leftOffset,
+                    right: block.rightOffset,
                     boxShadow: !readOnly ? `0 4px 0 0 ${colors.shadow}` : 'none',
                     touchAction: 'none'
                   }}
@@ -374,7 +373,9 @@ export function RoutineViewer({
                   )}
 
                   <div className={cn("pointer-events-none flex-1 min-w-0", isShort ? "flex items-center gap-2" : "mt-1 mb-1 overflow-hidden")}>
-                    <div className={cn("font-bold leading-tight truncate", isShort ? "text-xs" : "text-sm line-clamp-2")}>{block.label}</div>
+                    <div className={cn("font-bold leading-tight truncate", isShort ? "text-xs" : "text-sm line-clamp-2")}>
+                      {block.label} {block.type === 'actual' && viewMode === 'overlay' && "(Actual)"}
+                    </div>
                     {!isShort && (
                       <div className="text-xs font-semibold mt-1 opacity-80 truncate">
                         {formatDisplayTime(block.start_time)} - {formatDisplayTime(block.end_time)}
@@ -440,9 +441,12 @@ export function RoutineViewer({
                     <label className="block text-sm font-bold text-gray-500 mb-2 uppercase tracking-wide">Start Time</label>
                     <input 
                       type="time" 
-                      value={editingBlock.start_time.substring(0, 5)}
+                      value={extractHHMM(editingBlock.start_time)}
                       onChange={(e) => {
-                        if (onBlockUpdate) onBlockUpdate({ ...editingBlock, start_time: e.target.value + ":00" });
+                        const newTime = e.target.value;
+                        if (!newTime) return;
+                        const newMs = new Date(`${viewDateStr}T${newTime}:00.000Z`).getTime();
+                        if (onBlockUpdate) onBlockUpdate({ ...editingBlock, start_time: new Date(newMs).toISOString() });
                       }}
                       className="w-full text-lg font-bold bg-gray-50 border-4 border-gray-200 rounded-2xl p-4 focus:outline-none focus:border-blue-400 focus:bg-white transition-colors"
                     />
@@ -451,9 +455,17 @@ export function RoutineViewer({
                     <label className="block text-sm font-bold text-gray-500 mb-2 uppercase tracking-wide">End Time</label>
                     <input 
                       type="time" 
-                      value={editingBlock.end_time.substring(0, 5)}
+                      value={extractHHMM(editingBlock.end_time)}
                       onChange={(e) => {
-                        if (onBlockUpdate) onBlockUpdate({ ...editingBlock, end_time: e.target.value + ":00" });
+                        const newTime = e.target.value;
+                        if (!newTime) return;
+                        let newMs = new Date(`${viewDateStr}T${newTime}:00.000Z`).getTime();
+                        // if end time is earlier than start time, they meant next day
+                        const startMs = new Date(editingBlock.start_time).getTime();
+                        if (newMs < startMs) {
+                          newMs += 24 * 60 * 60 * 1000;
+                        }
+                        if (onBlockUpdate) onBlockUpdate({ ...editingBlock, end_time: new Date(newMs).toISOString() });
                       }}
                       className="w-full text-lg font-bold bg-gray-50 border-4 border-gray-200 rounded-2xl p-4 focus:outline-none focus:border-blue-400 focus:bg-white transition-colors"
                     />

@@ -14,75 +14,41 @@ export async function seedDummyData() {
     throw new Error("You must be logged in to seed dummy data.");
   }
 
-  // Check if they already have day_snapshots to avoid spam
-  const { data: existing } = await supabase
-    .from("day_snapshots")
-    .select("id")
-    .eq("user_id", user.id)
-    .limit(1);
-    
-  if (existing && existing.length > 0) {
-    for (const snap of existing) {
-      // Cascade delete manually just in case
-      const { data: routines } = await supabase.from("routines").select("id").eq("day_snapshot_id", snap.id);
-      if (routines && routines.length > 0) {
-        await supabase.from("routine_blocks").delete().in("routine_id", routines.map(r => r.id));
-      }
-      await supabase.from("routines").delete().eq("day_snapshot_id", snap.id);
-      await supabase.from("day_snapshots").delete().eq("id", snap.id);
-    }
-  }
+  // Clear existing blocks
+  await supabase.from("timeline_blocks").delete().eq("user_id", user.id);
+  await supabase.from("journal_logs").delete().eq("user_id", user.id);
 
-  // Insert a dummy day_snapshot
-  const { data: snapshot, error: snapErr } = await supabase
-    .from("day_snapshots")
+  const today = new Date().toISOString().split('T')[0];
+
+  // Insert a journal log
+  await supabase
+    .from("journal_logs")
     .insert({
       user_id: user.id,
-      date: new Date().toISOString().split('T')[0],
-      journal_text: "Felt really productive today. Did all my tasks!",
-    })
-    .select("id")
-    .single();
+      content: "Felt really productive today. Did all my tasks!",
+    });
 
-  if (snapErr) throw snapErr;
-
-  // Now insert a plan routine
-  const { data: planRoutine, error: planErr } = await supabase
-    .from("routines")
-    .insert({
-      day_snapshot_id: snapshot.id,
-      type: "plan",
-    })
-    .select("id")
-    .single();
-
-  if (planErr) throw planErr;
-
-  // Insert some routine blocks for the plan
-  await supabase.from("routine_blocks").insert([
+  // Insert some timeline blocks for the plan
+  await supabase.from("timeline_blocks").insert([
     {
-      routine_id: planRoutine.id,
-      start_time: "09:00",
-      end_time: "10:30",
+      user_id: user.id,
+      start_time: new Date(`${today}T09:00:00.000Z`).toISOString(),
+      end_time: new Date(`${today}T10:30:00.000Z`).toISOString(),
       label: "Deep Work Session",
+      type: "plan",
       source: "ai",
-      order_index: 0
+      color: "work"
     },
     {
-      routine_id: planRoutine.id,
-      start_time: "10:45",
-      end_time: "11:15",
+      user_id: user.id,
+      start_time: new Date(`${today}T10:45:00.000Z`).toISOString(),
+      end_time: new Date(`${today}T11:15:00.000Z`).toISOString(),
       label: "Email & Catchup",
+      type: "plan",
       source: "manual",
-      order_index: 1
+      color: "other"
     }
   ]);
-
-  // Update snapshot with plan_routine_id
-  await supabase
-    .from("day_snapshots")
-    .update({ plan_routine_id: planRoutine.id })
-    .eq("id", snapshot.id);
 
   return { success: true };
 }

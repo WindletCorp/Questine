@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { handleClientError, createError } from "@/lib/errors";
@@ -20,6 +20,16 @@ export default function SignupPage() {
   const [errors, setErrors] = useState<{email?: string, password?: string, username?: string}>({});
   const router = useRouter();
   const supabase = createClient();
+
+  useEffect(() => {
+    const checkUser = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        router.push("/home");
+      }
+    };
+    checkUser();
+  }, [supabase, router]);
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();

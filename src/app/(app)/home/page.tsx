@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { MetricCard } from "@/components/ui/MetricCard";
 import { CreateMetricInline } from "@/components/ui/CreateMetricInline";
+import { HomeAIAssistant } from "@/components/ui/HomeAIAssistant";
 
 export default async function HomePage() {
   const supabase = await createClient();
@@ -114,6 +115,10 @@ export default async function HomePage() {
           </div>
         </div>
 
+        {/* AI Assistant */}
+        <div className="mt-2 mb-24">
+          <HomeAIAssistant />
+        </div>
       </div>
     </div>
   );

@@ -17,7 +17,7 @@ import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 
-type WizardState = "loading" | "no_plan" | "review" | "mind_dump" | "generating" | "final";
+type WizardState = "loading" | "no_plan" | "review" | "mind_dump" | "final_mind_dump" | "generating" | "final";
 
 interface BlockReview {
   block: RoutineBlock;
@@ -89,14 +89,26 @@ export default function CatchUpPage() {
       const { data } = await supabase.from("timeline_blocks")
         .select("*")
         .eq("user_id", user.id)
-        .eq("type", "plan")
         .gte("start_time", startOfDay)
         .lt("start_time", endOfDay)
         .order("start_time");
         
       if (data && data.length > 0) {
-        setPlannedBlocks(data as RoutineBlock[]);
-        setWizardState("review");
+        const nowIso = new Date().toISOString();
+        const actualBlocks = data.filter((b: any) => b.type === "actual");
+        const planned = data.filter((b: any) => {
+           if (b.type !== "plan") return false;
+           if (b.start_time > nowIso) return false;
+           const hasActual = actualBlocks.some((a: any) => a.start_time <= b.start_time && a.end_time > b.start_time);
+           return !hasActual;
+        });
+
+        if (planned.length > 0) {
+          setPlannedBlocks(planned as RoutineBlock[]);
+          setWizardState("review");
+        } else {
+          setWizardState("no_plan");
+        }
       } else {
         setWizardState("no_plan");
       }
@@ -107,7 +119,7 @@ export default function CatchUpPage() {
 
   const currentBlock = plannedBlocks[reviewIndex];
 
-  const executeAI = async (finalReviews: BlockReview[], isFallback: boolean) => {
+  const executeAI = async (finalReviews: BlockReview[], isFallback: boolean, finalDump?: string) => {
     if (!aiConfig) return;
     setWizardState("generating");
     
@@ -118,7 +130,7 @@ export default function CatchUpPage() {
       const nailed = finalReviews.filter(r => r.nailedIt).map(r => `- ${new Date(r.block.start_time).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit', timeZone: 'UTC'})} to ${new Date(r.block.end_time).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit', timeZone: 'UTC'})}: ${r.block.label}`);
       const deviated = finalReviews.filter(r => !r.nailedIt).map(r => `- Instead of ${r.block.label}, I did: "${r.actualText}"`);
       
-      promptContent = `I completed the following planned blocks exactly as planned:\n${nailed.join("\n") || "None"}\n\nFor the other blocks, here is what I actually did:\n${deviated.join("\n") || "None"}\n\nPlease generate my final actual timeline for today. Ignore blocks I nailed exactly, and focus on generating Actuals for the deviations.`;
+      promptContent = `I completed the following planned blocks exactly as planned:\n${nailed.join("\n") || "None"}\n\nFor the other blocks, here is what I actually did:\n${deviated.join("\n") || "None"}\n\n${finalDump ? `Additionally, here is a final mind dump of other things I did: "${finalDump}"\n\n` : ''}Please generate my final actual timeline for today. Ignore blocks I nailed exactly, and focus on generating Actuals for the deviations.`;
     }
 
     try {
@@ -168,7 +180,17 @@ export default function CatchUpPage() {
       setShowDeviationInput(false);
       setDeviationText("");
     } else {
-      executeAI(updatedReviews, false);
+      setFallbackInput(""); // clear it for final dump
+      setWizardState("final_mind_dump");
+    }
+  };
+
+  const handleBack = () => {
+    if (reviewIndex > 0) {
+      setReviewIndex(prev => prev - 1);
+      setReviews(prev => prev.slice(0, -1));
+      setShowDeviationInput(false);
+      setDeviationText("");
     }
   };
 
@@ -292,8 +314,19 @@ export default function CatchUpPage() {
             <motion.div key="review" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} className="w-full max-w-xl flex flex-col gap-6">
               
               <div className="flex items-center justify-between w-full">
-                <div className="font-bold text-gray-400 text-sm tracking-widest uppercase">
-                  Reviewing Block {reviewIndex + 1} of {plannedBlocks.length}
+                <div className="flex items-center gap-4">
+                  {reviewIndex > 0 && (
+                    <button 
+                      onClick={handleBack}
+                      className="text-gray-400 hover:text-gray-600 transition-colors"
+                      title="Back to previous block"
+                    >
+                      <ArrowLeft size={20} />
+                    </button>
+                  )}
+                  <div className="font-bold text-gray-400 text-sm tracking-widest uppercase">
+                    Reviewing Block {reviewIndex + 1} of {plannedBlocks.length}
+                  </div>
                 </div>
                 <button
                   onClick={() => setWizardState("mind_dump")}
@@ -338,6 +371,35 @@ export default function CatchUpPage() {
                   </div>
                 </div>
               )}
+            </motion.div>
+          )}
+
+          {wizardState === "final_mind_dump" && (
+            <motion.div key="final_mind_dump" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="w-full max-w-2xl flex flex-col gap-6">
+              <div className="bg-purple-50 border-4 border-purple-200 rounded-3xl p-6 shadow-sm flex items-start gap-4">
+                <div className="bg-white p-3 rounded-2xl shadow-sm text-purple-500">
+                  <Sparkles size={24} />
+                </div>
+                <div className="flex-1 pt-2 min-h-[40px] flex items-center">
+                  <p className="text-lg font-bold text-purple-900 leading-tight">
+                    Awesome, you reviewed all your blocks! Did anything else happen today that wasn't on the plan?
+                  </p>
+                </div>
+              </div>
+              <MumbleBar 
+                value={fallbackInput} 
+                onChange={setFallbackInput} 
+                onSubmit={() => executeAI(reviews, false, fallbackInput)}
+                placeholder="e.g. I randomly decided to clean the garage for an hour..."
+              />
+              <div className="flex gap-4">
+                <Button variant="secondary" onClick={() => executeAI(reviews, false)} className="flex-1">
+                  Skip & Process
+                </Button>
+                <Button onClick={() => executeAI(reviews, false, fallbackInput)} disabled={!fallbackInput.trim()} className="flex-1 bg-purple-500 hover:bg-purple-600 shadow-[0_4px_0_0_#9333ea]">
+                  Process Reality
+                </Button>
+              </div>
             </motion.div>
           )}
 

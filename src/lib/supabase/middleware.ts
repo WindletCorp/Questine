@@ -53,13 +53,9 @@ export async function updateSession(request: NextRequest) {
   // Redirect authenticated users away from auth pages back to home
   // (Skip this if it's a Server Action, otherwise the POST request will be redirected and fail)
   const isServerAction = request.headers.has('next-action');
-<<<<<<< HEAD
-  if (user && isAuthPage && !isServerAction) {
-=======
   const isSetupProfile = request.nextUrl.pathname.startsWith('/auth/setup-profile');
   
   if (user && isAuthPage && !isServerAction && !isSetupProfile) {
->>>>>>> public-release
     const url = request.nextUrl.clone()
     url.pathname = '/'
     return NextResponse.redirect(url)

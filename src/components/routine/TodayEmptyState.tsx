@@ -27,7 +27,7 @@ export function TodayEmptyState() {
           <h2 className="text-2xl font-black text-pink-900 mb-2">No AI Key Set!</h2>
           <p className="text-pink-700 font-bold">You need to set up your AI API Key in settings before building routines.</p>
         </div>
-        <a href="/settings" className="mx-auto">
+        <a href="/profile" className="mx-auto">
           <Button type="button" variant="primary">
             Go to Settings
           </Button>

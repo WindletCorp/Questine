@@ -71,7 +71,7 @@ export default function CatchUpPage() {
       setAiConfig({ apiKey: key, model });
     } else {
       toast.error("No API key found. Redirecting to settings.");
-      router.push("/settings");
+      router.push("/profile");
     }
   }, [router]);
 
@@ -138,15 +138,10 @@ export default function CatchUpPage() {
       
       if (response.type === "routine" && response.blocks) {
         const blocksWithIds = response.blocks.map((b: any) => {
-<<<<<<< HEAD
-          const st = b.start_time.length === 5 ? `${b.start_time}:00` : b.start_time;
-          const et = b.end_time.length === 5 ? `${b.end_time}:00` : b.end_time;
-=======
           const stParts = b.start_time.split(":");
           const etParts = b.end_time.split(":");
           const st = `${stParts[0].padStart(2, '0')}:${(stParts[1] || '00').substring(0,2)}:00`;
           const et = `${etParts[0].padStart(2, '0')}:${(etParts[1] || '00').substring(0,2)}:00`;
->>>>>>> public-release
 
           const startTimestamp = new Date(`${selectedDateStr}T${st}.000Z`);
           let endTimestamp = new Date(`${selectedDateStr}T${et}.000Z`);

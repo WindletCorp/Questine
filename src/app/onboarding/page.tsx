@@ -48,12 +48,6 @@ Main Goals / Vibe: ${finalGoals || mainGoals || "Just a balanced day"}
     try {
       const generatedBlocks = await generateTrial(compiledContext);
       
-<<<<<<< HEAD
-      const blocksWithIds = generatedBlocks.map((b, idx) => ({
-        ...b,
-        id: `trial-block-${idx}`
-      }));
-=======
       const today = new Date();
       const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
       
@@ -77,7 +71,6 @@ Main Goals / Vibe: ${finalGoals || mainGoals || "Just a balanced day"}
           id: `trial-block-${idx}`
         };
       });
->>>>>>> public-release
       
       setBlocks(blocksWithIds);
       setStep(4);

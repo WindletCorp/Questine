@@ -15,14 +15,8 @@ import { toast } from "sonner";
 export default function SignupPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-<<<<<<< HEAD
-  const [username, setUsername] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState<{email?: string, password?: string, username?: string}>({});
-=======
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<{email?: string, password?: string}>({});
->>>>>>> public-release
   const router = useRouter();
   const supabase = createClient();
 
@@ -39,12 +33,7 @@ export default function SignupPage() {
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrors({});
-<<<<<<< HEAD
-    const newErrors: {email?: string, password?: string, username?: string} = {};
-    if (!username) newErrors.username = "Display name is required";
-=======
     const newErrors: {email?: string, password?: string} = {};
->>>>>>> public-release
     if (!email) newErrors.email = "Email is required";
     if (!password) newErrors.password = "Password is required";
     else if (password.length < 6) newErrors.password = "Password must be at least 6 characters";
@@ -65,16 +54,7 @@ export default function SignupPage() {
 
     const { error } = await supabase.auth.signUp({
       email,
-<<<<<<< HEAD
-      password,
-      options: {
-        data: {
-          username,
-        }
-      }
-=======
       password
->>>>>>> public-release
     });
 
     if (error) {
@@ -128,19 +108,6 @@ export default function SignupPage() {
 
         <form onSubmit={handleSignup} className="w-full flex flex-col gap-5" noValidate>
           <Input 
-<<<<<<< HEAD
-            label="Display Name" 
-            type="text" 
-            value={username}
-            onChange={(e) => { setUsername(e.target.value); setErrors(prev => ({...prev, username: undefined})); }}
-            placeholder="Duolingo Owl"
-            required
-            disabled={loading}
-            error={errors.username}
-          />
-          <Input 
-=======
->>>>>>> public-release
             label="Email" 
             type="email" 
             value={email}

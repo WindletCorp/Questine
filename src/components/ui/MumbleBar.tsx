@@ -12,10 +12,7 @@ interface MumbleBarProps {
   onSubmit?: () => void;
   placeholder?: string;
   className?: string;
-<<<<<<< HEAD
-=======
   disabled?: boolean;
->>>>>>> public-release
 }
 
 export function MumbleBar({
@@ -23,12 +20,8 @@ export function MumbleBar({
   onChange,
   onSubmit,
   placeholder = 'Type or speak here...',
-<<<<<<< HEAD
-  className
-=======
   className,
   disabled
->>>>>>> public-release
 }: MumbleBarProps) {
   const {
     isSupported,
@@ -114,12 +107,8 @@ export function MumbleBar({
               onChange={(e) => onChange(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder={placeholder}
-<<<<<<< HEAD
-              className="w-full min-h-[120px] p-4 pr-[100px] bg-white rounded-2xl border-2 border-gray-200 shadow-[0_4px_0_0_rgba(229,231,235,1)] resize-none focus:outline-none focus:border-blue-300 focus:shadow-[0_4px_0_0_rgba(147,197,253,1)] transition-all text-gray-800 placeholder:text-gray-400 font-medium"
-=======
               disabled={disabled}
               className="w-full min-h-[120px] p-4 pr-[100px] bg-white rounded-2xl border-2 border-gray-200 shadow-[0_4px_0_0_rgba(229,231,235,1)] resize-none focus:outline-none focus:border-blue-300 focus:shadow-[0_4px_0_0_rgba(147,197,253,1)] transition-all text-gray-800 placeholder:text-gray-400 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
->>>>>>> public-release
             />
           </motion.div>
         )}
@@ -129,12 +118,8 @@ export function MumbleBar({
         {onSubmit && (
           <button
             onClick={onSubmit}
-<<<<<<< HEAD
-            className="p-3 rounded-full bg-pink-100 text-pink-500 shadow-[0_4px_0_0_rgba(251,207,232,1)] hover:bg-pink-200 transition-all active:translate-y-1 active:shadow-none"
-=======
             disabled={disabled}
             className="p-3 rounded-full bg-pink-100 text-pink-500 shadow-[0_4px_0_0_rgba(251,207,232,1)] hover:bg-pink-200 transition-all active:translate-y-1 active:shadow-none disabled:opacity-50 disabled:cursor-not-allowed"
->>>>>>> public-release
             title="Send"
           >
             <Send size={24} />
@@ -143,14 +128,9 @@ export function MumbleBar({
         {isSupported && (
           <button
             onClick={handleToggleListen}
-<<<<<<< HEAD
-            className={cn(
-              'p-3 rounded-full transition-all active:translate-y-1 active:shadow-none',
-=======
             disabled={disabled}
             className={cn(
               'p-3 rounded-full transition-all active:translate-y-1 active:shadow-none disabled:opacity-50 disabled:cursor-not-allowed',
->>>>>>> public-release
               isListening 
                 ? 'bg-red-100 text-red-500 shadow-[0_4px_0_0_rgba(254,202,202,1)] hover:bg-red-200' 
                 : 'bg-blue-100 text-blue-500 shadow-[0_4px_0_0_rgba(191,219,254,1)] hover:bg-blue-200'

@@ -1,8 +1,0 @@
-E:\Manasay\Projects\Questine\AGENTS.md
-E:\Manasay\Projects\Questine\README.md
-E:\Manasay\Projects\Questine\public\file.svg
-E:\Manasay\Projects\Questine\public\globe.svg
-E:\Manasay\Projects\Questine\public\next.svg
-E:\Manasay\Projects\Questine\public\vercel.svg
-E:\Manasay\Projects\Questine\public\window.svg
-E:\Manasay\Projects\Questine\src\app\icon.png

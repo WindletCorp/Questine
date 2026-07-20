@@ -128,28 +128,52 @@ export type Database = {
         Row: {
           avatar_url: string | null
           created_at: string | null
+<<<<<<< HEAD
+=======
+          display_name: string | null
+>>>>>>> public-release
           global_context: string | null
           global_context_updated_at: string | null
           has_claimed_trial: boolean
           id: string
+<<<<<<< HEAD
+=======
+          last_username_update: string | null
+>>>>>>> public-release
           username: string | null
         }
         Insert: {
           avatar_url?: string | null
           created_at?: string | null
+<<<<<<< HEAD
+=======
+          display_name?: string | null
+>>>>>>> public-release
           global_context?: string | null
           global_context_updated_at?: string | null
           has_claimed_trial?: boolean
           id: string
+<<<<<<< HEAD
+=======
+          last_username_update?: string | null
+>>>>>>> public-release
           username?: string | null
         }
         Update: {
           avatar_url?: string | null
           created_at?: string | null
+<<<<<<< HEAD
+=======
+          display_name?: string | null
+>>>>>>> public-release
           global_context?: string | null
           global_context_updated_at?: string | null
           has_claimed_trial?: boolean
           id?: string
+<<<<<<< HEAD
+=======
+          last_username_update?: string | null
+>>>>>>> public-release
           username?: string | null
         }
         Relationships: []
@@ -304,7 +328,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+<<<<<<< HEAD
       [_ in never]: never
+=======
+      delete_user: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+>>>>>>> public-release
     }
     Enums: {
       routine_block_source: "ai" | "manual"

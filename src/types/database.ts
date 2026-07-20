@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 ﻿export type Json =
+=======
+export type Json =
+>>>>>>> public-release
   | string
   | number
   | boolean
@@ -73,25 +77,49 @@ export type Database = {
         Row: {
           avatar_url: string | null
           created_at: string | null
+<<<<<<< HEAD
           global_context: string | null
           global_context_updated_at: string | null
           id: string
+=======
+          display_name: string | null
+          global_context: string | null
+          global_context_updated_at: string | null
+          id: string
+          last_username_update: string | null
+>>>>>>> public-release
           username: string | null
         }
         Insert: {
           avatar_url?: string | null
           created_at?: string | null
+<<<<<<< HEAD
           global_context?: string | null
           global_context_updated_at?: string | null
           id: string
+=======
+          display_name?: string | null
+          global_context?: string | null
+          global_context_updated_at?: string | null
+          id: string
+          last_username_update?: string | null
+>>>>>>> public-release
           username?: string | null
         }
         Update: {
           avatar_url?: string | null
           created_at?: string | null
+<<<<<<< HEAD
           global_context?: string | null
           global_context_updated_at?: string | null
           id?: string
+=======
+          display_name?: string | null
+          global_context?: string | null
+          global_context_updated_at?: string | null
+          id?: string
+          last_username_update?: string | null
+>>>>>>> public-release
           username?: string | null
         }
         Relationships: []
@@ -203,7 +231,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+<<<<<<< HEAD
       [_ in never]: never
+=======
+      delete_user: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+>>>>>>> public-release
     }
     Enums: {
       routine_block_source: "ai" | "manual"

@@ -12,7 +12,11 @@ export function BottomNav() {
     { name: "Home", href: "/home", icon: Home },
     { name: "Routine", href: "/routine", icon: CalendarDays },
     { name: "Journal", href: "/journal", icon: BookOpen },
+<<<<<<< HEAD
     { name: "Profile", href: "/settings", icon: User },
+=======
+    { name: "Profile", href: "/profile", icon: User },
+>>>>>>> public-release
   ];
 
   return (

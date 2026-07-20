@@ -42,6 +42,7 @@ export async function claimTrialData(globalContext: string, blocks: Omit<Routine
     const today = new Date().toISOString().split('T')[0];
 
     const blocksToInsert = blocks.map((b) => {
+<<<<<<< HEAD
       // Ensure format HH:mm:ss
       const st = b.start_time.length === 5 ? `${b.start_time}:00` : b.start_time;
       const et = b.end_time.length === 5 ? `${b.end_time}:00` : b.end_time;
@@ -52,6 +53,25 @@ export async function claimTrialData(globalContext: string, blocks: Omit<Routine
       // Handle blocks that cross midnight
       if (endTimestamp < startTimestamp) {
         endTimestamp = new Date(endTimestamp.getTime() + 24 * 60 * 60 * 1000);
+=======
+      let startTimestamp;
+      let endTimestamp;
+      
+      if (b.start_time.includes('T')) {
+        startTimestamp = new Date(b.start_time);
+        endTimestamp = new Date(b.end_time);
+      } else {
+        const st = b.start_time.length === 5 ? `${b.start_time}:00` : b.start_time;
+        const et = b.end_time.length === 5 ? `${b.end_time}:00` : b.end_time;
+
+        startTimestamp = new Date(`${today}T${st}.000Z`);
+        endTimestamp = new Date(`${today}T${et}.000Z`);
+
+        // Handle blocks that cross midnight
+        if (endTimestamp < startTimestamp) {
+          endTimestamp = new Date(endTimestamp.getTime() + 24 * 60 * 60 * 1000);
+        }
+>>>>>>> public-release
       }
 
       return {

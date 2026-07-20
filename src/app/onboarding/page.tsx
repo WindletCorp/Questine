@@ -48,10 +48,36 @@ Main Goals / Vibe: ${finalGoals || mainGoals || "Just a balanced day"}
     try {
       const generatedBlocks = await generateTrial(compiledContext);
       
+<<<<<<< HEAD
       const blocksWithIds = generatedBlocks.map((b, idx) => ({
         ...b,
         id: `trial-block-${idx}`
       }));
+=======
+      const today = new Date();
+      const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+      
+      const blocksWithIds = generatedBlocks.map((b, idx) => {
+        const stParts = b.start_time.split(":");
+        const etParts = b.end_time.split(":");
+        const st = `${stParts[0].padStart(2, '0')}:${(stParts[1] || '00').substring(0,2)}:00`;
+        const et = `${etParts[0].padStart(2, '0')}:${(etParts[1] || '00').substring(0,2)}:00`;
+
+        const startTimestamp = new Date(`${dateStr}T${st}.000Z`);
+        let endTimestamp = new Date(`${dateStr}T${et}.000Z`);
+
+        if (endTimestamp < startTimestamp) {
+          endTimestamp = new Date(endTimestamp.getTime() + 24 * 60 * 60 * 1000);
+        }
+
+        return {
+          ...b,
+          start_time: startTimestamp.toISOString(),
+          end_time: endTimestamp.toISOString(),
+          id: `trial-block-${idx}`
+        };
+      });
+>>>>>>> public-release
       
       setBlocks(blocksWithIds);
       setStep(4);

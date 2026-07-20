@@ -3,6 +3,10 @@ import { redirect } from "next/navigation";
 import { MetricCard } from "@/components/ui/MetricCard";
 import { CreateMetricInline } from "@/components/ui/CreateMetricInline";
 import { HomeAIAssistant } from "@/components/ui/HomeAIAssistant";
+<<<<<<< HEAD
+=======
+import { ActivityHeatmap } from "@/components/ui/ActivityHeatmap";
+>>>>>>> public-release
 
 export default async function HomePage() {
   const supabase = await createClient();
@@ -12,6 +16,20 @@ export default async function HomePage() {
     redirect("/auth/login");
   }
 
+<<<<<<< HEAD
+=======
+  // Gatekeep: ensure user has a username
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("username")
+    .eq("id", user.id)
+    .single();
+
+  if (!profile || !profile.username) {
+    redirect("/auth/setup-profile");
+  }
+
+>>>>>>> public-release
   const todayDateObj = new Date();
   const year = todayDateObj.getFullYear();
   const month = String(todayDateObj.getMonth() + 1).padStart(2, '0');
@@ -40,6 +58,29 @@ export default async function HomePage() {
 
   const nowTime = todayDateObj.toISOString();
   
+<<<<<<< HEAD
+=======
+  // -- Fetch Historical Activity --
+  const normalizedToday = new Date(Date.UTC(year, parseInt(month) - 1, parseInt(day)));
+  const historyStart = new Date(normalizedToday.getTime() - 27 * 24 * 60 * 60 * 1000).toISOString();
+
+  const [ { data: pastBlocks }, { data: pastTasks }, { data: pastMetrics } ] = await Promise.all([
+    supabase.from("timeline_blocks").select("start_time").eq("user_id", user.id).eq("type", "actual").gte("start_time", historyStart),
+    supabase.from("tasks").select("created_at").eq("user_id", user.id).gte("created_at", historyStart),
+    supabase.from("metric_logs").select("recorded_at").eq("user_id", user.id).gte("recorded_at", historyStart)
+  ]);
+
+  const activityData: Record<string, number> = {};
+  const addCount = (dateStr: string) => {
+    const d = dateStr.split('T')[0];
+    activityData[d] = (activityData[d] || 0) + 1;
+  };
+  pastBlocks?.forEach(b => b.start_time && addCount(b.start_time));
+  pastTasks?.forEach(t => t.created_at && addCount(t.created_at));
+  pastMetrics?.forEach(m => m.recorded_at && addCount(m.recorded_at));
+  // -------------------------------
+  
+>>>>>>> public-release
   // Find current block (prioritize actual, then plan)
   let currentBlock = null;
   if (timelineBlocks && timelineBlocks.length > 0) {
@@ -57,9 +98,15 @@ export default async function HomePage() {
   return (
     <div className="flex flex-col flex-1 items-center bg-background p-6 pt-28 md:p-12 md:pt-32">
       
+<<<<<<< HEAD
       {/* Top CTA Island */}
       <div className="fixed top-6 left-1/2 -translate-x-1/2 w-[92%] max-w-md bg-white border-4 border-gray-200 rounded-[2rem] p-4 z-50 flex justify-center items-center shadow-[0_8px_0_0_#e5e7eb]">
         <span className="font-black text-gray-800 text-lg">{greeting}!</span>
+=======
+      {/* Top CTA Island - AI Assistant */}
+      <div className="fixed top-6 left-1/2 -translate-x-1/2 w-[92%] max-w-md z-50 flex justify-center items-center">
+        <HomeAIAssistant />
+>>>>>>> public-release
       </div>
 
       <div className="w-full max-w-2xl flex flex-col gap-8">
@@ -115,10 +162,17 @@ export default async function HomePage() {
           </div>
         </div>
 
+<<<<<<< HEAD
         {/* AI Assistant */}
         <div className="mt-2 mb-24">
           <HomeAIAssistant />
         </div>
+=======
+        {/* History Heatmap */}
+        <ActivityHeatmap activityData={activityData} days={28} />
+
+        <div className="mb-24" />
+>>>>>>> public-release
       </div>
     </div>
   );

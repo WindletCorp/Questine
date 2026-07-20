@@ -40,5 +40,13 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+<<<<<<< HEAD
 # trackers
 /trackers/tracker_*.md
+=======
+# AI and Tracker files
+/trackers/
+.agents/
+GEMINI.md
+CLAUDE.md
+>>>>>>> public-release

@@ -67,7 +67,11 @@ export function HomeAIAssistant() {
       <motion.div
         layout
         transition={{ type: "spring", damping: 25, stiffness: 200 }}
+<<<<<<< HEAD
         className="w-full bg-white border-4 border-gray-200 rounded-[2rem] shadow-[0_8px_0_0_#e5e7eb] overflow-hidden flex flex-col mt-4"
+=======
+        className="w-full bg-white border-4 border-gray-200 rounded-[2rem] shadow-[0_8px_0_0_#e5e7eb] overflow-hidden flex flex-col"
+>>>>>>> public-release
       >
         <AnimatePresence mode="popLayout">
           {!isOpen ? (

@@ -1,28 +1,34 @@
-import { createClient } from "@/lib/supabase/server";
+"use client";
+
 import { redirect } from "next/navigation";
 import { MetricCard } from "@/components/ui/MetricCard";
 import { CreateMetricInline } from "@/components/ui/CreateMetricInline";
 import { HomeAIAssistant } from "@/components/ui/HomeAIAssistant";
 import { ActivityHeatmap } from "@/components/ui/ActivityHeatmap";
+import { useTodayTimelineBlocks, useTodayMetricLogs, useHistoricalActivity } from "@/hooks/useSupabaseQueries";
+import { useEffect, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
 
-export default async function HomePage() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+export default function HomePage() {
+  const supabase = createClient();
+  const [loading, setLoading] = useState(true);
 
-  if (!user) {
-    redirect("/auth/login");
-  }
-
-  // Gatekeep: ensure user has a username
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("username")
-    .eq("id", user.id)
-    .single();
-
-  if (!profile || !profile.username) {
-    redirect("/auth/setup-profile");
-  }
+  // Check auth and gatekeep
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      if (!data.user) {
+        redirect("/auth/login");
+        return;
+      }
+      supabase.from("profiles").select("username").eq("id", data.user.id).single().then(res => {
+        if (!res.data || !res.data.username) {
+          redirect("/auth/setup-profile");
+        } else {
+          setLoading(false);
+        }
+      });
+    });
+  }, [supabase]);
 
   const todayDateObj = new Date();
   const year = todayDateObj.getFullYear();
@@ -30,48 +36,24 @@ export default async function HomePage() {
   const day = String(todayDateObj.getDate()).padStart(2, '0');
   const todayStr = `${year}-${month}-${day}`;
   
-  const startOfDay = new Date(`${todayStr}T00:00:00.000Z`).toISOString();
-  const endOfDay = new Date(new Date(startOfDay).getTime() + 24 * 60 * 60 * 1000).toISOString();
-
-  // Fetch today's timeline blocks to find current active block
-  const { data: timelineBlocks } = await supabase
-    .from("timeline_blocks")
-    .select("*")
-    .eq("user_id", user.id)
-    .gte("start_time", startOfDay)
-    .lt("start_time", endOfDay)
-    .order("start_time", { ascending: true });
-
-  const { data: metricLogs } = await supabase
-    .from("metric_logs")
-    .select("*, metric_definitions(name, unit)")
-    .eq("user_id", user.id)
-    .gte("recorded_at", startOfDay)
-    .lt("recorded_at", endOfDay)
-    .order("recorded_at", { ascending: true });
-
   const nowTime = todayDateObj.toISOString();
-  
-  // -- Fetch Historical Activity --
-  const normalizedToday = new Date(Date.UTC(year, parseInt(month) - 1, parseInt(day)));
-  const historyStart = new Date(normalizedToday.getTime() - 27 * 24 * 60 * 60 * 1000).toISOString();
 
-  const [ { data: pastBlocks }, { data: pastTasks }, { data: pastMetrics } ] = await Promise.all([
-    supabase.from("timeline_blocks").select("start_time").eq("user_id", user.id).eq("type", "actual").gte("start_time", historyStart),
-    supabase.from("tasks").select("created_at").eq("user_id", user.id).gte("created_at", historyStart),
-    supabase.from("metric_logs").select("recorded_at").eq("user_id", user.id).gte("recorded_at", historyStart)
-  ]);
+  const { data: timelineBlocks, isLoading: blocksLoading } = useTodayTimelineBlocks(todayStr);
+  const { data: metricLogs, isLoading: metricsLoading } = useTodayMetricLogs(todayStr);
+  const { data: activityData, isLoading: activityLoading } = useHistoricalActivity(28);
 
-  const activityData: Record<string, number> = {};
-  const addCount = (dateStr: string) => {
-    const d = dateStr.split('T')[0];
-    activityData[d] = (activityData[d] || 0) + 1;
-  };
-  pastBlocks?.forEach(b => b.start_time && addCount(b.start_time));
-  pastTasks?.forEach(t => t.created_at && addCount(t.created_at));
-  pastMetrics?.forEach(m => m.recorded_at && addCount(m.recorded_at));
-  // -------------------------------
-  
+  if (loading || blocksLoading || metricsLoading || activityLoading) {
+    return (
+      <div className="flex flex-col flex-1 items-center bg-background p-6 pt-28 md:p-12 md:pt-32">
+        <div className="w-full max-w-2xl flex flex-col gap-8 animate-pulse">
+          <div className="h-40 bg-gray-200 rounded-3xl w-full"></div>
+          <div className="h-32 bg-gray-200 rounded-3xl w-full mt-4"></div>
+          <div className="h-48 bg-gray-200 rounded-3xl w-full mt-4"></div>
+        </div>
+      </div>
+    );
+  }
+
   // Find current block (prioritize actual, then plan)
   let currentBlock = null;
   if (timelineBlocks && timelineBlocks.length > 0) {
@@ -80,11 +62,6 @@ export default async function HomePage() {
     const plan = activeBlocks.find(b => b.type === 'plan');
     currentBlock = actual || plan || null;
   }
-
-  const hour = todayDateObj.getHours();
-  let greeting = "Good Evening";
-  if (hour < 12) greeting = "Good Morning";
-  else if (hour < 17) greeting = "Good Afternoon";
 
   return (
     <div className="flex flex-col flex-1 items-center bg-background p-6 pt-28 md:p-12 md:pt-32">
@@ -148,7 +125,7 @@ export default async function HomePage() {
         </div>
 
         {/* History Heatmap */}
-        <ActivityHeatmap activityData={activityData} days={28} />
+        <ActivityHeatmap activityData={activityData || {}} days={28} />
 
         <div className="mb-24" />
       </div>

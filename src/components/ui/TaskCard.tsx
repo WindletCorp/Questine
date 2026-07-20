@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { Check, Edit3, Trash2, X, Save } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toggleTaskStatus, updateTaskDetails, deleteTask, createTask } from "@/app/actions/updateSummaryData";
+import { useToggleTaskMutation, useUpdateTaskMutation, useCreateTaskMutation, useDeleteTaskMutation } from "@/hooks/useSupabaseMutations";
 import { toast } from "sonner";
 import { motion, useAnimation, PanInfo } from "framer-motion";
 import { ChunkyDatePicker } from "./ChunkyDatePicker";
@@ -54,18 +55,21 @@ export function TaskCard({
   const controls = useAnimation();
   const isCompleted = status === "completed";
 
+  const toggleMutation = useToggleTaskMutation(dateStr || "");
+  const updateMutation = useUpdateTaskMutation(dateStr || "");
+  const createMutation = useCreateTaskMutation(dateStr || "");
+  const deleteMutation = useDeleteTaskMutation(dateStr || "");
+
   const handleToggle = async (e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
     if (!id || loading || isEditing) return;
     
     const newStatus = isCompleted ? "pending" : "completed";
-    setStatus(newStatus);
     setLoading(true);
 
     try {
-      await toggleTaskStatus(id, newStatus);
+      await toggleMutation.mutateAsync({ taskId: id, newStatus });
     } catch (err) {
-      setStatus(isCompleted ? "completed" : "pending");
       toast.error("Failed to update task.");
     } finally {
       setLoading(false);
@@ -81,11 +85,22 @@ export function TaskCard({
     setLoading(true);
     try {
       if (isNew) {
-        await createTask(editTitle, editTargetDate || new Date().toISOString().split('T')[0]);
+        await createMutation.mutateAsync({ 
+          title: editTitle, 
+          targetDate: editTargetDate || new Date().toISOString().split('T')[0],
+          linkedBlockId: editLinkedBlock || undefined
+        });
         toast.success("Task created!");
         if (onCancelNew) onCancelNew();
       } else if (id) {
-        await updateTaskDetails(id, editTitle, editTargetDate, editLinkedBlock || null);
+        await updateMutation.mutateAsync({
+          taskId: id,
+          updates: {
+            title: editTitle,
+            target_date: editTargetDate,
+            linked_block_id: editLinkedBlock || null
+          }
+        });
         setIsEditing(false);
         toast.success("Task updated!");
       }
@@ -100,13 +115,14 @@ export function TaskCard({
     if (!id) return;
     setLoading(true);
     try {
-      await deleteTask(id);
+      await deleteMutation.mutateAsync(id);
       toast.success("Task deleted");
     } catch (err) {
       toast.error("Failed to delete task");
       controls.start({ x: 0 });
-      setLoading(false);
       setShowDeleteConfirm(false);
+    } finally {
+      setLoading(false);
     }
   };
 

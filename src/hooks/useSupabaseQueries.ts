@@ -107,13 +107,14 @@ export function useHistoricalActivity(days: number = 28) {
 
       const [ { data: pastBlocks }, { data: pastTasks }, { data: pastMetrics } ] = await Promise.all([
         supabase.from("timeline_blocks").select("start_time").eq("user_id", user.id).eq("type", "actual").gte("start_time", historyStart),
-        supabase.from("tasks").select("completed_at").eq("user_id", user.id).eq("status", "done").gte("completed_at", historyStart),
+        supabase.from("tasks").select("completed_at").eq("user_id", user.id).eq("status", "completed").gte("completed_at", historyStart),
         supabase.from("metric_logs").select("recorded_at").eq("user_id", user.id).gte("recorded_at", historyStart),
       ]);
 
       const countsByDate: Record<string, number> = {};
       
       pastBlocks?.forEach(b => {
+        if (!b.start_time) return;
         const d = b.start_time.split("T")[0];
         countsByDate[d] = (countsByDate[d] || 0) + 1;
       });
@@ -123,6 +124,7 @@ export function useHistoricalActivity(days: number = 28) {
         countsByDate[d] = (countsByDate[d] || 0) + 1;
       });
       pastMetrics?.forEach(m => {
+        if (!m.recorded_at) return;
         const d = m.recorded_at.split("T")[0];
         countsByDate[d] = (countsByDate[d] || 0) + 1;
       });

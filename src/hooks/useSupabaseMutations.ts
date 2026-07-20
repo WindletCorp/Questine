@@ -68,7 +68,7 @@ export function useCreateTaskMutation(dateStr: string) {
 
   return useMutation({
     mutationFn: ({ title, targetDate, linkedBlockId }: { title: string, targetDate?: string, linkedBlockId?: string }) => 
-      createTask(title, targetDate, linkedBlockId),
+      createTask(title, targetDate || ""),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tasks', dateStr] });
     },
@@ -80,7 +80,7 @@ export function useUpdateTaskMutation(dateStr: string) {
 
   return useMutation({
     mutationFn: ({ taskId, updates }: { taskId: string, updates: any }) => 
-      updateTaskDetails(taskId, updates),
+      updateTaskDetails(taskId, updates.title || "", updates.target_date || "", updates.linked_block_id || null),
     onMutate: async ({ taskId, updates }) => {
       await queryClient.cancelQueries({ queryKey: ['tasks', dateStr] });
       const previousTasks = queryClient.getQueryData(['tasks', dateStr]);

@@ -1,5 +1,5 @@
 {
-  "name": "questine-app",
+  "name": "questine",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -9,6 +9,9 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@ai-sdk/google": "^4.0.31",
+    "@ai-sdk/openai": "^4.0.27",
+    "@ai-sdk/react": "^4.0.51",
     "@base-ui/react": "^1.6.0",
     "@supabase/ssr": "^0.12.4",
     "@supabase/supabase-js": "^2.111.0",
@@ -20,8 +23,10 @@
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "shadcn": "^4.16.1",
+    "swr": "^2.4.2",
     "tailwind-merge": "^3.6.0",
-    "tw-animate-css": "^1.4.0"
+    "tw-animate-css": "^1.4.0",
+    "zustand": "^5.0.14"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase/client'
-import { useChatStore } from '@/hooks/useChatStore'
 
 
 export default function TestPage() {
@@ -52,83 +51,7 @@ export default function TestPage() {
     else setLog('Global context saved successfully! The AI will now use this.')
   }
 
-  // 1. Test AI Chat
-  const { messages, setMessages } = useChatStore()
-  const [input, setInput] = useState('')
 
-  const handleInputChange = (e: any) => setInput(e.target.value)
-
-  const handleSubmit = async (e: any) => {
-    e.preventDefault()
-    const newMessages = [...messages, { role: 'user', content: input, id: Date.now().toString() } as any]
-    setMessages(newMessages)
-    setInput('')
-    
-    // Filter out any empty assistant messages from previous failed runs before sending
-    const validMessages = newMessages.filter(m => m.content.trim() !== '')
-
-    try {
-      const res = await fetch('/api/ai/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${session?.access_token}`
-        },
-        body: JSON.stringify({ messages: validMessages })
-      })
-      if (!res.ok) throw new Error(await res.text())
-      
-      const data = await res.json()
-      console.log('Exact AI response:', data.text)
-      
-      setMessages((prev: any) => [
-        ...prev, 
-        { role: 'assistant', content: data.text, id: Date.now().toString() } as any
-      ])
-    } catch (err: any) {
-      setLog('Chat Error: ' + err.message)
-    }
-  }
-
-  // 2. Test AI Routine
-  const testRoutine = async () => {
-    setLog('Generating routine...')
-    try {
-      const res = await fetch('/api/ai/routine', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${session?.access_token}`
-        },
-        body: JSON.stringify({})
-      })
-      if (!res.ok) throw new Error(await res.text())
-      const data = await res.json()
-      setLog('Routine Generated:\n' + JSON.stringify(data, null, 2))
-    } catch (e: any) {
-      setLog('Routine Error: ' + e.message)
-    }
-  }
-
-  // 3. Test AI Journal
-  const testJournal = async () => {
-    setLog('Analyzing journal...')
-    try {
-      const res = await fetch('/api/ai/journal', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${session?.access_token}`
-        },
-        body: JSON.stringify({ content: "I feel very overwhelmed today. I need to make sure I finish my math homework and call my mom." })
-      })
-      if (!res.ok) throw new Error(await res.text())
-      const data = await res.json()
-      setLog('Journal Analysis:\n' + JSON.stringify(data, null, 2))
-    } catch (e: any) {
-      setLog('Journal Error: ' + e.message)
-    }
-  }
 
   // 4. Test CRUD Operations
   const handleCreateTask = async () => {
@@ -196,15 +119,7 @@ export default function TestPage() {
       {session && (
         <div className="grid grid-cols-2 gap-8">
           <div className="flex flex-col gap-4">
-            <div className="p-4 border rounded">
-              <h2 className="text-xl font-bold mb-4">1. Test Routine API</h2>
-              <button className="px-4 py-2 bg-blue-600 text-white rounded" onClick={testRoutine}>Generate Dummy Routine</button>
-            </div>
 
-            <div className="p-4 border rounded">
-              <h2 className="text-xl font-bold mb-4">2. Test Journal API</h2>
-              <button className="px-4 py-2 bg-green-600 text-white rounded" onClick={testJournal}>Analyze Dummy Journal</button>
-            </div>
 
             <div className="p-4 border rounded">
               <h2 className="text-xl font-bold mb-4">4. Test Data Creation</h2>
@@ -221,20 +136,7 @@ export default function TestPage() {
             </div>
           </div>
 
-          <div className="p-4 border rounded flex flex-col gap-4">
-            <h2 className="text-xl font-bold">3. Test Chat API (Accountability Partner)</h2>
-            <div className="flex-1 bg-gray-100 dark:bg-gray-800 p-4 rounded overflow-auto h-96 flex flex-col gap-2">
-              {messages.map((m: any) => (
-                <div key={m.id} className={`p-2 rounded max-w-[80%] ${m.role === 'user' ? 'bg-blue-500 text-white self-end' : 'bg-gray-200 dark:bg-gray-700 text-black dark:text-white self-start'}`}>
-                  <b>{m.role}: </b>{m.content}
-                </div>
-              ))}
-            </div>
-            <form onSubmit={handleSubmit} className="flex gap-2">
-              <input className="flex-1 p-2 border rounded text-black" value={input} onChange={handleInputChange} placeholder="Say something..." />
-              <button type="submit" className="px-4 py-2 bg-black text-white rounded">Send</button>
-            </form>
-          </div>
+
         </div>
       )}
     </div>

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase/client'
-
+import { useChat } from '@ai-sdk/react'
 
 export default function TestPage() {
   const [session, setSession] = useState<any>(null)
@@ -11,7 +11,15 @@ export default function TestPage() {
   const [log, setLog] = useState<string>('')
   const [goals, setGoals] = useState('')
   const [constraints, setConstraints] = useState('')
-
+  const [byokProvider, setByokProvider] = useState('google')
+  const [input, setInput] = useState('')
+  const chatState = useChat({
+    maxSteps: 5,
+    headers: session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {},
+    body: { context: 'chat' },
+    onError: (err) => setLog('Error: ' + err.message)
+  })
+  const { messages, isLoading } = chatState;
   // Check auth on load
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -35,23 +43,27 @@ export default function TestPage() {
     else setLog('Signed up successfully! Check your email (or Supabase logs) if confirmation is enabled.')
   }
 
+  const handleLogout = async () => {
+    await supabase.auth.signOut()
+    setSession(null)
+    setLog('Logged out. Please log in again to sync cookies.')
+  }
+
   const handleSetBYOK = async () => {
     if (!session?.user) return
-    const key = prompt('Enter your Google Gemini API Key:')
+    const key = prompt(`Enter your ${byokProvider === 'google' ? 'Google Gemini' : 'OpenAI'} API Key:`)
     if (!key) return
-    const { error } = await supabase.from('users').update({ byok_key: key }).eq('id', session.user.id)
+    const { error } = await supabase.from('users').upsert({ id: session.user.id, byok_key: key, byok_provider: byokProvider })
     if (error) setLog('Error saving key: ' + error.message)
-    else setLog('BYOK key saved successfully!')
+    else setLog('BYOK key and provider saved successfully!')
   }
 
   const handleSetContext = async () => {
     if (!session?.user) return
-    const { error } = await supabase.from('users').update({ goals, constraints }).eq('id', session.user.id)
+    const { error } = await supabase.from('users').upsert({ id: session.user.id, goals, constraints })
     if (error) setLog('Error saving context: ' + error.message)
     else setLog('Global context saved successfully! The AI will now use this.')
   }
-
-
 
   // 4. Test CRUD Operations
   const handleCreateTask = async () => {
@@ -103,8 +115,19 @@ export default function TestPage() {
       ) : (
         <div className="p-4 border rounded flex flex-col gap-4">
           <h2 className="text-xl">Authenticated as: {session.user.email}</h2>
-          <div className="flex gap-4">
-            <button className="px-4 py-2 bg-purple-500 text-white rounded w-fit" onClick={handleSetBYOK}>Set Gemini API Key (BYOK)</button>
+          <div className="flex gap-4 items-center">
+            <select 
+              value={byokProvider} 
+              onChange={(e) => setByokProvider(e.target.value)}
+              className="p-2 border rounded text-black"
+            >
+              <option value="google">Google Gemini</option>
+              <option value="openai">OpenAI</option>
+            </select>
+            <button className="px-4 py-2 bg-purple-500 text-white rounded w-fit" onClick={handleSetBYOK}>Set API Key (BYOK)</button>
+          </div>
+          <div className="flex gap-4 items-center mt-2">
+            <button className="px-4 py-2 bg-red-500 text-white rounded w-fit" onClick={handleLogout}>Log Out</button>
           </div>
           
           <div className="flex flex-col gap-2 mt-4">
@@ -119,7 +142,43 @@ export default function TestPage() {
       {session && (
         <div className="grid grid-cols-2 gap-8">
           <div className="flex flex-col gap-4">
-
+            <div className="p-4 border rounded">
+              <h2 className="text-xl font-bold mb-4">Test AI Chat</h2>
+              <div className="flex flex-col gap-2 h-64 overflow-y-auto mb-4 border p-2 rounded">
+                <div>useChat keys: {JSON.stringify(Object.keys(chatState))}</div>
+                {messages.map(m => (
+                  <div key={m.id} className={`p-2 rounded ${m.role === 'user' ? 'bg-blue-100 text-blue-900 self-end' : 'bg-gray-100 text-gray-900 self-start'}`}>
+                    <strong>{m.role === 'user' ? 'You: ' : 'AI: '}</strong>
+                    {m.content}
+                    {m.toolInvocations && m.toolInvocations.map((tool: any) => (
+                      <div key={tool.toolCallId} className="text-xs text-gray-500 mt-1">
+                        Called tool: {tool.toolName}
+                      </div>
+                    ))}
+                  </div>
+                ))}
+                {isLoading && <div className="text-gray-500">AI is thinking...</div>}
+              </div>
+              <form onSubmit={(e) => {
+                e.preventDefault();
+                // We will implement sending here once we know what useChat exports
+                if (chatState.append) {
+                  chatState.append({ role: 'user', content: input });
+                  setInput('');
+                } else if (chatState.sendMessage) {
+                  chatState.sendMessage({ content: input });
+                  setInput('');
+                }
+              }} className="flex gap-2">
+                <input 
+                  className="flex-1 p-2 border rounded text-black" 
+                  value={input} 
+                  onChange={(e) => setInput(e.target.value)} 
+                  placeholder="Say something..." 
+                />
+                <button type="submit" className="px-4 py-2 bg-blue-500 text-white rounded" disabled={isLoading || !input?.trim()}>Send</button>
+              </form>
+            </div>
 
             <div className="p-4 border rounded">
               <h2 className="text-xl font-bold mb-4">4. Test Data Creation</h2>
@@ -135,8 +194,6 @@ export default function TestPage() {
               <pre>{log}</pre>
             </div>
           </div>
-
-
         </div>
       )}
     </div>

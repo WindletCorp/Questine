@@ -128,6 +128,7 @@ export type Database = {
       users: {
         Row: {
           byok_key: string | null
+          byok_provider: string | null
           coins: number | null
           constraints: string | null
           created_at: string | null
@@ -139,6 +140,7 @@ export type Database = {
         }
         Insert: {
           byok_key?: string | null
+          byok_provider?: string | null
           coins?: number | null
           constraints?: string | null
           created_at?: string | null
@@ -150,6 +152,7 @@ export type Database = {
         }
         Update: {
           byok_key?: string | null
+          byok_provider?: string | null
           coins?: number | null
           constraints?: string | null
           created_at?: string | null

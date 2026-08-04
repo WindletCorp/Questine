@@ -1,14 +1,13 @@
-import { createBrowserClient } from '@supabase/ssr'
-import { Database } from '../database.types'
+import { createBrowserClient } from "@supabase/ssr";
+import type { Database } from "@/lib/db/database.types";
 
-// Function to get or create browser client
-export function createClient() {
+/**
+ * Creates a Supabase client for browser use (React hooks, client components).
+ * Safe to call multiple times — memoisation is handled internally by the library.
+ */
+export function createSupabaseBrowserClient() {
   return createBrowserClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!
-  )
+  );
 }
-
-// Singleton for simpler imports when creating a new instance isn't strictly necessary, 
-// though SSR documentation recommends calling createBrowserClient inside components.
-export const supabase = createClient()

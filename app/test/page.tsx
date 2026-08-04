@@ -324,6 +324,7 @@ export default function CRUDTestPage() {
       if (error || !data.user) {
         setAuthError("Not authenticated. Sign in first.");
       } else {
+        console.log(data.user.id)
         setUserId(data.user.id);
       }
       setLoading(false);

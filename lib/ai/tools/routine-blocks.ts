@@ -18,7 +18,10 @@ export function makeRoutineBlockTools(client: SupabaseClient, userId: string) {
         end_date: z.string().optional().describe("ISO 8601 UTC timestamp string for the end bound"),
       }),
       execute: async ({ start_date, end_date }) => {
-        return await getRoutineBlocks(client, userId, start_date, end_date);
+        console.time('[TOOL] get_routine_blocks');
+        const res = await getRoutineBlocks(client, userId, start_date, end_date);
+        console.timeEnd('[TOOL] get_routine_blocks');
+        return res;
       },
     }),
 
@@ -27,7 +30,10 @@ export function makeRoutineBlockTools(client: SupabaseClient, userId: string) {
       inputSchema: InsertRoutineBlockSchema,
       execute: async (args) => {
         // args is now automatically typed by Zod
-        return await createRoutineBlock(client, { ...args, user_id: userId });
+        console.time('[TOOL] create_routine_block');
+        const res = await createRoutineBlock(client, { ...args, user_id: userId });
+        console.timeEnd('[TOOL] create_routine_block');
+        return res;
       },
     }),
 
@@ -39,7 +45,10 @@ export function makeRoutineBlockTools(client: SupabaseClient, userId: string) {
       }),
       execute: async ({ id, updates }) => {
         // Destructuring matches the Zod schema layout exactly
-        return await updateRoutineBlock(client, id, updates);
+        console.time('[TOOL] update_routine_block');
+        const res = await updateRoutineBlock(client, id, updates);
+        console.timeEnd('[TOOL] update_routine_block');
+        return res;
       },
     }),
 
@@ -49,7 +58,10 @@ export function makeRoutineBlockTools(client: SupabaseClient, userId: string) {
         id: z.string().describe("The unique identifier of the routine block to delete")
       }),
       execute: async ({ id }) => {
-        return await deleteRoutineBlock(client, id);
+        console.time('[TOOL] delete_routine_block');
+        const res = await deleteRoutineBlock(client, id);
+        console.timeEnd('[TOOL] delete_routine_block');
+        return res;
       },
     }),
   };

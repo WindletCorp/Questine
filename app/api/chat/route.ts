@@ -1,32 +1,22 @@
-import { createClient } from '@supabase/supabase-js';
-import { generateText, tool, LanguageModel, isStepCount } from 'ai'; // 👈 Added LanguageModelV1 import
-import { createGoogle } from '@ai-sdk/google';
-import { z } from 'zod';
-import { google } from "@ai-sdk/google";
+import { generateText, isStepCount } from 'ai';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
+import { buildTools } from '@/lib/ai/tools';
+import { createSupabaseServerClient } from '@/lib/supabase/server';
 
 export async function POST(req: Request) {
     try {
-        const { prompt, userId } = await req.json();
+        const { messages, userId } = await req.json();
 
         if (!userId) {
             return new Response(JSON.stringify({ error: 'User ID is required' }), { status: 400 });
         }
 
-        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-        const serviceRoleKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZjdmh6Y29peGJmbHl0bnBpeXVkIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4NTY0MzMwMiwiZXhwIjoyMTAxMjE5MzAyfQ.QiwPzOJgFMaTyQ4ehGMToTY4yAafi7_74512HyDlYsA"
-
-        if (!serviceRoleKey) {
-            console.error("❌ CRITICAL: SUPABASE_SERVICE_ROLE_KEY is missing!");
-            return new Response(JSON.stringify({ error: 'Server misconfiguration' }), { status: 500 });
-        }
-
-        const supabase = createClient(supabaseUrl!, serviceRoleKey);
+        const supabase = await createSupabaseServerClient();
 
         // 1. Fetch user API key and provider preference
         const { data: userConfig, error } = await supabase
             .from('users')
-            .select('byok_provider, byok_key')
+            .select('byok_provider, byok_key, goals, constraints')
             .eq('id', userId)
             .maybeSingle();
 
@@ -43,48 +33,49 @@ export async function POST(req: Request) {
             return new Response(JSON.stringify({ error: 'API key not configured' }), { status: 400 });
         }
 
-        // 2. Dynamic Provider Setup with Strict Typing
-        // ⚡ FIX: Assign the LanguageModelV1 type so 'generateText' accepts it perfectly
-        let modelInstance: LanguageModelV1; 
-
-        if (userConfig.byok_provider === 'google' || userConfig.byok_provider === 'gemini') {
-            const google = createGoogle({ apiKey: userConfig.byok_key });
-            modelInstance = google('gemini-2.5-flash');
-        } else {
+        if (userConfig.byok_provider !== 'google' && userConfig.byok_provider !== 'gemini') {
             return new Response(JSON.stringify({ error: 'Only Google Gemini configuration is ready.' }), { status: 400 });
         }
 
-        console.log(prompt, "STARTED CALLING GENERATE TEXT TYPE SHIII");
+        console.log("STARTED CALLING STREAM TEXT WITH MESSAGES");
 
-//         // 3. Execution Loop
-// import { z } from 'zod';
-// import { generateText, tool, isStepCount } from 'ai';
-// import { google } from "@ai-sdk/google";
+        // 2. Initialize provider
         const google = createGoogleGenerativeAI({
-        apiKey: userConfig.byok_key
+            apiKey: userConfig.byok_key
         });
-        const result = await generateText({
-        model: google("gemini-2.5-flash"),
 
-        tools: {
-            weather: tool({
-            description: 'Get the weather in a location',
-            inputSchema: z.object({
-                location: z.string().describe('The location to get the weather for'),
-            }),
-            execute: async ({ location }) => ({
-                location,
-                temperature: 72 + Math.floor(Math.random() * 21) - 10,
-            }),
-            }),
-        },
-        stopWhen: isStepCount(5),
-        prompt: 'What is the weather in San Francisco?',
+        // 3. Build tools
+        const myTools = buildTools({
+            client: supabase,
+            userId: userId,
+        });
+
+        const systemPrompt = `You are Questine, an elite, no-nonsense personal operating system.
+        Your sole purpose is to help the user manage their tasks and schedule their routine blocks.
+
+        Current Date and Time: ${new Date().toISOString()}
+
+        USER CONTEXT:
+        - Goals: ${userConfig.goals || "None specified"}
+        - Constraints: ${userConfig.constraints || "None specified"}
+
+        RULES:
+        1. Embody a proactive, sharp, and concise persona. Do not sound like a generic AI assistant. Drop pleasantries like "How can I help you today?".
+        2. Strictly align all your suggestions, scheduling, and task management with the user's GOALS and CONSTRAINTS.
+        3. You have a strict limit of 5 tool calls per turn. Do not brute force tools. If you hit an error, explain it and stop.
+        4. You manage Tasks and Routine Blocks. You do not manage journals.`;
+
+        const result = await generateText({
+            model: google("gemini-3.5-flash-lite"),
+            system: systemPrompt,
+            tools: myTools,
+            stopWhen: isStepCount(5),
+            messages: messages || [{ role: 'user', content: 'Hello!' }],
         });
 
         console.log("✅ FINAL RESPONSE GENERATED:", result.text);
 
-        return new Response(JSON.stringify({ text: result.text }), {
+        return new Response(JSON.stringify({ text: result.text, responseMessages: result.responseMessages }), {
             headers: { 'Content-Type': 'application/json' },
         });
 
@@ -93,3 +84,4 @@ export async function POST(req: Request) {
         return new Response(JSON.stringify({ error: err.message }), { status: 500 });
     }
 }
+

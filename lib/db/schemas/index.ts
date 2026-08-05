@@ -1,40 +1,42 @@
 import { z } from "zod";
 
 export const InsertTaskSchema = z.object({
-  label: z.string(),
-  metadata: z.record(z.string(), z.any()).optional(),
+  label: z.string().describe("The name or title of the task (e.g., 'Do laundry')"),
+  metadata: z.record(z.string(), z.any()).optional().describe("Optional key-value JSON object for any extra task details"),
 });
 
 export const UpdateTaskSchema = z.object({
-  label: z.string().optional(),
-  completed_at: z.string().nullable().optional(),
-  metadata: z.record(z.string(), z.any()).nullable().optional(),
+  label: z.string().optional().describe("The name or title of the task"),
+  completed_at: z.string().nullable().optional().describe("ISO 8601 UTC timestamp of when the task was completed. Pass null to mark as incomplete."),
+  metadata: z.record(z.string(), z.any()).nullable().optional().describe("Optional key-value JSON object for any extra task details"),
 });
 
 export const InsertRoutineBlockSchema = z.object({
-  label: z.string(),
-  category: z.string(),
-  start_time: z.number(),
-  end_time: z.number(),
-  type: z.enum(["PLAN", "ACTUAL"]),
+  label: z.string().describe("The title of the routine block (e.g., 'Morning Focus')"),
+  category: z.string().describe("A category group for the block (e.g., 'Work', 'Health', 'Leisure')"),
+  date: z.string().describe("The local date of the block in YYYY-MM-DD format (e.g., '2026-08-05')"),
+  start_time: z.string().describe("The local start time in HH:mm format (e.g., '08:00')"),
+  end_time: z.string().describe("The local end time in HH:mm format (e.g., '09:00')"),
+  type: z.enum(["PLAN", "ACTUAL"]).describe("Must be PLAN for scheduled blocks, or ACTUAL for tracked time."),
 });
 
 export const UpdateRoutineBlockSchema = z.object({
-  label: z.string().optional(),
-  category: z.string().optional(),
-  start_time: z.number().optional(),
-  end_time: z.number().optional(),
-  type: z.enum(["PLAN", "ACTUAL"]).optional(),
+  label: z.string().optional().describe("The title of the routine block"),
+  category: z.string().optional().describe("A category group for the block"),
+  date: z.string().optional().describe("The local date in YYYY-MM-DD format"),
+  start_time: z.string().optional().describe("The local start time in HH:mm format"),
+  end_time: z.string().optional().describe("The local end time in HH:mm format"),
+  type: z.enum(["PLAN", "ACTUAL"]).optional().describe("Must be PLAN or ACTUAL"),
 });
 
 export const InsertJournalSchema = z.object({
-  content: z.string(),
-  date: z.string(),
-  ai_analysis: z.record(z.string(), z.any()).optional(),
+  content: z.string().describe("The actual text content of the journal entry"),
+  date: z.string().describe("The local date of the journal entry in YYYY-MM-DD format"),
+  ai_analysis: z.record(z.string(), z.any()).optional().describe("Optional structured AI analysis of the journal entry"),
 });
 
 export const UpdateJournalSchema = z.object({
-  content: z.string().optional(),
-  ai_analysis: z.record(z.string(), z.any()).nullable().optional(),
-  date: z.string().optional(),
+  content: z.string().optional().describe("The actual text content of the journal entry"),
+  ai_analysis: z.record(z.string(), z.any()).nullable().optional().describe("Optional structured AI analysis of the journal entry"),
+  date: z.string().optional().describe("The local date of the journal entry in YYYY-MM-DD format"),
 });

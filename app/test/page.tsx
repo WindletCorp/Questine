@@ -145,8 +145,8 @@ function RoutineBlocksPanel({ userId }: { userId: string }) {
     label: "Morning workout",
     category: "Health",
     type: "PLAN" as "PLAN" | "ACTUAL",
-    start_time: Math.floor(Date.now() / 1000),
-    end_time: Math.floor(Date.now() / 1000) + 3600,
+    start_time: new Date().toISOString(),
+    end_time: new Date(Date.now() + 3600 * 1000).toISOString(),
   });
 
   const refresh = useCallback(async () => {

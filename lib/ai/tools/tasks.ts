@@ -7,16 +7,22 @@ import { z } from "zod";
 export function makeTaskTools(client: SupabaseClient, userId: string) {
   return {
     get_tasks: tool({
-      description: "Get all tasks for the user.",
-      parameters: z.object({}),
-      execute: async (_args: any) => {
+      description: "Get all tasks for the user. (Defaults to those active in the last 48 hours)",
+      inputSchema: z.object({}),
+      execute: async () => {
         const result = await getTasks(client, userId);
+        if (result.data) {
+            return result.data.map(t => {
+                const { created_at, updated_at, ...rest } = t;
+                return rest;
+            });
+        }
         return result;
       },
     } as any),
     create_task: tool({
       description: "Create a new task.",
-      parameters: InsertTaskSchema,
+      inputSchema: InsertTaskSchema,
       execute: async (args: any) => {
         const result = await createTask(client, { ...args, user_id: userId });
         return result;
@@ -24,7 +30,7 @@ export function makeTaskTools(client: SupabaseClient, userId: string) {
     } as any),
     update_task: tool({
       description: "Update a task.",
-      parameters: z.object({
+      inputSchema: z.object({
         id: z.string(),
         updates: UpdateTaskSchema,
       }),
@@ -35,7 +41,7 @@ export function makeTaskTools(client: SupabaseClient, userId: string) {
     } as any),
     delete_task: tool({
       description: "Delete a task.",
-      parameters: z.object({ id: z.string() }),
+      inputSchema: z.object({ id: z.string() }),
       execute: async (args: any) => {
         const result = await deleteTask(client, args.id);
         return result;

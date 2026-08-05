@@ -6,10 +6,15 @@ import { ok, err } from "./types";
 type Client = SupabaseClient<Database>;
 
 export async function getJournals(client: Client, userId: string): Promise<DbResult<Journal[]>> {
+  const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+  const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
   const { data, error } = await client
     .from("journals")
     .select("*")
     .eq("user_id", userId)
+    .gte("date", yesterday)
+    .lte("date", tomorrow)
     .order("date", { ascending: false });
 
   if (error) return err(error.message);

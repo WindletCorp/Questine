@@ -323,12 +323,12 @@ export default function CRUDTestPage() {
   const [authError, setAuthError] = useState<string | null>(null);
 
   useEffect(() => {
-    client.auth.getUser().then(({ data, error }) => {
-      if (error || !data.user) {
+    client.auth.getSession().then(({ data, error }) => {
+      if (error || !data.session) {
         setAuthError("Not authenticated. Sign in first.");
       } else {
-        console.log(data.user.id)
-        setUserId(data.user.id);
+        console.log(data.session.user.id)
+        setUserId(data.session.user.id);
       }
       setLoading(false);
     });

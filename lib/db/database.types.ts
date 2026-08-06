@@ -19,8 +19,9 @@ export type Database = {
           ai_analysis: Json | null
           content: string
           created_at: string | null
-          date: string
+          end_time: string
           id: string
+          start_time: string
           updated_at: string | null
           user_id: string
         }
@@ -28,8 +29,9 @@ export type Database = {
           ai_analysis?: Json | null
           content: string
           created_at?: string | null
-          date: string
+          end_time: string
           id?: string
+          start_time: string
           updated_at?: string | null
           user_id: string
         }
@@ -37,8 +39,9 @@ export type Database = {
           ai_analysis?: Json | null
           content?: string
           created_at?: string | null
-          date?: string
+          end_time?: string
           id?: string
+          start_time?: string
           updated_at?: string | null
           user_id?: string
         }
@@ -100,6 +103,7 @@ export type Database = {
         Row: {
           completed_at: string | null
           created_at: string | null
+          due_date: string | null
           id: string
           label: string
           metadata: Json | null
@@ -109,6 +113,7 @@ export type Database = {
         Insert: {
           completed_at?: string | null
           created_at?: string | null
+          due_date?: string | null
           id?: string
           label: string
           metadata?: Json | null
@@ -118,6 +123,7 @@ export type Database = {
         Update: {
           completed_at?: string | null
           created_at?: string | null
+          due_date?: string | null
           id?: string
           label?: string
           metadata?: Json | null

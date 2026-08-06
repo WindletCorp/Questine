@@ -13,9 +13,9 @@ export async function getJournals(client: Client, userId: string): Promise<DbRes
     .from("journals")
     .select("*")
     .eq("user_id", userId)
-    .gte("date", yesterday)
-    .lte("date", tomorrow)
-    .order("date", { ascending: false });
+    .gte("start_time", yesterday)
+    .lte("start_time", tomorrow)
+    .order("start_time", { ascending: false });
 
   if (error) return err(error.message);
   return ok(data);

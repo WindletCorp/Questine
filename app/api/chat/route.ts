@@ -33,8 +33,12 @@ export async function POST(req: Request) {
             return new Response(JSON.stringify({ error: 'API key not configured' }), { status: 400 });
         }
 
+        if (!userConfig.byok_provider) {
+            return new Response(JSON.stringify({ error: 'BYOK Provider not configured. Please set up your provider first.' }), { status: 400 });
+        }
+
         if (userConfig.byok_provider !== 'google' && userConfig.byok_provider !== 'gemini') {
-            return new Response(JSON.stringify({ error: 'Only Google Gemini configuration is ready.' }), { status: 400 });
+            return new Response(JSON.stringify({ error: `Unsupported BYOK provider: ${userConfig.byok_provider}` }), { status: 400 });
         }
 
         console.log("STARTED CALLING STREAM TEXT WITH MESSAGES");
@@ -67,7 +71,7 @@ export async function POST(req: Request) {
 
         console.time('[LLM] generateText');
         const result = await generateText({
-            model: google("gemini-3.5-flash-lite"),
+            model: google('gemini-3.5-flash-lite'),
             system: systemPrompt,
             tools: myTools,
             stopWhen: isStepCount(5),
@@ -77,7 +81,7 @@ export async function POST(req: Request) {
 
         console.log("✅ FINAL RESPONSE GENERATED:", result.text);
 
-        return new Response(JSON.stringify({ text: result.text, responseMessages: result.responseMessages }), {
+        return new Response(JSON.stringify({ text: result.text, responseMessages: result.steps }), {
             headers: { 'Content-Type': 'application/json' },
         });
 

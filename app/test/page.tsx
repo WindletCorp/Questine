@@ -220,7 +220,8 @@ function JournalsPanel({ userId }: { userId: string }) {
   const [journals, setJournals] = useState<Journal[]>([]);
   const [result, setResult] = useState<unknown>(null);
   const [content, setContent] = useState("Today I felt focused and productive.");
-  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+  const [startTime, setStartTime] = useState(new Date().toISOString());
+  const [endTime, setEndTime] = useState(new Date(Date.now() + 3600 * 1000).toISOString());
 
   const refresh = useCallback(async () => {
     const r = await getJournals(client, userId);
@@ -231,7 +232,7 @@ function JournalsPanel({ userId }: { userId: string }) {
   useEffect(() => { refresh(); }, [refresh]);
 
   const handleCreate = async () => {
-    const r = await createJournal(client, { user_id: userId, content, date });
+    const r = await createJournal(client, { user_id: userId, content, start_time: startTime, end_time: endTime });
     setResult(r);
     refresh();
   };
@@ -252,8 +253,10 @@ function JournalsPanel({ userId }: { userId: string }) {
   return (
     <Section title="📓 Journals">
       <div className="form-grid">
-        <input className="input" type="date" value={date}
-          onChange={(e) => setDate(e.target.value)} />
+        <input className="input" type="datetime-local" value={startTime.slice(0, 16)}
+          onChange={(e) => setStartTime(new Date(e.target.value).toISOString())} />
+        <input className="input" type="datetime-local" value={endTime.slice(0, 16)}
+          onChange={(e) => setEndTime(new Date(e.target.value).toISOString())} />
         <textarea className="input textarea" value={content}
           onChange={(e) => setContent(e.target.value)} rows={3} placeholder="Journal content..." />
         <div className="row">
@@ -265,7 +268,7 @@ function JournalsPanel({ userId }: { userId: string }) {
         {journals.map((j) => (
           <div key={j.id} className="item">
             <span className="item-label">
-              📅 {j.date} — {j.content.slice(0, 60)}{j.content.length > 60 ? "…" : ""}
+              📅 {j.start_time?.slice(0, 10)} — {j.content.slice(0, 60)}{j.content.length > 60 ? "…" : ""}
             </span>
             <span className="item-meta">{j.id.slice(0, 8)}…</span>
             <div className="item-actions">
@@ -347,6 +350,11 @@ export default function CRUDTestPage() {
           <h1>🔐 Auth Required</h1>
           <p>{authError}</p>
           <p className="hint">This test page requires an authenticated Supabase session.</p>
+          <div className="mt-6">
+            <a href="/login" className="btn btn-primary" style={{ textDecoration: 'none', display: 'inline-block' }}>
+              Go to Login Page
+            </a>
+          </div>
         </div>
       </div>
     );

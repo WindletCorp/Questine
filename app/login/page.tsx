@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
-import { setCachedSession, getCachedSession } from "@/lib/auth/session";
+import { useAuth } from "@/components/providers/auth-provider";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -12,15 +12,14 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [isSignUp, setIsSignUp] = useState(false);
   const router = useRouter();
+  const { user, loading: authLoading } = useAuth();
 
-  // If already logged in locally, redirect
+  // If already logged in, redirect
   useEffect(() => {
-    getCachedSession().then(session => {
-      if (session) {
-        router.push("/");
-      }
-    });
-  }, [router]);
+    if (!authLoading && user) {
+      router.push("/");
+    }
+  }, [user, authLoading, router]);
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,14 +37,6 @@ export default function LoginPage() {
     if (result.error) {
       setError(result.error.message);
     } else {
-      if (result.data.user) {
-        await setCachedSession({
-          user_id: result.data.user.id,
-          email: result.data.user.email || "",
-          profile: null,
-          last_verified: new Date().toISOString()
-        });
-      }
       router.push("/"); // Redirect to the test page after login
     }
     setLoading(false);

@@ -33,7 +33,7 @@ export async function getTasks(client: Client, userId: string, updatedAfter?: st
   }
 
   const { data, error } = await query.order("created_at", { ascending: false });
-  console.log(data, error)
+
   if (error) return err(error.message);
   return ok(data);
 }

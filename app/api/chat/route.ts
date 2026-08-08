@@ -41,7 +41,7 @@ export async function POST(req: Request) {
             return new Response(JSON.stringify({ error: `Unsupported BYOK provider: ${userConfig.byok_provider}` }), { status: 400 });
         }
 
-        console.log("STARTED CALLING STREAM TEXT WITH MESSAGES");
+
 
         // 2. Initialize provider
         const google = createGoogleGenerativeAI({
@@ -69,7 +69,7 @@ export async function POST(req: Request) {
         3. You have a strict limit of 5 tool calls per turn. Do not brute force tools. If you hit an error, explain it and stop.
         4. You manage Tasks and Routine Blocks. You do not manage journals.`;
 
-        console.time('[LLM] generateText');
+
         const result = await generateText({
             model: google('gemini-3.5-flash-lite'),
             system: systemPrompt,
@@ -77,9 +77,9 @@ export async function POST(req: Request) {
             stopWhen: isStepCount(5),
             messages: messages || [{ role: 'user', content: 'Hello!' }],
         });
-        console.timeEnd('[LLM] generateText');
 
-        console.log("✅ FINAL RESPONSE GENERATED:", result.text);
+
+
 
         return new Response(JSON.stringify({ text: result.text, responseMessages: result.response.messages }), {
             headers: { 'Content-Type': 'application/json' },

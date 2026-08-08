@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { useAuth } from "@/components/providers/auth-provider";
 
 // DB functions
 import { getTasks, createTask, updateTask, deleteTask } from "@/lib/db/tasks";
@@ -318,44 +319,14 @@ function UserStatsPanel({ userId }: { userId: string }) {
 // ─── Auth Gate ──────────────────────────────────────────────────────────────
 
 export default function CRUDTestPage() {
-  const [userId, setUserId] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [authError, setAuthError] = useState<string | null>(null);
+  const { user, loading } = useAuth();
+  const userId = user?.id;
 
-  useEffect(() => {
-    client.auth.getSession().then(({ data, error }) => {
-      if (error || !data.session) {
-        setAuthError("Not authenticated. Sign in first.");
-      } else {
-        console.log(data.session.user.id)
-        setUserId(data.session.user.id);
-      }
-      setLoading(false);
-    });
-  }, []);
-
-  if (loading) {
+  if (loading || !userId) {
     return (
       <div className="page-center">
         <div className="spinner" />
         <p>Checking auth…</p>
-      </div>
-    );
-  }
-
-  if (authError || !userId) {
-    return (
-      <div className="page-center">
-        <div className="auth-card">
-          <h1>🔐 Auth Required</h1>
-          <p>{authError}</p>
-          <p className="hint">This test page requires an authenticated Supabase session.</p>
-          <div className="mt-6">
-            <a href="/login" className="btn btn-primary" style={{ textDecoration: 'none', display: 'inline-block' }}>
-              Go to Login Page
-            </a>
-          </div>
-        </div>
       </div>
     );
   }

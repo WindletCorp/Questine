@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { ServiceWorkerRegistrar } from "@/components/service-worker-registrar";
 import { OfflineBanner } from "@/components/offline-banner";
+import { AuthProvider } from "@/components/providers/auth-provider";
 
 export const metadata: Metadata = {
   title: "Questine",
@@ -34,9 +35,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <OfflineBanner />
-        {children}
-        <ServiceWorkerRegistrar />
+        <AuthProvider>
+          <OfflineBanner />
+          {children}
+          <ServiceWorkerRegistrar />
+        </AuthProvider>
       </body>
     </html>
   );

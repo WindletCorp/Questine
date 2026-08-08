@@ -81,7 +81,7 @@ export async function POST(req: Request) {
 
         console.log("✅ FINAL RESPONSE GENERATED:", result.text);
 
-        return new Response(JSON.stringify({ text: result.text, responseMessages: result.steps }), {
+        return new Response(JSON.stringify({ text: result.text, responseMessages: result.response.messages }), {
             headers: { 'Content-Type': 'application/json' },
         });
 

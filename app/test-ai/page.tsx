@@ -1,15 +1,15 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { useAuth } from "@/lib/auth/use-auth";
+import { useAuth } from "@/components/providers/auth-provider";
 import { useSyncStore } from "@/lib/stores/sync-store";
 import { type ModelMessage } from 'ai';
 
 export default function SimpleChatPage() {
-    const { session, isLoading: isAuthLoading } = useAuth();
+    const { session, user, loading: isAuthLoading } = useAuth();
     const isOnline = useSyncStore(state => state.isOnline);
 
-    const userId = session?.user_id || null;
+    const userId = user?.id || null;
 
     // Chat States
     const [input, setInput] = useState('');

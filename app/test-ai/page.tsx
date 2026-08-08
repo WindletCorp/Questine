@@ -1,16 +1,15 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { useAuth } from "@/lib/auth/use-auth";
+import { useSyncStore } from "@/lib/stores/sync-store";
 import { type ModelMessage } from 'ai';
 
 export default function SimpleChatPage() {
-    const supabase = createSupabaseBrowserClient();
+    const { session, isLoading: isAuthLoading } = useAuth();
+    const isOnline = useSyncStore(state => state.isOnline);
 
-    // Dynamic Auth States
-    const [userId, setUserId] = useState<string | null>(null);
-    const [isAuthLoading, setIsAuthLoading] = useState(true);
-    const [authError, setAuthError] = useState<string | null>(null);
+    const userId = session?.user_id || null;
 
     // Chat States
     const [input, setInput] = useState('');
@@ -23,18 +22,6 @@ export default function SimpleChatPage() {
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages]);
-
-    // Check auth state on mount
-    useEffect(() => {
-        supabase.auth.getUser().then(({ data, error }) => {
-            if (error || !data.user) {
-                setAuthError("Not authenticated. Sign in first.");
-            } else {
-                setUserId(data.user.id);
-            }
-            setIsAuthLoading(false);
-        });
-    }, [supabase]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -78,13 +65,13 @@ export default function SimpleChatPage() {
     }
 
     // 2. Unauthenticated Guard Shield
-    if (authError || !userId) {
+    if (!userId) {
         return (
             <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col items-center justify-center p-4">
                 <div className="w-full max-w-md bg-slate-950 rounded-xl p-6 border border-slate-800 shadow-2xl text-center space-y-4">
                     <h1 className="text-xl font-bold text-white">🔐 Auth Required</h1>
-                    <p className="text-sm text-red-400 bg-red-950/30 border border-red-900/50 py-2 rounded-lg">{authError}</p>
-                    <p className="text-xs text-slate-500">This test page requires an active, authenticated Supabase session.</p>
+                    <p className="text-sm text-red-400 bg-red-950/30 border border-red-900/50 py-2 rounded-lg">Not authenticated. Sign in first.</p>
+                    <p className="text-xs text-slate-500">This test page requires an active, authenticated session.</p>
                 </div>
             </div>
         );
@@ -101,6 +88,11 @@ export default function SimpleChatPage() {
                     <p className="text-xs text-slate-400">
                         Testing user ID: <code className="bg-slate-900 px-1 py-0.5 rounded text-indigo-400">{userId}</code>
                     </p>
+                    {!isOnline && (
+                        <div className="mt-2 text-xs font-medium text-red-400 bg-red-950/30 border border-red-900/50 p-2 rounded">
+                            ⚠️ AI Chat requires an active internet connection. You are currently offline.
+                        </div>
+                    )}
                 </div>
 
                 {/* Output Screen */}
@@ -156,7 +148,7 @@ export default function SimpleChatPage() {
                     />
                     <button
                         type="submit"
-                        disabled={isLoading || !input.trim()}
+                        disabled={isLoading || !input.trim() || !isOnline}
                         className="bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-800 disabled:text-slate-500 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors"
                     >
                         Send

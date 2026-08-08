@@ -3,11 +3,12 @@ import "./globals.css";
 import { ServiceWorkerRegistrar } from "@/components/service-worker-registrar";
 import { OfflineBanner } from "@/components/offline-banner";
 import { AuthProvider } from "@/components/providers/auth-provider";
+import { SyncStatusBar } from "@/components/sync-status-bar";
 
 export const metadata: Metadata = {
   title: "Questine",
   description: "Your AI-powered personal operating system for productivity",
-  manifest: "/manifest.json",
+  manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
@@ -39,6 +40,7 @@ export default function RootLayout({
           <OfflineBanner />
           {children}
           <ServiceWorkerRegistrar />
+          <SyncStatusBar />
         </AuthProvider>
       </body>
     </html>

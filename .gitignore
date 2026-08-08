@@ -40,4 +40,7 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 .agents
-AGENTS.md
+AGENTS.md 
+# Serwist
+public/sw*
+public/swe-worker*

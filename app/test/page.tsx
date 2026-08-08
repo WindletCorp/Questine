@@ -4,29 +4,27 @@ import { useState, useEffect, useCallback } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { useAuth } from "@/components/providers/auth-provider";
 
-// DB functions
-import { getTasks, createTask, updateTask, deleteTask } from "@/lib/db/tasks";
+// Local DB functions
+import { getLocalTasks, createLocalTask, updateLocalTask, deleteLocalTask } from "@/lib/local-db/tasks";
 import {
-  getRoutineBlocks,
-  createRoutineBlock,
-  updateRoutineBlock,
-  deleteRoutineBlock,
-} from "@/lib/db/routine-blocks";
+  getLocalRoutineBlocks,
+  createLocalRoutineBlock,
+  updateLocalRoutineBlock,
+  deleteLocalRoutineBlock,
+} from "@/lib/local-db/routine-blocks";
 import {
-  getJournals,
-  createJournal,
-  updateJournal,
-  deleteJournal,
-} from "@/lib/db/journals";
+  getLocalJournals,
+  createLocalJournal,
+  updateLocalJournal,
+  deleteLocalJournal,
+} from "@/lib/local-db/journals";
 import {
-  getUserStats,
-} from "@/lib/db/user-stats";
+  getLocalUserStats,
+} from "@/lib/local-db/users";
 
 import type { Task, RoutineBlock, Journal, UserStats } from "@/lib/db/types";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
-
-const client = createSupabaseBrowserClient();
 
 function Result({ data }: { data: unknown }) {
   return (
@@ -76,8 +74,7 @@ function TasksPanel({ userId }: { userId: string }) {
   const [dueDateBefore, setDueDateBefore] = useState("");
 
   const refresh = useCallback(async () => {
-    const r = await getTasks(
-      client, 
+    const r = await getLocalTasks(
       userId, 
       updatedAfter ? new Date(updatedAfter).toISOString() : undefined, 
       updatedBefore ? new Date(updatedBefore).toISOString() : undefined,
@@ -88,10 +85,15 @@ function TasksPanel({ userId }: { userId: string }) {
     if (!r.error) setTasks(r.data ?? []);
   }, [userId, updatedAfter, updatedBefore, dueDateAfter, dueDateBefore]);
 
-  useEffect(() => { refresh(); }, [refresh]);
+  useEffect(() => { 
+    refresh();
+    const handleSync = () => refresh();
+    window.addEventListener("sync-completed", handleSync);
+    return () => window.removeEventListener("sync-completed", handleSync);
+  }, [refresh]);
 
   const handleCreate = async () => {
-    const r = await createTask(client, { 
+    const r = await createLocalTask({ 
       user_id: userId, 
       label, 
       due_date: dueDate ? new Date(dueDate).toISOString() : null,
@@ -102,7 +104,7 @@ function TasksPanel({ userId }: { userId: string }) {
   };
 
   const handleComplete = async (id: string) => {
-    const r = await updateTask(client, id, {
+    const r = await updateLocalTask(id, {
       completed_at: new Date().toISOString(),
     });
     setResult(r);
@@ -110,13 +112,13 @@ function TasksPanel({ userId }: { userId: string }) {
   };
 
   const handleUncomplete = async (id: string) => {
-    const r = await updateTask(client, id, { completed_at: null });
+    const r = await updateLocalTask(id, { completed_at: null });
     setResult(r);
     refresh();
   };
 
   const handleDelete = async (id: string) => {
-    const r = await deleteTask(client, id);
+    const r = await deleteLocalTask(id);
     setResult(r);
     refresh();
   };
@@ -184,8 +186,7 @@ function RoutineBlocksPanel({ userId }: { userId: string }) {
   const [endQuery, setEndQuery] = useState(new Date(Date.now() + 24 * 3600 * 1000).toISOString().slice(0, 16));
 
   const refresh = useCallback(async () => {
-    const r = await getRoutineBlocks(
-      client, 
+    const r = await getLocalRoutineBlocks(
       userId, 
       startQuery ? new Date(startQuery).toISOString() : undefined, 
       endQuery ? new Date(endQuery).toISOString() : undefined
@@ -194,7 +195,12 @@ function RoutineBlocksPanel({ userId }: { userId: string }) {
     if (!r.error && r.data) setBlocks(r.data);
   }, [userId, startQuery, endQuery]);
 
-  useEffect(() => { refresh(); }, [refresh]);
+  useEffect(() => { 
+    refresh(); 
+    const handleSync = () => refresh();
+    window.addEventListener("sync-completed", handleSync);
+    return () => window.removeEventListener("sync-completed", handleSync);
+  }, [refresh]);
 
   const handleCreate = async () => {
     const payload = {
@@ -203,13 +209,13 @@ function RoutineBlocksPanel({ userId }: { userId: string }) {
       end_time: new Date(form.end_time).toISOString(),
       user_id: userId
     };
-    const r = await createRoutineBlock(client, payload);
+    const r = await createLocalRoutineBlock(payload);
     setResult(r);
     refresh();
   };
 
   const handleUpdateLabel = async (id: string) => {
-    const r = await updateRoutineBlock(client, id, {
+    const r = await updateLocalRoutineBlock(id, {
       label: prompt("New label:") ?? undefined,
     });
     setResult(r);
@@ -217,7 +223,7 @@ function RoutineBlocksPanel({ userId }: { userId: string }) {
   };
 
   const handleDelete = async (id: string) => {
-    const r = await deleteRoutineBlock(client, id);
+    const r = await deleteLocalRoutineBlock(id);
     setResult(r);
     refresh();
   };
@@ -281,8 +287,7 @@ function JournalsPanel({ userId }: { userId: string }) {
   const [endQuery, setEndQuery] = useState(new Date(Date.now() + 24 * 3600 * 1000).toISOString().slice(0, 16));
 
   const refresh = useCallback(async () => {
-    const r = await getJournals(
-      client, 
+    const r = await getLocalJournals(
       userId, 
       startQuery ? new Date(startQuery).toISOString() : undefined, 
       endQuery ? new Date(endQuery).toISOString() : undefined
@@ -291,10 +296,15 @@ function JournalsPanel({ userId }: { userId: string }) {
     if (!r.error && r.data) setJournals(r.data);
   }, [userId, startQuery, endQuery]);
 
-  useEffect(() => { refresh(); }, [refresh]);
+  useEffect(() => { 
+    refresh(); 
+    const handleSync = () => refresh();
+    window.addEventListener("sync-completed", handleSync);
+    return () => window.removeEventListener("sync-completed", handleSync);
+  }, [refresh]);
 
   const handleCreate = async () => {
-    const r = await createJournal(client, { 
+    const r = await createLocalJournal({ 
       user_id: userId, 
       content, 
       start_time: new Date(startTime).toISOString(), 
@@ -307,13 +317,13 @@ function JournalsPanel({ userId }: { userId: string }) {
 
   const handleUpdate = async (id: string, currentContent: string) => {
     const newContent = prompt("New content:", currentContent) ?? currentContent;
-    const r = await updateJournal(client, id, { content: newContent });
+    const r = await updateLocalJournal(id, { content: newContent });
     setResult(r);
     refresh();
   };
 
   const handleDelete = async (id: string) => {
-    const r = await deleteJournal(client, id);
+    const r = await deleteLocalJournal(id);
     setResult(r);
     refresh();
   };
@@ -362,12 +372,17 @@ function UserStatsPanel({ userId }: { userId: string }) {
   const [result, setResult] = useState<unknown>(null);
 
   const refresh = useCallback(async () => {
-    const r = await getUserStats(client, userId);
+    const r = await getLocalUserStats(userId);
     setResult(r);
     if (!r.error) setStats(r.data);
   }, [userId]);
 
-  useEffect(() => { refresh(); }, [refresh]);
+  useEffect(() => { 
+    refresh(); 
+    const handleSync = () => refresh();
+    window.addEventListener("sync-completed", handleSync);
+    return () => window.removeEventListener("sync-completed", handleSync);
+  }, [refresh]);
 
   return (
     <Section title="👤 User Stats">
@@ -389,11 +404,13 @@ function UserStatsPanel({ userId }: { userId: string }) {
 
 // ─── Auth Gate ──────────────────────────────────────────────────────────────
 
+import { useSyncStore } from "@/lib/stores/sync-store";
+
 export default function CRUDTestPage() {
   const { user, loading } = useAuth();
   const userId = user?.id;
 
-  if (loading || !userId) {
+  if (loading) {
     return (
       <div className="page-center">
         <div className="spinner" />
@@ -402,11 +419,27 @@ export default function CRUDTestPage() {
     );
   }
 
+  if (!userId) {
+    return (
+      <div className="page-center">
+        <div className="auth-card">
+          <h1>🔐 Auth Required</h1>
+          <p>Not authenticated. Sign in first.</p>
+          <p className="hint">This page requires an authenticated session. If you are offline, you must have logged in previously to access this page.</p>
+          <div className="mt-6">
+            <a href="/login" className="btn btn-primary" style={{ textDecoration: 'none', display: 'inline-block' }}>
+              Go to Login Page
+            </a>
+          </div>
+        </div>
+      </div>
+    );
+  }
   return (
     <>
       <style>{styles}</style>
       <div className="page">
-        <header className="page-header">
+        <header className="page-header" style={{ position: "relative" }}>
           <h1 className="page-title">🧪 CRUD Test Lab</h1>
           <p className="page-subtitle">
             Direct DB layer testing · User: <code>{userId.slice(0, 8)}…</code>

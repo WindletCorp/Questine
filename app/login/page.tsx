@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
+import { setCachedSession, getCachedSession } from "@/lib/auth/session";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -12,12 +13,21 @@ export default function LoginPage() {
   const [isSignUp, setIsSignUp] = useState(false);
   const router = useRouter();
 
+  // If already logged in locally, redirect
+  useEffect(() => {
+    getCachedSession().then(session => {
+      if (session) {
+        router.push("/");
+      }
+    });
+  }, [router]);
+
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
     const client = createSupabaseBrowserClient();
-    
+
     let result;
     if (isSignUp) {
       result = await client.auth.signUp({ email, password });
@@ -28,7 +38,15 @@ export default function LoginPage() {
     if (result.error) {
       setError(result.error.message);
     } else {
-      router.push("/test"); // Redirect to the test page after login
+      if (result.data.user) {
+        await setCachedSession({
+          user_id: result.data.user.id,
+          email: result.data.user.email || "",
+          profile: null,
+          last_verified: new Date().toISOString()
+        });
+      }
+      router.push("/"); // Redirect to the test page after login
     }
     setLoading(false);
   };
@@ -54,9 +72,9 @@ export default function LoginPage() {
         <form onSubmit={handleAuth} className="space-y-5">
           <div>
             <label className="block text-sm font-medium mb-2 text-gray-300">Email Address</label>
-            <input 
-              type="email" 
-              required 
+            <input
+              type="email"
+              required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
@@ -65,17 +83,17 @@ export default function LoginPage() {
           </div>
           <div>
             <label className="block text-sm font-medium mb-2 text-gray-300">Password</label>
-            <input 
-              type="password" 
-              required 
+            <input
+              type="password"
+              required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
               placeholder="••••••••"
             />
           </div>
-          <button 
-            type="submit" 
+          <button
+            type="submit"
             disabled={loading}
             className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold py-3 px-4 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-blue-900/20"
           >
@@ -84,7 +102,7 @@ export default function LoginPage() {
         </form>
 
         <div className="mt-6 text-center">
-          <button 
+          <button
             onClick={() => {
               setIsSignUp(!isSignUp);
               setError(null);

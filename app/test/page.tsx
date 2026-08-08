@@ -67,17 +67,36 @@ function TasksPanel({ userId }: { userId: string }) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [result, setResult] = useState<unknown>(null);
   const [label, setLabel] = useState("Buy groceries");
+  const [dueDate, setDueDate] = useState(new Date(Date.now() + 24 * 3600 * 1000).toISOString().slice(0, 16));
+
+  // Query fields
+  const [updatedAfter, setUpdatedAfter] = useState(new Date(Date.now() - 24 * 3600 * 1000).toISOString().slice(0, 16));
+  const [updatedBefore, setUpdatedBefore] = useState(new Date(Date.now() + 24 * 3600 * 1000).toISOString().slice(0, 16));
+  const [dueDateAfter, setDueDateAfter] = useState("");
+  const [dueDateBefore, setDueDateBefore] = useState("");
 
   const refresh = useCallback(async () => {
-    const r = await getTasks(client, userId);
+    const r = await getTasks(
+      client, 
+      userId, 
+      updatedAfter ? new Date(updatedAfter).toISOString() : undefined, 
+      updatedBefore ? new Date(updatedBefore).toISOString() : undefined,
+      dueDateAfter ? new Date(dueDateAfter).toISOString() : undefined,
+      dueDateBefore ? new Date(dueDateBefore).toISOString() : undefined
+    );
     setResult(r);
     if (!r.error) setTasks(r.data ?? []);
-  }, [userId]);
+  }, [userId, updatedAfter, updatedBefore, dueDateAfter, dueDateBefore]);
 
   useEffect(() => { refresh(); }, [refresh]);
 
   const handleCreate = async () => {
-    const r = await createTask(client, { user_id: userId, label });
+    const r = await createTask(client, { 
+      user_id: userId, 
+      label, 
+      due_date: dueDate ? new Date(dueDate).toISOString() : null,
+      metadata: null 
+    });
     setResult(r);
     refresh();
   };
@@ -104,15 +123,26 @@ function TasksPanel({ userId }: { userId: string }) {
 
   return (
     <Section title="📋 Tasks">
-      <div className="row">
-        <input
-          className="input"
-          value={label}
-          onChange={(e) => setLabel(e.target.value)}
-          placeholder="Task label"
-        />
-        <ActionBtn label="Create" onClick={handleCreate} />
-        <ActionBtn label="Refresh" onClick={refresh} variant="secondary" />
+      <div className="form-grid">
+        <div className="row">
+          <input className="input" type="datetime-local" value={updatedAfter} onChange={(e) => setUpdatedAfter(e.target.value)} placeholder="Updated After" title="Updated After" />
+          <input className="input" type="datetime-local" value={updatedBefore} onChange={(e) => setUpdatedBefore(e.target.value)} placeholder="Updated Before" title="Updated Before" />
+          <ActionBtn label="Refresh" onClick={refresh} variant="secondary" />
+        </div>
+        <div className="row">
+          <input className="input" type="datetime-local" value={dueDateAfter} onChange={(e) => setDueDateAfter(e.target.value)} placeholder="Due After" title="Due After" />
+          <input className="input" type="datetime-local" value={dueDateBefore} onChange={(e) => setDueDateBefore(e.target.value)} placeholder="Due Before" title="Due Before" />
+        </div>
+        <div className="row">
+          <input
+            className="input"
+            value={label}
+            onChange={(e) => setLabel(e.target.value)}
+            placeholder="Task label"
+          />
+          <input className="input" type="datetime-local" value={dueDate} onChange={(e) => setDueDate(e.target.value)} placeholder="Due Date" title="Due Date" />
+          <ActionBtn label="Create" onClick={handleCreate} />
+        </div>
       </div>
       <div className="item-list">
         {tasks.map((t) => (
@@ -146,20 +176,34 @@ function RoutineBlocksPanel({ userId }: { userId: string }) {
     label: "Morning workout",
     category: "Health",
     type: "PLAN" as "PLAN" | "ACTUAL",
-    start_time: new Date().toISOString(),
-    end_time: new Date(Date.now() + 3600 * 1000).toISOString(),
+    start_time: new Date().toISOString().slice(0, 16),
+    end_time: new Date(Date.now() + 3600 * 1000).toISOString().slice(0, 16),
   });
 
+  const [startQuery, setStartQuery] = useState(new Date(Date.now() - 24 * 3600 * 1000).toISOString().slice(0, 16));
+  const [endQuery, setEndQuery] = useState(new Date(Date.now() + 24 * 3600 * 1000).toISOString().slice(0, 16));
+
   const refresh = useCallback(async () => {
-    const r = await getRoutineBlocks(client, userId);
+    const r = await getRoutineBlocks(
+      client, 
+      userId, 
+      startQuery ? new Date(startQuery).toISOString() : undefined, 
+      endQuery ? new Date(endQuery).toISOString() : undefined
+    );
     setResult(r);
     if (!r.error && r.data) setBlocks(r.data);
-  }, [userId]);
+  }, [userId, startQuery, endQuery]);
 
   useEffect(() => { refresh(); }, [refresh]);
 
   const handleCreate = async () => {
-    const r = await createRoutineBlock(client, { ...form, user_id: userId });
+    const payload = {
+      ...form,
+      start_time: new Date(form.start_time).toISOString(),
+      end_time: new Date(form.end_time).toISOString(),
+      user_id: userId
+    };
+    const r = await createRoutineBlock(client, payload);
     setResult(r);
     refresh();
   };
@@ -181,18 +225,26 @@ function RoutineBlocksPanel({ userId }: { userId: string }) {
   return (
     <Section title="🗓 Routine Blocks">
       <div className="form-grid">
-        <input className="input" placeholder="Label" value={form.label}
-          onChange={(e) => setForm((f) => ({ ...f, label: e.target.value }))} />
-        <input className="input" placeholder="Category" value={form.category}
-          onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))} />
-        <select className="input" value={form.type}
-          onChange={(e) => setForm((f) => ({ ...f, type: e.target.value as "PLAN" | "ACTUAL" }))}>
-          <option value="PLAN">PLAN</option>
-          <option value="ACTUAL">ACTUAL</option>
-        </select>
         <div className="row">
-          <ActionBtn label="Create" onClick={handleCreate} />
+          <input className="input" type="datetime-local" value={startQuery} onChange={(e) => setStartQuery(e.target.value)} title="Start After" />
+          <input className="input" type="datetime-local" value={endQuery} onChange={(e) => setEndQuery(e.target.value)} title="Start Before" />
           <ActionBtn label="Refresh" onClick={refresh} variant="secondary" />
+        </div>
+        <div className="row">
+          <input className="input" placeholder="Label" value={form.label}
+            onChange={(e) => setForm((f) => ({ ...f, label: e.target.value }))} />
+          <input className="input" placeholder="Category" value={form.category}
+            onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))} />
+          <select className="input" value={form.type}
+            onChange={(e) => setForm((f) => ({ ...f, type: e.target.value as "PLAN" | "ACTUAL" }))}>
+            <option value="PLAN">PLAN</option>
+            <option value="ACTUAL">ACTUAL</option>
+          </select>
+        </div>
+        <div className="row">
+          <input className="input" type="datetime-local" value={form.start_time} onChange={(e) => setForm(f => ({ ...f, start_time: e.target.value }))} title="Start Time" />
+          <input className="input" type="datetime-local" value={form.end_time} onChange={(e) => setForm(f => ({ ...f, end_time: e.target.value }))} title="End Time" />
+          <ActionBtn label="Create" onClick={handleCreate} />
         </div>
       </div>
       <div className="item-list">
@@ -221,19 +273,34 @@ function JournalsPanel({ userId }: { userId: string }) {
   const [journals, setJournals] = useState<Journal[]>([]);
   const [result, setResult] = useState<unknown>(null);
   const [content, setContent] = useState("Today I felt focused and productive.");
-  const [startTime, setStartTime] = useState(new Date().toISOString());
-  const [endTime, setEndTime] = useState(new Date(Date.now() + 3600 * 1000).toISOString());
+  const [startTime, setStartTime] = useState(new Date().toISOString().slice(0,16));
+  const [endTime, setEndTime] = useState(new Date(Date.now() + 3600 * 1000).toISOString().slice(0,16));
+  
+  // Query state
+  const [startQuery, setStartQuery] = useState(new Date(Date.now() - 24 * 3600 * 1000).toISOString().slice(0, 16));
+  const [endQuery, setEndQuery] = useState(new Date(Date.now() + 24 * 3600 * 1000).toISOString().slice(0, 16));
 
   const refresh = useCallback(async () => {
-    const r = await getJournals(client, userId);
+    const r = await getJournals(
+      client, 
+      userId, 
+      startQuery ? new Date(startQuery).toISOString() : undefined, 
+      endQuery ? new Date(endQuery).toISOString() : undefined
+    );
     setResult(r);
     if (!r.error && r.data) setJournals(r.data);
-  }, [userId]);
+  }, [userId, startQuery, endQuery]);
 
   useEffect(() => { refresh(); }, [refresh]);
 
   const handleCreate = async () => {
-    const r = await createJournal(client, { user_id: userId, content, start_time: startTime, end_time: endTime });
+    const r = await createJournal(client, { 
+      user_id: userId, 
+      content, 
+      start_time: new Date(startTime).toISOString(), 
+      end_time: new Date(endTime).toISOString(),
+      ai_analysis: null
+    });
     setResult(r);
     refresh();
   };
@@ -254,15 +321,19 @@ function JournalsPanel({ userId }: { userId: string }) {
   return (
     <Section title="📓 Journals">
       <div className="form-grid">
-        <input className="input" type="datetime-local" value={startTime.slice(0, 16)}
-          onChange={(e) => setStartTime(new Date(e.target.value).toISOString())} />
-        <input className="input" type="datetime-local" value={endTime.slice(0, 16)}
-          onChange={(e) => setEndTime(new Date(e.target.value).toISOString())} />
+        <div className="row">
+          <input className="input" type="datetime-local" value={startQuery} onChange={(e) => setStartQuery(e.target.value)} title="Start After" />
+          <input className="input" type="datetime-local" value={endQuery} onChange={(e) => setEndQuery(e.target.value)} title="Start Before" />
+          <ActionBtn label="Refresh" onClick={refresh} variant="secondary" />
+        </div>
+        <div className="row">
+          <input className="input" type="datetime-local" value={startTime} onChange={(e) => setStartTime(e.target.value)} title="Start Time" />
+          <input className="input" type="datetime-local" value={endTime} onChange={(e) => setEndTime(e.target.value)} title="End Time" />
+        </div>
         <textarea className="input textarea" value={content}
           onChange={(e) => setContent(e.target.value)} rows={3} placeholder="Journal content..." />
         <div className="row">
           <ActionBtn label="Create" onClick={handleCreate} />
-          <ActionBtn label="Refresh" onClick={refresh} variant="secondary" />
         </div>
       </div>
       <div className="item-list">

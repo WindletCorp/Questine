@@ -5,17 +5,27 @@ import { ok, err } from "./types";
 
 type Client = SupabaseClient<Database>;
 
-export async function getJournals(client: Client, userId: string): Promise<DbResult<Journal[]>> {
-  const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-  const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-
-  const { data, error } = await client
+export async function getJournals(client: Client, userId: string, startTimeAfter?: string, startTimeBefore?: string): Promise<DbResult<Journal[]>> {
+  let query = client
     .from("journals")
     .select("*")
-    .eq("user_id", userId)
-    .gte("start_time", yesterday)
-    .lte("start_time", tomorrow)
-    .order("start_time", { ascending: false });
+    .eq("user_id", userId);
+
+  if (startTimeAfter) {
+    query = query.gte("start_time", startTimeAfter);
+  } else {
+    const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    query = query.gte("start_time", yesterday);
+  }
+
+  if (startTimeBefore) {
+    query = query.lte("start_time", startTimeBefore);
+  } else {
+    const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    query = query.lte("start_time", tomorrow);
+  }
+
+  const { data, error } = await query.order("start_time", { ascending: false });
 
   if (error) return err(error.message);
   return ok(data);

@@ -5,22 +5,22 @@ import { ok, err } from "./types";
 
 type Client = SupabaseClient<Database>;
 
-export async function getRoutineBlocks(client: Client, userId: string, startDate?: string, endDate?: string): Promise<DbResult<RoutineBlock[]>> {
+export async function getRoutineBlocks(client: Client, userId: string, startTimestamp?: string, endTimestamp?: string): Promise<DbResult<RoutineBlock[]>> {
   let query = client
     .from("routine_blocks")
     .select("*")
     .eq("user_id", userId);
 
-  if (startDate) {
-    query = query.gte("start_time", startDate);
+  if (startTimestamp) {
+    query = query.gte("start_time", startTimestamp);
   } else {
     // Default: 24 hours in the past
     const defaultStart = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
     query = query.gte("start_time", defaultStart);
   }
 
-  if (endDate) {
-    query = query.lte("start_time", endDate);
+  if (endTimestamp) {
+    query = query.lte("start_time", endTimestamp);
   } else {
     // Default: 24 hours in the future
     const defaultEnd = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();

@@ -5,17 +5,34 @@ import { ok, err } from "./types";
 
 type Client = SupabaseClient<Database>;
 
-export async function getTasks(client: Client, userId: string): Promise<DbResult<Task[]>> {
-  const defaultStart = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-  const defaultEnd = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
-
-  const { data, error } = await client
+export async function getTasks(client: Client, userId: string, updatedAfter?: string, updatedBefore?: string, dueDateAfter?: string, dueDateBefore?: string): Promise<DbResult<Task[]>> {
+  let query = client
     .from("tasks")
     .select("*")
-    .eq("user_id", userId)
-    .gte("updated_at", defaultStart)
-    .lte("updated_at", defaultEnd)
-    .order("created_at", { ascending: false });
+    .eq("user_id", userId);
+
+  if (updatedAfter) {
+    query = query.gte("updated_at", updatedAfter);
+  } else {
+    const defaultStart = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    query = query.gte("updated_at", defaultStart);
+  }
+
+  if (updatedBefore) {
+    query = query.lte("updated_at", updatedBefore);
+  } else {
+    const defaultEnd = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+    query = query.lte("updated_at", defaultEnd);
+  }
+
+  if (dueDateAfter) {
+    query = query.gte("due_date", dueDateAfter);
+  }
+  if (dueDateBefore) {
+    query = query.lte("due_date", dueDateBefore);
+  }
+
+  const { data, error } = await query.order("created_at", { ascending: false });
   console.log(data, error)
   if (error) return err(error.message);
   return ok(data);

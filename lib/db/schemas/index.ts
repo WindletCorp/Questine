@@ -2,14 +2,16 @@ import { z } from "zod";
 
 export const InsertTaskSchema = z.object({
   label: z.string().describe("The name or title of the task (e.g., 'Do laundry')"),
-  due_date: z.string().nullable().optional().describe("ISO 8601 UTC timestamp of the task due date. Pass null for no due date."),
+  start_time: z.string().nullable().optional().describe("ISO 8601 UTC timestamp of the task start time."),
+  end_time: z.string().nullable().optional().describe("ISO 8601 UTC timestamp of the task end time."),
   metadata: z.record(z.string(), z.any()).optional().describe("Optional key-value JSON object for any extra task details"),
 });
 
 export const UpdateTaskSchema = z.object({
   label: z.string().optional().describe("The name or title of the task"),
   completed_at: z.string().nullable().optional().describe("ISO 8601 UTC timestamp of when the task was completed. Pass null to mark as incomplete."),
-  due_date: z.string().nullable().optional().describe("ISO 8601 UTC timestamp of the task due date. Pass null for no due date."),
+  start_time: z.string().nullable().optional().describe("ISO 8601 UTC timestamp of the task start time."),
+  end_time: z.string().nullable().optional().describe("ISO 8601 UTC timestamp of the task end time."),
   metadata: z.record(z.string(), z.any()).nullable().optional().describe("Optional key-value JSON object for any extra task details"),
 });
 

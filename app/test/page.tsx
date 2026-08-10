@@ -5,7 +5,7 @@ import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { useAuth } from "@/components/providers/auth-provider";
 
 // Local DB functions
-import { getLocalTasks, createLocalTask, updateLocalTask, deleteLocalTask } from "@/lib/local-db/tasks";
+import { getLocalTasks, createLocalTask, updateLocalTask, deleteLocalTask, addLocalWaypoint, updateLocalWaypoint, removeLocalWaypoint } from "@/lib/local-db/tasks";
 import {
   getLocalRoutineBlocks,
   createLocalRoutineBlock,
@@ -22,7 +22,7 @@ import {
   getLocalUserStats,
 } from "@/lib/local-db/users";
 
-import type { Task, RoutineBlock, Journal, UserStats } from "@/lib/db/types";
+import type { Task, RoutineBlock, Journal, UserStats, TaskMetadata, Waypoint } from "@/lib/db/types";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -65,25 +65,30 @@ function TasksPanel({ userId }: { userId: string }) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [result, setResult] = useState<unknown>(null);
   const [label, setLabel] = useState("Buy groceries");
-  const [dueDate, setDueDate] = useState(new Date(Date.now() + 24 * 3600 * 1000).toISOString().slice(0, 16));
+  const [startTime, setStartTime] = useState(new Date(Date.now()).toISOString().slice(0, 16));
+  const [endTime, setEndTime] = useState(new Date(Date.now() + 24 * 3600 * 1000).toISOString().slice(0, 16));
 
   // Query fields
   const [updatedAfter, setUpdatedAfter] = useState(new Date(Date.now() - 24 * 3600 * 1000).toISOString().slice(0, 16));
   const [updatedBefore, setUpdatedBefore] = useState(new Date(Date.now() + 24 * 3600 * 1000).toISOString().slice(0, 16));
-  const [dueDateAfter, setDueDateAfter] = useState("");
-  const [dueDateBefore, setDueDateBefore] = useState("");
+  const [startTimeAfter, setStartTimeAfter] = useState("");
+  const [startTimeBefore, setStartTimeBefore] = useState("");
+  const [endTimeAfter, setEndTimeAfter] = useState("");
+  const [endTimeBefore, setEndTimeBefore] = useState("");
 
   const refresh = useCallback(async () => {
     const r = await getLocalTasks(
       userId, 
       updatedAfter ? new Date(updatedAfter).toISOString() : undefined, 
       updatedBefore ? new Date(updatedBefore).toISOString() : undefined,
-      dueDateAfter ? new Date(dueDateAfter).toISOString() : undefined,
-      dueDateBefore ? new Date(dueDateBefore).toISOString() : undefined
+      startTimeAfter ? new Date(startTimeAfter).toISOString() : undefined,
+      startTimeBefore ? new Date(startTimeBefore).toISOString() : undefined,
+      endTimeAfter ? new Date(endTimeAfter).toISOString() : undefined,
+      endTimeBefore ? new Date(endTimeBefore).toISOString() : undefined
     );
     setResult(r);
     if (!r.error) setTasks(r.data ?? []);
-  }, [userId, updatedAfter, updatedBefore, dueDateAfter, dueDateBefore]);
+  }, [userId, updatedAfter, updatedBefore, startTimeAfter, startTimeBefore, endTimeAfter, endTimeBefore]);
 
   useEffect(() => { 
     refresh();
@@ -96,7 +101,8 @@ function TasksPanel({ userId }: { userId: string }) {
     const r = await createLocalTask({ 
       user_id: userId, 
       label, 
-      due_date: dueDate ? new Date(dueDate).toISOString() : null,
+      start_time: startTime ? new Date(startTime).toISOString() : null,
+      end_time: endTime ? new Date(endTime).toISOString() : null,
       metadata: null 
     });
     setResult(r);
@@ -123,6 +129,34 @@ function TasksPanel({ userId }: { userId: string }) {
     refresh();
   };
 
+  const handleAddWaypoint = async (id: string, metadata: TaskMetadata | null) => {
+    const currentWaypoints = metadata?.waypoints || [];
+    const maxOrder = currentWaypoints.reduce((max, w) => Math.max(max, w.order), -1);
+    
+    const title = prompt("Waypoint title:");
+    if (!title) return;
+
+    const r = await addLocalWaypoint(id, {
+      order: maxOrder + 1,
+      title,
+      completed: false
+    });
+    setResult(r);
+    refresh();
+  };
+
+  const handleToggleWaypoint = async (taskId: string, w: Waypoint) => {
+    const r = await updateLocalWaypoint(taskId, w.order, { completed: !w.completed });
+    setResult(r);
+    refresh();
+  };
+
+  const handleDeleteWaypoint = async (taskId: string, w: Waypoint) => {
+    const r = await removeLocalWaypoint(taskId, w.order);
+    setResult(r);
+    refresh();
+  };
+
   return (
     <Section title="📋 Tasks">
       <div className="form-grid">
@@ -132,8 +166,12 @@ function TasksPanel({ userId }: { userId: string }) {
           <ActionBtn label="Refresh" onClick={refresh} variant="secondary" />
         </div>
         <div className="row">
-          <input className="input" type="datetime-local" value={dueDateAfter} onChange={(e) => setDueDateAfter(e.target.value)} placeholder="Due After" title="Due After" />
-          <input className="input" type="datetime-local" value={dueDateBefore} onChange={(e) => setDueDateBefore(e.target.value)} placeholder="Due Before" title="Due Before" />
+          <input className="input" type="datetime-local" value={startTimeAfter} onChange={(e) => setStartTimeAfter(e.target.value)} placeholder="Start After" title="Start After" />
+          <input className="input" type="datetime-local" value={startTimeBefore} onChange={(e) => setStartTimeBefore(e.target.value)} placeholder="Start Before" title="Start Before" />
+        </div>
+        <div className="row">
+          <input className="input" type="datetime-local" value={endTimeAfter} onChange={(e) => setEndTimeAfter(e.target.value)} placeholder="End After" title="End After" />
+          <input className="input" type="datetime-local" value={endTimeBefore} onChange={(e) => setEndTimeBefore(e.target.value)} placeholder="End Before" title="End Before" />
         </div>
         <div className="row">
           <input
@@ -142,7 +180,8 @@ function TasksPanel({ userId }: { userId: string }) {
             onChange={(e) => setLabel(e.target.value)}
             placeholder="Task label"
           />
-          <input className="input" type="datetime-local" value={dueDate} onChange={(e) => setDueDate(e.target.value)} placeholder="Due Date" title="Due Date" />
+          <input className="input" type="datetime-local" value={startTime} onChange={(e) => setStartTime(e.target.value)} placeholder="Start Time" title="Start Time" />
+          <input className="input" type="datetime-local" value={endTime} onChange={(e) => setEndTime(e.target.value)} placeholder="End Time" title="End Time" />
           <ActionBtn label="Create" onClick={handleCreate} />
         </div>
       </div>
@@ -153,12 +192,28 @@ function TasksPanel({ userId }: { userId: string }) {
               {t.completed_at ? "✅" : "⬜"} {t.label}
             </span>
             <span className="item-meta">{t.id.slice(0, 8)}…</span>
+            
+            {t.metadata?.waypoints && t.metadata.waypoints.length > 0 && (
+              <div style={{ marginLeft: "1.5rem", marginTop: "0.5rem", display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+                {t.metadata.waypoints.map((w: Waypoint) => (
+                  <div key={w.order} style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.8rem", color: w.completed ? "#64748b" : "#e2e8f0" }}>
+                    <span style={{ cursor: "pointer" }} onClick={() => handleToggleWaypoint(t.id, w)}>
+                      {w.completed ? "☑️" : "🔲"}
+                    </span>
+                    <span style={{ textDecoration: w.completed ? "line-through" : "none", flex: 1 }}>{w.title}</span>
+                    <ActionBtn label="×" onClick={() => handleDeleteWaypoint(t.id, w)} variant="danger" />
+                  </div>
+                ))}
+              </div>
+            )}
+
             <div className="item-actions">
               {!t.completed_at ? (
                 <ActionBtn label="Complete" onClick={() => handleComplete(t.id)} variant="secondary" />
               ) : (
                 <ActionBtn label="Undo" onClick={() => handleUncomplete(t.id)} variant="secondary" />
               )}
+              <ActionBtn label="+ Waypoint" onClick={() => handleAddWaypoint(t.id, t.metadata as TaskMetadata | null)} variant="secondary" />
               <ActionBtn label="Delete" onClick={() => handleDelete(t.id)} variant="danger" />
             </div>
           </div>

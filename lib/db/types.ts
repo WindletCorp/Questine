@@ -1,4 +1,4 @@
-import type { Database } from "./database.types";
+// import removed to avoid conflict
 
 export type DbResult<T> =
   | { data: T; error: null }
@@ -12,7 +12,38 @@ export function err<T = never>(message: string): DbResult<T> {
   return { data: null, error: message };
 }
 
-export type { Database } from "./database.types";
+import type { Database as GeneratedDatabase } from "./database.types";
+
+export type Waypoint = {
+  order: number;
+  title: string;
+  description?: string;
+  completed: boolean;
+};
+
+export type TaskMetadata = {
+  waypoints?: Waypoint[];
+  [key: string]: any;
+};
+
+// Global Schema Override Pattern
+export type Database = Omit<GeneratedDatabase, "public"> & {
+  public: Omit<GeneratedDatabase["public"], "Tables"> & {
+    Tables: Omit<GeneratedDatabase["public"]["Tables"], "tasks"> & {
+      tasks: Omit<GeneratedDatabase["public"]["Tables"]["tasks"], "Row" | "Insert" | "Update"> & {
+        Row: Omit<GeneratedDatabase["public"]["Tables"]["tasks"]["Row"], "metadata"> & {
+          metadata: TaskMetadata | null;
+        };
+        Insert: Omit<GeneratedDatabase["public"]["Tables"]["tasks"]["Insert"], "metadata"> & {
+          metadata?: TaskMetadata | null;
+        };
+        Update: Omit<GeneratedDatabase["public"]["Tables"]["tasks"]["Update"], "metadata"> & {
+          metadata?: TaskMetadata | null;
+        };
+      };
+    };
+  };
+};
 
 export type Task = Database["public"]["Tables"]["tasks"]["Row"];
 export type TaskInsert = Database["public"]["Tables"]["tasks"]["Insert"];

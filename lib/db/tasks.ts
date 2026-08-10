@@ -1,11 +1,10 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Database } from "./database.types";
-import type { Task, TaskInsert, TaskUpdate, DbResult } from "./types";
+import type { Database, Task, TaskInsert, TaskUpdate, DbResult, Waypoint, TaskMetadata } from "./types";
 import { ok, err } from "./types";
 
 type Client = SupabaseClient<Database>;
 
-export async function getTasks(client: Client, userId: string, updatedAfter?: string, updatedBefore?: string, dueDateAfter?: string, dueDateBefore?: string): Promise<DbResult<Task[]>> {
+export async function getTasks(client: Client, userId: string, updatedAfter?: string, updatedBefore?: string, startTimeAfter?: string, startTimeBefore?: string, endTimeAfter?: string, endTimeBefore?: string): Promise<DbResult<Task[]>> {
   let query = client
     .from("tasks")
     .select("*")
@@ -25,16 +24,23 @@ export async function getTasks(client: Client, userId: string, updatedAfter?: st
     query = query.lte("updated_at", defaultEnd);
   }
 
-  if (dueDateAfter) {
-    query = query.gte("due_date", dueDateAfter);
+  if (startTimeAfter) {
+    query = query.gte("start_time", startTimeAfter);
   }
-  if (dueDateBefore) {
-    query = query.lte("due_date", dueDateBefore);
+  if (startTimeBefore) {
+    query = query.lte("start_time", startTimeBefore);
+  }
+  if (endTimeAfter) {
+    query = query.gte("end_time", endTimeAfter);
+  }
+  if (endTimeBefore) {
+    query = query.lte("end_time", endTimeBefore);
   }
 
   const { data, error } = await query.order("created_at", { ascending: false });
 
   if (error) return err(error.message);
+  // We can return data directly now that Database is overridden globally
   return ok(data);
 }
 
@@ -69,4 +75,47 @@ export async function deleteTask(client: Client, id: string): Promise<DbResult<n
 
   if (error) return err(error.message);
   return ok(null);
+}
+
+// Waypoint Helpers
+
+export async function addWaypoint(client: Client, taskId: string, waypoint: Waypoint): Promise<DbResult<Task>> {
+  const { data: task, error: fetchError } = await client.from("tasks").select("metadata").eq("id", taskId).single();
+  if (fetchError) return err(fetchError.message);
+
+  const metadata: TaskMetadata = (task.metadata as TaskMetadata) || {};
+  const waypoints: Waypoint[] = metadata.waypoints || [];
+  
+  waypoints.push(waypoint);
+  metadata.waypoints = waypoints;
+
+  return updateTask(client, taskId, { metadata });
+}
+
+export async function updateWaypoint(client: Client, taskId: string, waypointOrder: number, updates: Partial<Waypoint>): Promise<DbResult<Task>> {
+  const { data: task, error: fetchError } = await client.from("tasks").select("metadata").eq("id", taskId).single();
+  if (fetchError) return err(fetchError.message);
+
+  const metadata: TaskMetadata = (task.metadata as TaskMetadata) || {};
+  const waypoints: Waypoint[] = metadata.waypoints || [];
+  
+  const index = waypoints.findIndex((w: Waypoint) => w.order === waypointOrder);
+  if (index === -1) return err("Waypoint not found");
+
+  waypoints[index] = { ...waypoints[index], ...updates };
+  metadata.waypoints = waypoints;
+
+  return updateTask(client, taskId, { metadata });
+}
+
+export async function removeWaypoint(client: Client, taskId: string, waypointOrder: number): Promise<DbResult<Task>> {
+  const { data: task, error: fetchError } = await client.from("tasks").select("metadata").eq("id", taskId).single();
+  if (fetchError) return err(fetchError.message);
+
+  const metadata: TaskMetadata = (task.metadata as TaskMetadata) || {};
+  const waypoints: Waypoint[] = metadata.waypoints || [];
+  
+  metadata.waypoints = waypoints.filter((w: Waypoint) => w.order !== waypointOrder);
+
+  return updateTask(client, taskId, { metadata });
 }

@@ -103,32 +103,35 @@ export type Database = {
         Row: {
           completed_at: string | null
           created_at: string | null
-          due_date: string | null
           id: string
           label: string
           metadata: Json | null
           updated_at: string | null
           user_id: string
+          start_time: string | null
+          end_time: string | null
         }
         Insert: {
           completed_at?: string | null
           created_at?: string | null
-          due_date?: string | null
           id?: string
           label: string
           metadata?: Json | null
           updated_at?: string | null
           user_id: string
+          start_time?: string | null
+          end_time?: string | null
         }
         Update: {
           completed_at?: string | null
           created_at?: string | null
-          due_date?: string | null
           id?: string
           label?: string
           metadata?: Json | null
           updated_at?: string | null
           user_id?: string
+          start_time?: string | null
+          end_time?: string | null
         }
         Relationships: [
           {

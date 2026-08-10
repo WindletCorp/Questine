@@ -4,7 +4,7 @@ export const InsertTaskSchema = z.object({
   label: z.string().describe("The name or title of the task (e.g., 'Do laundry')"),
   start_time: z.string().nullable().optional().describe("ISO 8601 UTC timestamp of the task start time."),
   end_time: z.string().nullable().optional().describe("ISO 8601 UTC timestamp of the task end time."),
-  metadata: z.record(z.string(), z.any()).optional().describe("Optional key-value JSON object for any extra task details"),
+  metadata: z.record(z.string(), z.any()).optional().describe("Optional JSON object. To add subtasks, use the 'waypoints' array: { waypoints: [{ order: 0, title: 'Step 1', completed: false }] }"),
 });
 
 export const UpdateTaskSchema = z.object({
@@ -12,7 +12,7 @@ export const UpdateTaskSchema = z.object({
   completed_at: z.string().nullable().optional().describe("ISO 8601 UTC timestamp of when the task was completed. Pass null to mark as incomplete."),
   start_time: z.string().nullable().optional().describe("ISO 8601 UTC timestamp of the task start time."),
   end_time: z.string().nullable().optional().describe("ISO 8601 UTC timestamp of the task end time."),
-  metadata: z.record(z.string(), z.any()).nullable().optional().describe("Optional key-value JSON object for any extra task details"),
+  metadata: z.record(z.string(), z.any()).nullable().optional().describe("Optional JSON object. To add subtasks, use the 'waypoints' array: { waypoints: [{ order: 0, title: 'Step 1', completed: false }] }"),
 });
 
 export const InsertRoutineBlockSchema = z.object({

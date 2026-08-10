@@ -362,8 +362,8 @@ function JournalsPanel({ userId }: { userId: string }) {
     const r = await createLocalJournal({ 
       user_id: userId, 
       content, 
-      start_time: new Date(startTime).toISOString(), 
-      end_time: new Date(endTime).toISOString(),
+      start_time: startTime ? new Date(startTime).toISOString() : null, 
+      end_time: endTime ? new Date(endTime).toISOString() : null,
       ai_analysis: null
     });
     setResult(r);

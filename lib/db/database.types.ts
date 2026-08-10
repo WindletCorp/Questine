@@ -19,9 +19,9 @@ export type Database = {
           ai_analysis: Json | null
           content: string
           created_at: string | null
-          end_time: string
+          end_time: string | null
           id: string
-          start_time: string
+          start_time: string | null
           updated_at: string | null
           user_id: string
         }
@@ -29,9 +29,9 @@ export type Database = {
           ai_analysis?: Json | null
           content: string
           created_at?: string | null
-          end_time: string
+          end_time?: string | null
           id?: string
-          start_time: string
+          start_time?: string | null
           updated_at?: string | null
           user_id: string
         }
@@ -39,9 +39,9 @@ export type Database = {
           ai_analysis?: Json | null
           content?: string
           created_at?: string | null
-          end_time?: string
+          end_time?: string | null
           id?: string
-          start_time?: string
+          start_time?: string | null
           updated_at?: string | null
           user_id?: string
         }

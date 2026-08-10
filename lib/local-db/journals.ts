@@ -11,10 +11,10 @@ export async function getLocalJournals(
     let collection = db.journals.where("user_id").equals(userId);
     let journals = await collection.toArray();
 
-    if (startTimeAfter) journals = journals.filter(j => j.start_time >= startTimeAfter);
-    if (startTimeBefore) journals = journals.filter(j => j.start_time <= startTimeBefore);
+    if (startTimeAfter) journals = journals.filter(j => j.start_time && j.start_time >= startTimeAfter);
+    if (startTimeBefore) journals = journals.filter(j => j.start_time && j.start_time <= startTimeBefore);
 
-    journals.sort((a, b) => b.start_time.localeCompare(a.start_time));
+    journals.sort((a, b) => (b.start_time || "").localeCompare(a.start_time || ""));
     return ok(journals);
   } catch (error: any) {
     return err(error.message);
@@ -31,8 +31,8 @@ export async function createLocalJournal(journal: JournalInsert): Promise<DbResu
       user_id: journal.user_id,
       content: journal.content,
       ai_analysis: journal.ai_analysis ?? null,
-      start_time: journal.start_time,
-      end_time: journal.end_time,
+      start_time: journal.start_time ?? null,
+      end_time: journal.end_time ?? null,
       created_at: journal.created_at ?? now,
       updated_at: journal.updated_at ?? now,
       sync_status: "pending"

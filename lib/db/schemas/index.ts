@@ -33,14 +33,14 @@ export const UpdateRoutineBlockSchema = z.object({
 
 export const InsertJournalSchema = z.object({
   content: z.string().describe("The actual text content of the journal entry"),
-  start_time: z.string().describe("ISO 8601 UTC timestamp of the start of the time frame"),
-  end_time: z.string().describe("ISO 8601 UTC timestamp of the end of the time frame"),
+  start_time: z.string().nullable().optional().describe("ISO 8601 UTC timestamp of the start of the time frame"),
+  end_time: z.string().nullable().optional().describe("ISO 8601 UTC timestamp of the end of the time frame"),
   ai_analysis: z.record(z.string(), z.any()).optional().describe("Optional structured AI analysis of the journal entry"),
 });
 
 export const UpdateJournalSchema = z.object({
   content: z.string().optional().describe("The actual text content of the journal entry"),
   ai_analysis: z.record(z.string(), z.any()).nullable().optional().describe("Optional structured AI analysis of the journal entry"),
-  start_time: z.string().optional().describe("ISO 8601 UTC timestamp of the start of the time frame"),
-  end_time: z.string().optional().describe("ISO 8601 UTC timestamp of the end of the time frame"),
+  start_time: z.string().nullable().optional().describe("ISO 8601 UTC timestamp of the start of the time frame"),
+  end_time: z.string().nullable().optional().describe("ISO 8601 UTC timestamp of the end of the time frame"),
 });

@@ -2,26 +2,33 @@ import { db, type LocalTask, type SyncQueueEntry } from "./index";
 import type { TaskInsert, TaskUpdate, DbResult, Task } from "../db/types";
 import { ok, err, type TaskMetadata, type Waypoint } from "../db/types";
 
+export type GetLocalTasksOptions = {
+  from?: string;
+  to?: string;
+  updatedAfter?: string;
+  updatedBefore?: string;
+};
+
 export async function getLocalTasks(
   userId: string,
-  updatedAfter?: string,
-  updatedBefore?: string,
-  startTimeAfter?: string,
-  startTimeBefore?: string,
-  endTimeAfter?: string,
-  endTimeBefore?: string
+  opts: GetLocalTasksOptions = {}
 ): Promise<DbResult<LocalTask[]>> {
   try {
     let collection = db.tasks.where("user_id").equals(userId);
     let tasks = await collection.toArray();
 
-    // In-memory filtering since Dexie doesn't easily support multiple ranges on different properties
-    if (updatedAfter) tasks = tasks.filter(t => t.updated_at && t.updated_at >= updatedAfter);
-    if (updatedBefore) tasks = tasks.filter(t => t.updated_at && t.updated_at <= updatedBefore);
-    if (startTimeAfter) tasks = tasks.filter(t => t.start_time && t.start_time >= startTimeAfter);
-    if (startTimeBefore) tasks = tasks.filter(t => t.start_time && t.start_time <= startTimeBefore);
-    if (endTimeAfter) tasks = tasks.filter(t => t.end_time && t.end_time >= endTimeAfter);
-    if (endTimeBefore) tasks = tasks.filter(t => t.end_time && t.end_time <= endTimeBefore);
+    const { from, to, updatedAfter, updatedBefore } = opts;
+
+    if (from || to) {
+      // Overlap semantics: task overlaps window when start_time <= to AND end_time >= from
+      if (from) tasks = tasks.filter(t => t.end_time && t.end_time >= from);
+      if (to) tasks = tasks.filter(t => t.start_time && t.start_time <= to);
+    } else {
+      // Default: filter by updated_at within a 48-hour window
+      const defaultStart = updatedAfter ?? new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+      const defaultEnd = updatedBefore ?? new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+      tasks = tasks.filter(t => t.updated_at && t.updated_at >= defaultStart && t.updated_at <= defaultEnd);
+    }
 
     tasks.sort((a, b) => (b.created_at || "").localeCompare(a.created_at || ""));
     return ok(tasks);
@@ -34,7 +41,7 @@ export async function createLocalTask(task: TaskInsert): Promise<DbResult<LocalT
   try {
     const id = task.id || crypto.randomUUID();
     const now = new Date().toISOString();
-    
+
     const localTask: LocalTask = {
       id,
       user_id: task.user_id,
@@ -71,7 +78,7 @@ export async function createLocalTask(task: TaskInsert): Promise<DbResult<LocalT
 export async function updateLocalTask(id: string, updates: TaskUpdate): Promise<DbResult<LocalTask>> {
   try {
     const now = new Date().toISOString();
-    
+
     const finalUpdates = {
       ...updates,
       updated_at: now,
@@ -103,7 +110,7 @@ export async function updateLocalTask(id: string, updates: TaskUpdate): Promise<
 export async function deleteLocalTask(id: string): Promise<DbResult<null>> {
   try {
     const now = new Date().toISOString();
-    
+
     const queueEntry: SyncQueueEntry = {
       id: crypto.randomUUID(),
       table_name: "tasks",
@@ -131,7 +138,7 @@ export async function addLocalWaypoint(taskId: string, waypoint: Waypoint): Prom
 
     const metadata: TaskMetadata = (task.metadata as TaskMetadata) || {};
     const waypoints: Waypoint[] = metadata.waypoints || [];
-    
+
     waypoints.push(waypoint);
     metadata.waypoints = waypoints;
 
@@ -148,7 +155,7 @@ export async function updateLocalWaypoint(taskId: string, waypointOrder: number,
 
     const metadata: TaskMetadata = (task.metadata as TaskMetadata) || {};
     const waypoints: Waypoint[] = metadata.waypoints || [];
-    
+
     const index = waypoints.findIndex((w: Waypoint) => w.order === waypointOrder);
     if (index === -1) return err("Waypoint not found");
 
@@ -168,7 +175,7 @@ export async function removeLocalWaypoint(taskId: string, waypointOrder: number)
 
     const metadata: TaskMetadata = (task.metadata as TaskMetadata) || {};
     const waypoints: Waypoint[] = metadata.waypoints || [];
-    
+
     metadata.waypoints = waypoints.filter((w: Waypoint) => w.order !== waypointOrder);
 
     return updateLocalTask(taskId, { metadata });

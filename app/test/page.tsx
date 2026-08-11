@@ -69,26 +69,17 @@ function TasksPanel({ userId }: { userId: string }) {
   const [endTime, setEndTime] = useState(new Date(Date.now() + 24 * 3600 * 1000).toISOString().slice(0, 16));
 
   // Query fields
-  const [updatedAfter, setUpdatedAfter] = useState(new Date(Date.now() - 24 * 3600 * 1000).toISOString().slice(0, 16));
-  const [updatedBefore, setUpdatedBefore] = useState(new Date(Date.now() + 24 * 3600 * 1000).toISOString().slice(0, 16));
-  const [startTimeAfter, setStartTimeAfter] = useState("");
-  const [startTimeBefore, setStartTimeBefore] = useState("");
-  const [endTimeAfter, setEndTimeAfter] = useState("");
-  const [endTimeBefore, setEndTimeBefore] = useState("");
+  const [from, setFrom] = useState(new Date(Date.now() - 24 * 3600 * 1000).toISOString().slice(0, 16));
+  const [to, setTo] = useState(new Date(Date.now() + 24 * 3600 * 1000).toISOString().slice(0, 16));
 
   const refresh = useCallback(async () => {
-    const r = await getLocalTasks(
-      userId, 
-      updatedAfter ? new Date(updatedAfter).toISOString() : undefined, 
-      updatedBefore ? new Date(updatedBefore).toISOString() : undefined,
-      startTimeAfter ? new Date(startTimeAfter).toISOString() : undefined,
-      startTimeBefore ? new Date(startTimeBefore).toISOString() : undefined,
-      endTimeAfter ? new Date(endTimeAfter).toISOString() : undefined,
-      endTimeBefore ? new Date(endTimeBefore).toISOString() : undefined
-    );
-    setResult(r);
-    if (!r.error) setTasks(r.data ?? []);
-  }, [userId, updatedAfter, updatedBefore, startTimeAfter, startTimeBefore, endTimeAfter, endTimeBefore]);
+    const result = await getLocalTasks(userId, {
+      from: from ? new Date(from).toISOString() : undefined,
+      to: to ? new Date(to).toISOString() : undefined,
+    });
+    setResult(result);
+    if (!result.error) setTasks(result.data ?? []);
+  }, [userId, from, to]);
 
   useEffect(() => { 
     refresh();
@@ -98,34 +89,34 @@ function TasksPanel({ userId }: { userId: string }) {
   }, [refresh]);
 
   const handleCreate = async () => {
-    const r = await createLocalTask({ 
+    const result = await createLocalTask({ 
       user_id: userId, 
       label, 
       start_time: startTime ? new Date(startTime).toISOString() : null,
       end_time: endTime ? new Date(endTime).toISOString() : null,
       metadata: null 
     });
-    setResult(r);
+    setResult(result);
     refresh();
   };
 
   const handleComplete = async (id: string) => {
-    const r = await updateLocalTask(id, {
+    const result = await updateLocalTask(id, {
       completed_at: new Date().toISOString(),
     });
-    setResult(r);
+    setResult(result);
     refresh();
   };
 
   const handleUncomplete = async (id: string) => {
-    const r = await updateLocalTask(id, { completed_at: null });
-    setResult(r);
+    const result = await updateLocalTask(id, { completed_at: null });
+    setResult(result);
     refresh();
   };
 
   const handleDelete = async (id: string) => {
-    const r = await deleteLocalTask(id);
-    setResult(r);
+    const result = await deleteLocalTask(id);
+    setResult(result);
     refresh();
   };
 
@@ -161,17 +152,9 @@ function TasksPanel({ userId }: { userId: string }) {
     <Section title="📋 Tasks">
       <div className="form-grid">
         <div className="row">
-          <input className="input" type="datetime-local" value={updatedAfter} onChange={(e) => setUpdatedAfter(e.target.value)} placeholder="Updated After" title="Updated After" />
-          <input className="input" type="datetime-local" value={updatedBefore} onChange={(e) => setUpdatedBefore(e.target.value)} placeholder="Updated Before" title="Updated Before" />
+          <input className="input" type="datetime-local" value={from} onChange={(e) => setFrom(e.target.value)} placeholder="From" title="From" />
+          <input className="input" type="datetime-local" value={to} onChange={(e) => setTo(e.target.value)} placeholder="To" title="To" />
           <ActionBtn label="Refresh" onClick={refresh} variant="secondary" />
-        </div>
-        <div className="row">
-          <input className="input" type="datetime-local" value={startTimeAfter} onChange={(e) => setStartTimeAfter(e.target.value)} placeholder="Start After" title="Start After" />
-          <input className="input" type="datetime-local" value={startTimeBefore} onChange={(e) => setStartTimeBefore(e.target.value)} placeholder="Start Before" title="Start Before" />
-        </div>
-        <div className="row">
-          <input className="input" type="datetime-local" value={endTimeAfter} onChange={(e) => setEndTimeAfter(e.target.value)} placeholder="End After" title="End After" />
-          <input className="input" type="datetime-local" value={endTimeBefore} onChange={(e) => setEndTimeBefore(e.target.value)} placeholder="End Before" title="End Before" />
         </div>
         <div className="row">
           <input
@@ -241,11 +224,10 @@ function RoutineBlocksPanel({ userId }: { userId: string }) {
   const [endQuery, setEndQuery] = useState(new Date(Date.now() + 24 * 3600 * 1000).toISOString().slice(0, 16));
 
   const refresh = useCallback(async () => {
-    const r = await getLocalRoutineBlocks(
-      userId, 
-      startQuery ? new Date(startQuery).toISOString() : undefined, 
-      endQuery ? new Date(endQuery).toISOString() : undefined
-    );
+    const r = await getLocalRoutineBlocks(userId, {
+      from: startQuery ? new Date(startQuery).toISOString() : undefined,
+      to: endQuery ? new Date(endQuery).toISOString() : undefined,
+    });
     setResult(r);
     if (!r.error && r.data) setBlocks(r.data);
   }, [userId, startQuery, endQuery]);
@@ -342,11 +324,10 @@ function JournalsPanel({ userId }: { userId: string }) {
   const [endQuery, setEndQuery] = useState(new Date(Date.now() + 24 * 3600 * 1000).toISOString().slice(0, 16));
 
   const refresh = useCallback(async () => {
-    const r = await getLocalJournals(
-      userId, 
-      startQuery ? new Date(startQuery).toISOString() : undefined, 
-      endQuery ? new Date(endQuery).toISOString() : undefined
-    );
+    const r = await getLocalJournals(userId, {
+      from: startQuery ? new Date(startQuery).toISOString() : undefined,
+      to: endQuery ? new Date(endQuery).toISOString() : undefined,
+    });
     setResult(r);
     if (!r.error && r.data) setJournals(r.data);
   }, [userId, startQuery, endQuery]);

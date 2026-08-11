@@ -5,24 +5,28 @@ import { ok, err } from "./types";
 
 type Client = SupabaseClient<Database>;
 
-export async function getJournals(client: Client, userId: string, startTimeAfter?: string, startTimeBefore?: string): Promise<DbResult<Journal[]>> {
+export type GetJournalsOptions = {
+  /** Overlap filter: return journals where start_time <= to AND end_time >= from */
+  from?: string;
+  to?: string;
+};
+
+export async function getJournals(client: Client, userId: string, opts: GetJournalsOptions = {}): Promise<DbResult<Journal[]>> {
   let query = client
     .from("journals")
     .select("*")
     .eq("user_id", userId);
 
-  if (startTimeAfter) {
-    query = query.gte("start_time", startTimeAfter);
-  } else {
-    const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-    query = query.gte("start_time", yesterday);
-  }
+  const { from, to } = opts;
 
-  if (startTimeBefore) {
-    query = query.lte("start_time", startTimeBefore);
+  if (from || to) {
+    if (from) query = query.gte("end_time", from);
+    if (to) query = query.lte("start_time", to);
   } else {
-    const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-    query = query.lte("start_time", tomorrow);
+    // Default: 48-hour window
+    const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+    query = query.gte("start_time", yesterday).lte("start_time", tomorrow);
   }
 
   const { data, error } = await query.order("start_time", { ascending: false });

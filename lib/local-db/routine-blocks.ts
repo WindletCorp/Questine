@@ -2,17 +2,30 @@ import { db, type LocalRoutineBlock, type SyncQueueEntry } from "./index";
 import type { RoutineBlockInsert, RoutineBlockUpdate, DbResult, RoutineBlock } from "../db/types";
 import { ok, err } from "../db/types";
 
+export type GetLocalRoutineBlocksOptions = {
+  from?: string;
+  to?: string;
+};
+
 export async function getLocalRoutineBlocks(
   userId: string,
-  startTimestamp?: string,
-  endTimestamp?: string
+  opts: GetLocalRoutineBlocksOptions = {}
 ): Promise<DbResult<LocalRoutineBlock[]>> {
   try {
     let collection = db.routine_blocks.where("user_id").equals(userId);
     let blocks = await collection.toArray();
 
-    if (startTimestamp) blocks = blocks.filter(b => b.start_time >= startTimestamp);
-    if (endTimestamp) blocks = blocks.filter(b => b.start_time <= endTimestamp);
+    const { from, to } = opts;
+
+    if (from || to) {
+      if (from) blocks = blocks.filter(b => b.end_time && b.end_time >= from);
+      if (to) blocks = blocks.filter(b => b.start_time && b.start_time <= to);
+    } else {
+      // Default: 48-hour window
+      const defaultStart = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+      const defaultEnd = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+      blocks = blocks.filter(b => b.start_time >= defaultStart && b.start_time <= defaultEnd);
+    }
 
     blocks.sort((a, b) => a.start_time.localeCompare(b.start_time));
     return ok(blocks);

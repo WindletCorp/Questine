@@ -13,12 +13,12 @@ export function makeTaskTools(client: SupabaseClient, userId: string) {
 
         const result = await getTasks(client, userId);
         if (result.data) {
-            const mapped = result.data.map(t => {
-                const { created_at, updated_at, ...rest } = t;
-                return rest;
-            });
+          const mapped = result.data.map(t => {
+            const { created_at, updated_at, ...rest } = t;
+            return rest;
+          });
 
-            return mapped;
+          return mapped;
         }
 
         return result;

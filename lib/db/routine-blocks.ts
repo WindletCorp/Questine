@@ -5,26 +5,28 @@ import { ok, err } from "./types";
 
 type Client = SupabaseClient<Database>;
 
-export async function getRoutineBlocks(client: Client, userId: string, startTimestamp?: string, endTimestamp?: string): Promise<DbResult<RoutineBlock[]>> {
+export type GetRoutineBlocksOptions = {
+  /** Overlap filter: return blocks where start_time <= to AND end_time >= from */
+  from?: string;
+  to?: string;
+};
+
+export async function getRoutineBlocks(client: Client, userId: string, opts: GetRoutineBlocksOptions = {}): Promise<DbResult<RoutineBlock[]>> {
   let query = client
     .from("routine_blocks")
     .select("*")
     .eq("user_id", userId);
 
-  if (startTimestamp) {
-    query = query.gte("start_time", startTimestamp);
-  } else {
-    // Default: 24 hours in the past
-    const defaultStart = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-    query = query.gte("start_time", defaultStart);
-  }
+  const { from, to } = opts;
 
-  if (endTimestamp) {
-    query = query.lte("start_time", endTimestamp);
+  if (from || to) {
+    if (from) query = query.gte("end_time", from);
+    if (to) query = query.lte("start_time", to);
   } else {
-    // Default: 24 hours in the future
+    // Default: 48-hour window
+    const defaultStart = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
     const defaultEnd = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
-    query = query.lte("start_time", defaultEnd);
+    query = query.gte("start_time", defaultStart).lte("start_time", defaultEnd);
   }
 
   const { data, error } = await query.order("start_time", { ascending: true });

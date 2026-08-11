@@ -12,14 +12,14 @@ import { z } from "zod";
 export function makeRoutineBlockTools(client: SupabaseClient, userId: string) {
   return {
     get_routine_blocks: tool({
-      description: "Get routine blocks. If the user specifies a date or range, ALWAYS pass those as start_date/end_date — historical dates are fully supported. Only fall back to the 48-hour default when no date context is given.",
+      description: "Get routine blocks. If the user specifies a date or range, ALWAYS pass those as from/to — historical dates are fully supported. Only fall back to the 48-hour default when no date context is given.",
       inputSchema: z.object({
-        start_date: z.string().optional().describe("ISO 8601 UTC timestamp string for the start bound"),
-        end_date: z.string().optional().describe("ISO 8601 UTC timestamp string for the end bound"),
+        from: z.string().optional().describe("ISO 8601 UTC start of the time window"),
+        to: z.string().optional().describe("ISO 8601 UTC end of the time window"),
       }),
-      execute: async ({ start_date, end_date }) => {
+      execute: async ({ from, to }) => {
 
-        const res = await getRoutineBlocks(client, userId, start_date, end_date);
+        const res = await getRoutineBlocks(client, userId, { from, to });
 
         return res;
       },

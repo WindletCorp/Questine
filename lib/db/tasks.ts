@@ -4,43 +4,37 @@ import { ok, err } from "./types";
 
 type Client = SupabaseClient<Database>;
 
-export async function getTasks(client: Client, userId: string, updatedAfter?: string, updatedBefore?: string, startTimeAfter?: string, startTimeBefore?: string, endTimeAfter?: string, endTimeBefore?: string): Promise<DbResult<Task[]>> {
+export type GetTasksOptions = {
+  /** Overlap filter: return tasks where start_time <= to AND end_time >= from */
+  from?: string;
+  to?: string;
+  /** Fallback filter on updated_at (used when from/to are not specified) */
+  updatedAfter?: string;
+  updatedBefore?: string;
+};
+
+export async function getTasks(client: Client, userId: string, opts: GetTasksOptions = {}): Promise<DbResult<Task[]>> {
   let query = client
     .from("tasks")
     .select("*")
     .eq("user_id", userId);
 
-  if (updatedAfter) {
-    query = query.gte("updated_at", updatedAfter);
-  } else {
-    const defaultStart = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-    query = query.gte("updated_at", defaultStart);
-  }
+  const { from, to, updatedAfter, updatedBefore } = opts;
 
-  if (updatedBefore) {
-    query = query.lte("updated_at", updatedBefore);
+  if (from || to) {
+    // Overlap semantics: task overlaps window when start_time <= to AND end_time >= from
+    if (from) query = query.gte("end_time", from);
+    if (to) query = query.lte("start_time", to);
   } else {
-    const defaultEnd = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
-    query = query.lte("updated_at", defaultEnd);
-  }
-
-  if (startTimeAfter) {
-    query = query.gte("start_time", startTimeAfter);
-  }
-  if (startTimeBefore) {
-    query = query.lte("start_time", startTimeBefore);
-  }
-  if (endTimeAfter) {
-    query = query.gte("end_time", endTimeAfter);
-  }
-  if (endTimeBefore) {
-    query = query.lte("end_time", endTimeBefore);
+    // Default: filter by updated_at within a 48-hour window
+    const defaultStart = updatedAfter ?? new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const defaultEnd = updatedBefore ?? new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+    query = query.gte("updated_at", defaultStart).lte("updated_at", defaultEnd);
   }
 
   const { data, error } = await query.order("created_at", { ascending: false });
 
   if (error) return err(error.message);
-  // We can return data directly now that Database is overridden globally
   return ok(data);
 }
 

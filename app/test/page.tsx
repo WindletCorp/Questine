@@ -430,6 +430,14 @@ function UserStatsPanel({ userId }: { userId: string }) {
 
   const refresh = useCallback(async () => {
     const r = await getLocalUserStats(userId);
+    
+    // If we haven't synced stats yet, don't show it as a glaring error
+    if (r.error && (r.error as any).code === 'NOT_FOUND') {
+      setStats({ user_id: userId, xp: 0, coins: 0, current_streak: 0, longest_streak: 0 } as UserStats);
+      setResult(null); // Clear result so we don't render the error box
+      return;
+    }
+
     setResult(r);
     if (!r.error) setStats(r.data);
   }, [userId]);
@@ -454,7 +462,7 @@ function UserStatsPanel({ userId }: { userId: string }) {
       <div className="row">
         <ActionBtn label="Refresh" onClick={refresh} variant="secondary" />
       </div>
-      <Result data={result} />
+      {result ? <Result data={result} /> : null}
     </Section>
   );
 }

@@ -1,6 +1,7 @@
 import { db, type LocalRoutineBlock, type SyncQueueEntry } from "./index";
 import type { RoutineBlockInsert, RoutineBlockUpdate, DbResult, RoutineBlock } from "../db/types";
 import { ok, err } from "../db/types";
+import { handleDbError } from "../db/errors";
 
 export type GetLocalRoutineBlocksOptions = {
   from?: string;
@@ -29,8 +30,8 @@ export async function getLocalRoutineBlocks(
 
     blocks.sort((a, b) => a.start_time.localeCompare(b.start_time));
     return ok(blocks);
-  } catch (error: any) {
-    return err(error.message);
+  } catch (error) {
+    return err(handleDbError(error));
   }
 }
 
@@ -67,8 +68,8 @@ export async function createLocalRoutineBlock(block: RoutineBlockInsert): Promis
     });
 
     return ok(localBlock);
-  } catch (error: any) {
-    return err(error.message);
+  } catch (error) {
+    return err(handleDbError(error));
   }
 }
 
@@ -97,10 +98,10 @@ export async function updateLocalRoutineBlock(id: string, updates: RoutineBlockU
     });
 
     const updated = await db.routine_blocks.get(id);
-    if (!updated) throw new Error("Routine block not found after update");
+    if (!updated) return err({ code: 'NOT_FOUND', message: "Routine block not found after update" });
     return ok(updated);
-  } catch (error: any) {
-    return err(error.message);
+  } catch (error) {
+    return err(handleDbError(error));
   }
 }
 
@@ -123,7 +124,7 @@ export async function deleteLocalRoutineBlock(id: string): Promise<DbResult<null
     });
 
     return ok(null);
-  } catch (error: any) {
-    return err(error.message);
+  } catch (error) {
+    return err(handleDbError(error));
   }
 }

@@ -1,6 +1,7 @@
 import { db, type LocalTask, type SyncQueueEntry } from "./index";
 import type { TaskInsert, TaskUpdate, DbResult, Task } from "../db/types";
 import { ok, err, type TaskMetadata, type Waypoint } from "../db/types";
+import { handleDbError } from "../db/errors";
 
 export type GetLocalTasksOptions = {
   from?: string;
@@ -32,8 +33,8 @@ export async function getLocalTasks(
 
     tasks.sort((a, b) => (b.created_at || "").localeCompare(a.created_at || ""));
     return ok(tasks);
-  } catch (error: any) {
-    return err(error.message);
+  } catch (error) {
+    return err(handleDbError(error));
   }
 }
 
@@ -70,8 +71,8 @@ export async function createLocalTask(task: TaskInsert): Promise<DbResult<LocalT
     });
 
     return ok(localTask);
-  } catch (error: any) {
-    return err(error.message);
+  } catch (error) {
+    return err(handleDbError(error));
   }
 }
 
@@ -100,10 +101,10 @@ export async function updateLocalTask(id: string, updates: TaskUpdate): Promise<
     });
 
     const updated = await db.tasks.get(id);
-    if (!updated) throw new Error("Task not found after update");
+    if (!updated) return err({ code: 'NOT_FOUND', message: "Task not found after update" });
     return ok(updated);
-  } catch (error: any) {
-    return err(error.message);
+  } catch (error) {
+    return err(handleDbError(error));
   }
 }
 
@@ -126,15 +127,15 @@ export async function deleteLocalTask(id: string): Promise<DbResult<null>> {
     });
 
     return ok(null);
-  } catch (error: any) {
-    return err(error.message);
+  } catch (error) {
+    return err(handleDbError(error));
   }
 }
 
 export async function addLocalWaypoint(taskId: string, waypoint: Waypoint): Promise<DbResult<LocalTask>> {
   try {
     const task = await db.tasks.get(taskId);
-    if (!task) return err("Task not found");
+    if (!task) return err({ code: 'NOT_FOUND', message: "Task not found" });
 
     const metadata: TaskMetadata = (task.metadata as TaskMetadata) || {};
     const waypoints: Waypoint[] = metadata.waypoints || [];
@@ -143,35 +144,35 @@ export async function addLocalWaypoint(taskId: string, waypoint: Waypoint): Prom
     metadata.waypoints = waypoints;
 
     return updateLocalTask(taskId, { metadata });
-  } catch (error: any) {
-    return err(error.message);
+  } catch (error) {
+    return err(handleDbError(error));
   }
 }
 
 export async function updateLocalWaypoint(taskId: string, waypointOrder: number, updates: Partial<Waypoint>): Promise<DbResult<LocalTask>> {
   try {
     const task = await db.tasks.get(taskId);
-    if (!task) return err("Task not found");
+    if (!task) return err({ code: 'NOT_FOUND', message: "Task not found" });
 
     const metadata: TaskMetadata = (task.metadata as TaskMetadata) || {};
     const waypoints: Waypoint[] = metadata.waypoints || [];
 
     const index = waypoints.findIndex((w: Waypoint) => w.order === waypointOrder);
-    if (index === -1) return err("Waypoint not found");
+    if (index === -1) return err({ code: 'NOT_FOUND', message: "Waypoint not found" });
 
     waypoints[index] = { ...waypoints[index], ...updates };
     metadata.waypoints = waypoints;
 
     return updateLocalTask(taskId, { metadata });
-  } catch (error: any) {
-    return err(error.message);
+  } catch (error) {
+    return err(handleDbError(error));
   }
 }
 
 export async function removeLocalWaypoint(taskId: string, waypointOrder: number): Promise<DbResult<LocalTask>> {
   try {
     const task = await db.tasks.get(taskId);
-    if (!task) return err("Task not found");
+    if (!task) return err({ code: 'NOT_FOUND', message: "Task not found" });
 
     const metadata: TaskMetadata = (task.metadata as TaskMetadata) || {};
     const waypoints: Waypoint[] = metadata.waypoints || [];
@@ -179,7 +180,7 @@ export async function removeLocalWaypoint(taskId: string, waypointOrder: number)
     metadata.waypoints = waypoints.filter((w: Waypoint) => w.order !== waypointOrder);
 
     return updateLocalTask(taskId, { metadata });
-  } catch (error: any) {
-    return err(error.message);
+  } catch (error) {
+    return err(handleDbError(error));
   }
 }

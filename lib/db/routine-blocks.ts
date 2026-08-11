@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "./database.types";
 import type { RoutineBlock, RoutineBlockInsert, RoutineBlockUpdate, DbResult } from "./types";
 import { ok, err } from "./types";
+import { handleDbError } from "./errors";
 
 type Client = SupabaseClient<Database>;
 
@@ -31,7 +32,7 @@ export async function getRoutineBlocks(client: Client, userId: string, opts: Get
 
   const { data, error } = await query.order("start_time", { ascending: true });
 
-  if (error) return err(error.message);
+  if (error) return err(handleDbError(error));
   return ok(data);
 }
 
@@ -42,7 +43,7 @@ export async function createRoutineBlock(client: Client, block: RoutineBlockInse
     .select()
     .single();
 
-  if (error) return err(error.message);
+  if (error) return err(handleDbError(error));
   return ok(data);
 }
 
@@ -54,7 +55,7 @@ export async function updateRoutineBlock(client: Client, id: string, updates: Ro
     .select()
     .single();
 
-  if (error) return err(error.message);
+  if (error) return err(handleDbError(error));
   return ok(data);
 }
 
@@ -64,6 +65,6 @@ export async function deleteRoutineBlock(client: Client, id: string): Promise<Db
     .delete()
     .eq("id", id);
 
-  if (error) return err(error.message);
+  if (error) return err(handleDbError(error));
   return ok(null);
 }

@@ -1,6 +1,7 @@
 import { db, type LocalJournal, type SyncQueueEntry } from "./index";
 import type { JournalInsert, JournalUpdate, DbResult, Journal } from "../db/types";
 import { ok, err } from "../db/types";
+import { handleDbError } from "../db/errors";
 
 export type GetLocalJournalsOptions = {
   from?: string;
@@ -29,8 +30,8 @@ export async function getLocalJournals(
 
     journals.sort((a, b) => (b.start_time || "").localeCompare(a.start_time || ""));
     return ok(journals);
-  } catch (error: any) {
-    return err(error.message);
+  } catch (error) {
+    return err(handleDbError(error));
   }
 }
 
@@ -66,8 +67,8 @@ export async function createLocalJournal(journal: JournalInsert): Promise<DbResu
     });
 
     return ok(localJournal);
-  } catch (error: any) {
-    return err(error.message);
+  } catch (error) {
+    return err(handleDbError(error));
   }
 }
 
@@ -96,10 +97,10 @@ export async function updateLocalJournal(id: string, updates: JournalUpdate): Pr
     });
 
     const updated = await db.journals.get(id);
-    if (!updated) throw new Error("Journal not found after update");
+    if (!updated) return err({ code: 'NOT_FOUND', message: "Journal not found after update" });
     return ok(updated);
-  } catch (error: any) {
-    return err(error.message);
+  } catch (error) {
+    return err(handleDbError(error));
   }
 }
 
@@ -122,7 +123,7 @@ export async function deleteLocalJournal(id: string): Promise<DbResult<null>> {
     });
 
     return ok(null);
-  } catch (error: any) {
-    return err(error.message);
+  } catch (error) {
+    return err(handleDbError(error));
   }
 }

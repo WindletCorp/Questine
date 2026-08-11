@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, Task, TaskInsert, TaskUpdate, DbResult, Waypoint, TaskMetadata } from "./types";
 import { ok, err } from "./types";
+import { handleDbError } from "./errors";
 
 type Client = SupabaseClient<Database>;
 
@@ -34,7 +35,7 @@ export async function getTasks(client: Client, userId: string, opts: GetTasksOpt
 
   const { data, error } = await query.order("created_at", { ascending: false });
 
-  if (error) return err(error.message);
+  if (error) return err(handleDbError(error));
   return ok(data);
 }
 
@@ -45,7 +46,7 @@ export async function createTask(client: Client, task: TaskInsert): Promise<DbRe
     .select()
     .single();
 
-  if (error) return err(error.message);
+  if (error) return err(handleDbError(error));
   return ok(data);
 }
 
@@ -57,7 +58,7 @@ export async function updateTask(client: Client, id: string, updates: TaskUpdate
     .select()
     .single();
 
-  if (error) return err(error.message);
+  if (error) return err(handleDbError(error));
   return ok(data);
 }
 
@@ -67,7 +68,7 @@ export async function deleteTask(client: Client, id: string): Promise<DbResult<n
     .delete()
     .eq("id", id);
 
-  if (error) return err(error.message);
+  if (error) return err(handleDbError(error));
   return ok(null);
 }
 
@@ -75,7 +76,7 @@ export async function deleteTask(client: Client, id: string): Promise<DbResult<n
 
 export async function addWaypoint(client: Client, taskId: string, waypoint: Waypoint): Promise<DbResult<Task>> {
   const { data: task, error: fetchError } = await client.from("tasks").select("metadata").eq("id", taskId).single();
-  if (fetchError) return err(fetchError.message);
+  if (fetchError) return err(handleDbError(fetchError));
 
   const metadata: TaskMetadata = (task.metadata as TaskMetadata) || {};
   const waypoints: Waypoint[] = metadata.waypoints || [];
@@ -88,13 +89,13 @@ export async function addWaypoint(client: Client, taskId: string, waypoint: Wayp
 
 export async function updateWaypoint(client: Client, taskId: string, waypointOrder: number, updates: Partial<Waypoint>): Promise<DbResult<Task>> {
   const { data: task, error: fetchError } = await client.from("tasks").select("metadata").eq("id", taskId).single();
-  if (fetchError) return err(fetchError.message);
+  if (fetchError) return err(handleDbError(fetchError));
 
   const metadata: TaskMetadata = (task.metadata as TaskMetadata) || {};
   const waypoints: Waypoint[] = metadata.waypoints || [];
   
   const index = waypoints.findIndex((w: Waypoint) => w.order === waypointOrder);
-  if (index === -1) return err("Waypoint not found");
+  if (index === -1) return err({ code: 'NOT_FOUND', message: "Waypoint not found" });
 
   waypoints[index] = { ...waypoints[index], ...updates };
   metadata.waypoints = waypoints;
@@ -104,7 +105,7 @@ export async function updateWaypoint(client: Client, taskId: string, waypointOrd
 
 export async function removeWaypoint(client: Client, taskId: string, waypointOrder: number): Promise<DbResult<Task>> {
   const { data: task, error: fetchError } = await client.from("tasks").select("metadata").eq("id", taskId).single();
-  if (fetchError) return err(fetchError.message);
+  if (fetchError) return err(handleDbError(fetchError));
 
   const metadata: TaskMetadata = (task.metadata as TaskMetadata) || {};
   const waypoints: Waypoint[] = metadata.waypoints || [];

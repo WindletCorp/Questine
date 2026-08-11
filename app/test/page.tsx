@@ -26,10 +26,31 @@ import type { Task, RoutineBlock, Journal, UserStats, TaskMetadata, Waypoint } f
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
-function Result({ data }: { data: unknown }) {
+function Result({ data }: { data: any }) {
+  if (!data) return <pre className="result-box">null</pre>;
+
+  if (data.error) {
+    return (
+      <div className="result-box error-box">
+        <div style={{ color: "#ef4444", fontWeight: "bold", marginBottom: "0.5rem" }}>
+          Error: {data.error.code}
+        </div>
+        <div style={{ marginBottom: "0.5rem" }}>{data.error.message}</div>
+        {data.error.details && (
+          <details>
+            <summary style={{ cursor: "pointer", fontSize: "0.8rem", color: "#94a3b8" }}>Technical Details</summary>
+            <pre style={{ fontSize: "0.75rem", marginTop: "0.5rem", overflowX: "auto" }}>
+              {JSON.stringify(data.error.details, null, 2)}
+            </pre>
+          </details>
+        )}
+      </div>
+    );
+  }
+
   return (
     <pre className="result-box">
-      {data === null ? "null" : JSON.stringify(data, null, 2)}
+      {JSON.stringify(data, null, 2)}
     </pre>
   );
 }
@@ -718,6 +739,13 @@ const styles = `
     white-space: pre-wrap;
     word-break: break-all;
     line-height: 1.5;
+  }
+  
+  .error-box {
+    background: #1f0b0f;
+    border: 1px solid #7f1d1d;
+    color: #f87171;
+    font-family: system-ui;
   }
 
   .page-center {

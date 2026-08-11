@@ -1,15 +1,32 @@
 // import removed to avoid conflict
 
+export type ErrorCode = 
+  | 'NOT_FOUND' 
+  | 'UNAUTHORIZED' 
+  | 'VALIDATION_ERROR' 
+  | 'INTERNAL_ERROR' 
+  | 'NETWORK_ERROR' 
+  | 'CONFLICT';
+
+export type AppError = {
+  code: ErrorCode;
+  message: string;
+  details?: unknown;
+};
+
 export type DbResult<T> =
   | { data: T; error: null }
-  | { data: null; error: string };
+  | { data: null; error: AppError };
 
 export function ok<T>(data: T): DbResult<T> {
   return { data, error: null };
 }
 
-export function err<T = never>(message: string): DbResult<T> {
-  return { data: null, error: message };
+export function err<T = never>(error: string | AppError): DbResult<T> {
+  if (typeof error === 'string') {
+    return { data: null, error: { code: 'INTERNAL_ERROR', message: error } };
+  }
+  return { data: null, error };
 }
 
 import type { Database as GeneratedDatabase } from "./database.types";

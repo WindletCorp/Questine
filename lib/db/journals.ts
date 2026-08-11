@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "./database.types";
 import type { Journal, JournalInsert, JournalUpdate, DbResult } from "./types";
 import { ok, err } from "./types";
+import { handleDbError } from "./errors";
 
 type Client = SupabaseClient<Database>;
 
@@ -31,7 +32,7 @@ export async function getJournals(client: Client, userId: string, opts: GetJourn
 
   const { data, error } = await query.order("start_time", { ascending: false });
 
-  if (error) return err(error.message);
+  if (error) return err(handleDbError(error));
   return ok(data);
 }
 
@@ -42,7 +43,7 @@ export async function createJournal(client: Client, journal: JournalInsert): Pro
     .select()
     .single();
 
-  if (error) return err(error.message);
+  if (error) return err(handleDbError(error));
   return ok(data);
 }
 
@@ -54,7 +55,7 @@ export async function updateJournal(client: Client, id: string, updates: Journal
     .select()
     .single();
 
-  if (error) return err(error.message);
+  if (error) return err(handleDbError(error));
   return ok(data);
 }
 
@@ -64,6 +65,6 @@ export async function deleteJournal(client: Client, id: string): Promise<DbResul
     .delete()
     .eq("id", id);
 
-  if (error) return err(error.message);
+  if (error) return err(handleDbError(error));
   return ok(null);
 }

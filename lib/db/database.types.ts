@@ -103,41 +103,117 @@ export type Database = {
         Row: {
           completed_at: string | null
           created_at: string | null
+          end_time: string | null
           id: string
           label: string
           metadata: Json | null
+          start_time: string | null
           updated_at: string | null
           user_id: string
-          start_time: string | null
-          end_time: string | null
         }
         Insert: {
           completed_at?: string | null
           created_at?: string | null
+          end_time?: string | null
           id?: string
           label: string
           metadata?: Json | null
+          start_time?: string | null
           updated_at?: string | null
           user_id: string
-          start_time?: string | null
-          end_time?: string | null
         }
         Update: {
           completed_at?: string | null
           created_at?: string | null
+          end_time?: string | null
           id?: string
           label?: string
           metadata?: Json | null
+          start_time?: string | null
           updated_at?: string | null
           user_id?: string
-          start_time?: string | null
-          end_time?: string | null
         }
         Relationships: [
           {
             foreignKeyName: "tasks_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_profiles: {
+        Row: {
+          avatar_url: string | null
+          bio: string | null
+          created_at: string | null
+          display_name: string | null
+          updated_at: string | null
+          user_id: string
+          username: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string | null
+          display_name?: string | null
+          updated_at?: string | null
+          user_id: string
+          username?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string | null
+          display_name?: string | null
+          updated_at?: string | null
+          user_id?: string
+          username?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_profiles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_settings: {
+        Row: {
+          byok_key: string | null
+          byok_provider: string | null
+          constraints: string | null
+          created_at: string | null
+          goals: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          byok_key?: string | null
+          byok_provider?: string | null
+          constraints?: string | null
+          created_at?: string | null
+          goals?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          byok_key?: string | null
+          byok_provider?: string | null
+          constraints?: string | null
+          created_at?: string | null
+          goals?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_settings_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
@@ -186,29 +262,17 @@ export type Database = {
       }
       users: {
         Row: {
-          byok_key: string | null
-          byok_provider: string | null
-          constraints: string | null
           created_at: string | null
-          goals: string | null
           id: string
           updated_at: string | null
         }
         Insert: {
-          byok_key?: string | null
-          byok_provider?: string | null
-          constraints?: string | null
           created_at?: string | null
-          goals?: string | null
           id: string
           updated_at?: string | null
         }
         Update: {
-          byok_key?: string | null
-          byok_provider?: string | null
-          constraints?: string | null
           created_at?: string | null
-          goals?: string | null
           id?: string
           updated_at?: string | null
         }

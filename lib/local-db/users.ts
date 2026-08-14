@@ -1,11 +1,11 @@
 import { db } from "./index";
-import type { UserProfile, UserStats, DbResult } from "../db/types";
+import type { UserProfile, UserSettings, UserStats, DbResult } from "../db/types";
 import { ok, err } from "../db/types";
 import { handleDbError } from "../db/errors";
 
 export async function getLocalUserProfile(userId: string): Promise<DbResult<UserProfile>> {
   try {
-    const profile = await db.users.get(userId);
+    const profile = await db.user_profiles.get(userId);
     if (!profile) return err({ code: 'NOT_FOUND', message: "User profile not found locally" });
     return ok(profile);
   } catch (error) {
@@ -15,8 +15,27 @@ export async function getLocalUserProfile(userId: string): Promise<DbResult<User
 
 export async function saveLocalUserProfile(profile: UserProfile): Promise<DbResult<UserProfile>> {
   try {
-    await db.users.put(profile);
+    await db.user_profiles.put(profile);
     return ok(profile);
+  } catch (error) {
+    return err(handleDbError(error));
+  }
+}
+
+export async function getLocalUserSettings(userId: string): Promise<DbResult<UserSettings>> {
+  try {
+    const settings = await db.user_settings.get(userId);
+    if (!settings) return err({ code: 'NOT_FOUND', message: "User settings not found locally" });
+    return ok(settings);
+  } catch (error) {
+    return err(handleDbError(error));
+  }
+}
+
+export async function saveLocalUserSettings(settings: UserSettings): Promise<DbResult<UserSettings>> {
+  try {
+    await db.user_settings.put(settings);
+    return ok(settings);
   } catch (error) {
     return err(handleDbError(error));
   }

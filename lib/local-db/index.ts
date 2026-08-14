@@ -1,5 +1,5 @@
 import Dexie, { type Table } from "dexie";
-import type { Task, RoutineBlock, Journal, UserProfile, UserStats } from "../db/types";
+import type { Task, RoutineBlock, Journal, UserProfile, UserSettings, UserStats } from "../db/types";
 
 // Extended types for local DB
 export type SyncStatus = "synced" | "pending" | "conflict";
@@ -25,8 +25,8 @@ export class QuestineDB extends Dexie {
   routine_blocks!: Table<LocalRoutineBlock, string>;
   journals!: Table<LocalJournal, string>;
   
-  // Users and Stats are mostly cached for read, but can be updated
-  users!: Table<UserProfile, string>;
+  user_profiles!: Table<UserProfile, string>;
+  user_settings!: Table<UserSettings, string>;
   user_stats!: Table<UserStats, string>;
   
   // Offline sync queue and metadata
@@ -36,11 +36,12 @@ export class QuestineDB extends Dexie {
   constructor() {
     super("QuestineDB");
     
-    this.version(2).stores({
+    this.version(3).stores({
       tasks: "id, user_id, updated_at, sync_status, start_time, end_time",
       routine_blocks: "id, user_id, updated_at, sync_status, start_time",
       journals: "id, user_id, updated_at, sync_status, start_time",
-      users: "id",
+      user_profiles: "user_id",
+      user_settings: "user_id",
       user_stats: "user_id",
       sync_queue: "id, table_name, created_at",
       meta: "key"

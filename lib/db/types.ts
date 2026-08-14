@@ -77,5 +77,12 @@ export type Journal = Database["public"]["Tables"]["journals"]["Row"];
 export type JournalInsert = Database["public"]["Tables"]["journals"]["Insert"];
 export type JournalUpdate = Database["public"]["Tables"]["journals"]["Update"];
 
-export type UserProfile = Database["public"]["Tables"]["users"]["Row"];
+export type UserProfile = Database["public"]["Tables"]["user_profiles"]["Row"];
+export type UserProfileUpdate = Database["public"]["Tables"]["user_profiles"]["Update"];
+export type UserProfileInsert = Database["public"]["Tables"]["user_profiles"]["Insert"];
+
+export type UserSettings = Database["public"]["Tables"]["user_settings"]["Row"];
+export type UserSettingsUpdate = Database["public"]["Tables"]["user_settings"]["Update"];
+export type UserSettingsInsert = Database["public"]["Tables"]["user_settings"]["Insert"];
+
 export type UserStats = Database["public"]["Tables"]["user_stats"]["Row"];

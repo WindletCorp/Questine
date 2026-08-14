@@ -1,10 +1,12 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useTransition } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { useAuth } from "@/components/providers/auth-provider";
 
 // Local DB functions
+import { getGlobalMetricsAction, getUserMetricsAction, enrollMetricAction, createCustomMetricAction, logMetricEntryAction, getMetricEntriesAction } from "@/app/actions/metrics";
+
 import { getLocalTasks, createLocalTask, updateLocalTask, deleteLocalTask, addLocalWaypoint, updateLocalWaypoint, removeLocalWaypoint } from "@/lib/local-db/tasks";
 import {
   getLocalRoutineBlocks,
@@ -467,6 +469,104 @@ function UserStatsPanel({ userId }: { userId: string }) {
   );
 }
 
+// ─── Metrics Panel (Server Actions Test) ───────────────────────────────────
+
+function MetricsPanel({ userId }: { userId: string }) {
+  const [result, setResult] = useState<unknown>(null);
+  const [isPending, startTransition] = useTransition();
+  
+  const handleFetchGlobal = () => {
+    startTransition(async () => {
+      try {
+        const res = await getGlobalMetricsAction();
+        setResult(res);
+      } catch (e: any) {
+        setResult({ error: { code: 'ERROR', message: e.message } });
+      }
+    });
+  };
+
+  const handleFetchUser = () => {
+    startTransition(async () => {
+      try {
+        const res = await getUserMetricsAction();
+        setResult(res);
+      } catch (e: any) {
+        setResult({ error: { code: 'ERROR', message: e.message } });
+      }
+    });
+  };
+
+  const handleEnroll = async () => {
+    const metricId = prompt("Enter Metric ID to enroll in:");
+    if (!metricId) return;
+    try {
+      const res = await enrollMetricAction(metricId);
+      setResult(res);
+    } catch (e: any) {
+      setResult({ error: { code: 'ERROR', message: e.message } });
+    }
+  };
+
+  const handleCreateCustom = async () => {
+    const name = prompt("Metric Name:");
+    if (!name) return;
+    try {
+      const res = await createCustomMetricAction(name, 'boolean', 'positive');
+      setResult(res);
+    } catch (e: any) {
+      setResult({ error: { code: 'ERROR', message: e.message } });
+    }
+  };
+
+  const handleLogEntry = () => {
+    const userMetricId = prompt("Enter User Metric ID:");
+    if (!userMetricId) return;
+    const valueStr = prompt("Enter Value:", "1");
+    if (!valueStr) return;
+    const value = parseFloat(valueStr);
+    
+    startTransition(async () => {
+      try {
+        const res = await logMetricEntryAction(userMetricId, value, new Date().toISOString());
+        setResult(res);
+      } catch (e: any) {
+        setResult({ error: { code: 'ERROR', message: e.message } });
+      }
+    });
+  };
+
+  const handleFetchEntries = () => {
+    const userMetricId = prompt("Enter User Metric ID to fetch entries for:");
+    if (!userMetricId) return;
+    startTransition(async () => {
+      try {
+        const res = await getMetricEntriesAction(userMetricId);
+        setResult(res);
+      } catch (e: any) {
+        setResult({ error: { code: 'ERROR', message: e.message } });
+      }
+    });
+  };
+
+  return (
+    <Section title="📊 Metrics (Server Actions)">
+      <div className="row">
+        <ActionBtn label="Get Global Metrics" onClick={handleFetchGlobal} variant="secondary" />
+        <ActionBtn label="Get My Metrics" onClick={handleFetchUser} variant="secondary" />
+      </div>
+      <div className="row" style={{ marginTop: '0.5rem' }}>
+        <ActionBtn label="Enroll in Metric" onClick={handleEnroll} />
+        <ActionBtn label="Create Custom" onClick={handleCreateCustom} />
+        <ActionBtn label="Log Entry" onClick={handleLogEntry} />
+        <ActionBtn label="Get Entries" onClick={handleFetchEntries} variant="secondary" />
+      </div>
+      {isPending && <div style={{ fontSize: '0.8rem', color: '#6366f1', marginTop: '0.5rem' }}>Loading...</div>}
+      <Result data={result} />
+    </Section>
+  );
+}
+
 // ─── Auth Gate ──────────────────────────────────────────────────────────────
 
 import { useSyncStore } from "@/lib/stores/sync-store";
@@ -515,6 +615,7 @@ export default function CRUDTestPage() {
           <RoutineBlocksPanel userId={userId} />
           <JournalsPanel userId={userId} />
           <UserStatsPanel userId={userId} />
+          <MetricsPanel userId={userId} />
         </div>
       </div>
     </>

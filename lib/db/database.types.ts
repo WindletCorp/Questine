@@ -55,6 +55,82 @@ export type Database = {
           },
         ]
       }
+      metric_definitions: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          id: string
+          is_global: boolean | null
+          name: string
+          polarity: string | null
+          type: string
+          unit: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          is_global?: boolean | null
+          name: string
+          polarity?: string | null
+          type: string
+          unit?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          is_global?: boolean | null
+          name?: string
+          polarity?: string | null
+          type?: string
+          unit?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "metric_definitions_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      metric_entries: {
+        Row: {
+          entered_at: string
+          id: string
+          timestamp: string
+          user_metric_id: string
+          value: number
+        }
+        Insert: {
+          entered_at?: string
+          id?: string
+          timestamp: string
+          user_metric_id: string
+          value: number
+        }
+        Update: {
+          entered_at?: string
+          id?: string
+          timestamp?: string
+          user_metric_id?: string
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "metric_entries_user_metric_id_fkey"
+            columns: ["user_metric_id"]
+            isOneToOne: false
+            referencedRelation: "user_metrics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       routine_blocks: {
         Row: {
           category: string
@@ -136,6 +212,45 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "tasks_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_metrics: {
+        Row: {
+          created_at: string | null
+          id: string
+          metric_id: string
+          target_value: number | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          metric_id: string
+          target_value?: number | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          metric_id?: string
+          target_value?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_metrics_metric_id_fkey"
+            columns: ["metric_id"]
+            isOneToOne: false
+            referencedRelation: "metric_definitions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_metrics_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "users"

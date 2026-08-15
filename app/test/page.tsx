@@ -5,7 +5,14 @@ import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { useAuth } from "@/components/providers/auth-provider";
 
 // Local DB functions
-import { getGlobalMetricsAction, getUserMetricsAction, enrollMetricAction, createCustomMetricAction, logMetricEntryAction, getMetricEntriesAction } from "@/app/actions/metrics";
+import { 
+  getLocalGlobalMetrics, 
+  getLocalUserMetrics, 
+  enrollLocalMetric, 
+  createLocalCustomMetric, 
+  createLocalMetricEntry, 
+  getLocalMetricEntries 
+} from "@/lib/local-db/metrics";
 
 import { getLocalTasks, createLocalTask, updateLocalTask, deleteLocalTask, addLocalWaypoint, updateLocalWaypoint, removeLocalWaypoint } from "@/lib/local-db/tasks";
 import {
@@ -14,6 +21,7 @@ import {
   updateLocalRoutineBlock,
   deleteLocalRoutineBlock,
 } from "@/lib/local-db/routine-blocks";
+import { db } from "@/lib/local-db";
 import {
   getLocalJournals,
   createLocalJournal,
@@ -463,94 +471,76 @@ function UserStatsPanel({ userId }: { userId: string }) {
       )}
       <div className="row">
         <ActionBtn label="Refresh" onClick={refresh} variant="secondary" />
+        <ActionBtn label="Clear Local DB (Danger)" onClick={async () => {
+          if (confirm("Wipe all local data? This cannot be undone.")) {
+            await db.delete();
+            window.location.reload();
+          }
+        }} variant="secondary" style={{ backgroundColor: '#ef4444' }} />
       </div>
       {result ? <Result data={result} /> : null}
     </Section>
   );
 }
 
-// ─── Metrics Panel (Server Actions Test) ───────────────────────────────────
+// ─── Metrics Panel (Offline First) ───────────────────────────────────────────
 
 function MetricsPanel({ userId }: { userId: string }) {
   const [result, setResult] = useState<unknown>(null);
-  const [isPending, startTransition] = useTransition();
   
-  const handleFetchGlobal = () => {
-    startTransition(async () => {
-      try {
-        const res = await getGlobalMetricsAction();
-        setResult(res);
-      } catch (e: any) {
-        setResult({ error: { code: 'ERROR', message: e.message } });
-      }
-    });
+  const handleFetchGlobal = async () => {
+    const res = await getLocalGlobalMetrics();
+    if (res.error) setResult({ error: res.error });
+    else setResult(res.data);
   };
 
-  const handleFetchUser = () => {
-    startTransition(async () => {
-      try {
-        const res = await getUserMetricsAction();
-        setResult(res);
-      } catch (e: any) {
-        setResult({ error: { code: 'ERROR', message: e.message } });
-      }
-    });
+  const handleFetchUser = async () => {
+    const res = await getLocalUserMetrics(userId);
+    if (res.error) setResult({ error: res.error });
+    else setResult(res.data);
   };
 
   const handleEnroll = async () => {
     const metricId = prompt("Enter Metric ID to enroll in:");
     if (!metricId) return;
-    try {
-      const res = await enrollMetricAction(metricId);
-      setResult(res);
-    } catch (e: any) {
-      setResult({ error: { code: 'ERROR', message: e.message } });
-    }
+    
+    const res = await enrollLocalMetric(userId, metricId);
+    if (res.error) setResult({ error: res.error });
+    else setResult(res.data);
   };
 
   const handleCreateCustom = async () => {
     const name = prompt("Metric Name:");
     if (!name) return;
-    try {
-      const res = await createCustomMetricAction(name, 'boolean', 'positive');
-      setResult(res);
-    } catch (e: any) {
-      setResult({ error: { code: 'ERROR', message: e.message } });
-    }
+    
+    const res = await createLocalCustomMetric(userId, name, 'boolean', 'positive');
+    if (res.error) setResult({ error: res.error });
+    else setResult(res.data);
   };
 
-  const handleLogEntry = () => {
+  const handleLogEntry = async () => {
     const userMetricId = prompt("Enter User Metric ID:");
     if (!userMetricId) return;
     const valueStr = prompt("Enter Value:", "1");
     if (!valueStr) return;
     const value = parseFloat(valueStr);
     
-    startTransition(async () => {
-      try {
-        const res = await logMetricEntryAction(userMetricId, value, new Date().toISOString());
-        setResult(res);
-      } catch (e: any) {
-        setResult({ error: { code: 'ERROR', message: e.message } });
-      }
-    });
+    const res = await createLocalMetricEntry(userMetricId, value, new Date().toISOString());
+    if (res.error) setResult({ error: res.error });
+    else setResult(res.data);
   };
 
-  const handleFetchEntries = () => {
+  const handleFetchEntries = async () => {
     const userMetricId = prompt("Enter User Metric ID to fetch entries for:");
     if (!userMetricId) return;
-    startTransition(async () => {
-      try {
-        const res = await getMetricEntriesAction(userMetricId);
-        setResult(res);
-      } catch (e: any) {
-        setResult({ error: { code: 'ERROR', message: e.message } });
-      }
-    });
+    
+    const res = await getLocalMetricEntries(userMetricId);
+    if (res.error) setResult({ error: res.error });
+    else setResult(res.data);
   };
 
   return (
-    <Section title="📊 Metrics (Server Actions)">
+    <Section title="📊 Metrics (Offline First)">
       <div className="row">
         <ActionBtn label="Get Global Metrics" onClick={handleFetchGlobal} variant="secondary" />
         <ActionBtn label="Get My Metrics" onClick={handleFetchUser} variant="secondary" />
@@ -561,7 +551,6 @@ function MetricsPanel({ userId }: { userId: string }) {
         <ActionBtn label="Log Entry" onClick={handleLogEntry} />
         <ActionBtn label="Get Entries" onClick={handleFetchEntries} variant="secondary" />
       </div>
-      {isPending && <div style={{ fontSize: '0.8rem', color: '#6366f1', marginTop: '0.5rem' }}>Loading...</div>}
       <Result data={result} />
     </Section>
   );

@@ -81,14 +81,28 @@ export class SyncEngine {
     const userId = session.user.id;
     const lastSync = await this.getLastSyncTime();
     
-    const tables = ["tasks", "routine_blocks", "journals"] as const;
+    const tables = ["tasks", "routine_blocks", "journals", "metric_definitions", "user_metrics", "metric_entries"] as const;
     
     for (const tableName of tables) {
       try {
-        let query = client.from(tableName).select("*").eq("user_id", userId);
-        // Removed lastSync filter temporarily to avoid clock skew issues missing records
-        
-        const { data, error } = await query;
+        let data: Array<{ id: string; updated_at?: string | null }> | null = null;
+        let error = null;
+
+        if (tableName === "metric_definitions") {
+          const res = await client.from("metric_definitions").select("*").or(`created_by.eq.${userId},is_global.eq.true`);
+          data = res.data;
+          error = res.error;
+        } else if (tableName === "metric_entries") {
+          // Rely entirely on RLS for metric_entries since it lacks a user_id column
+          const res = await client.from("metric_entries").select("*");
+          // map entered_at/timestamp to updated_at for sync comparison purposes, or just cast
+          data = res.data as Array<{ id: string; updated_at?: string | null }>;
+          error = res.error;
+        } else {
+          const res = await client.from(tableName).select("*").eq("user_id", userId);
+          data = res.data;
+          error = res.error;
+        }
         
         if (error) {
           errors.push(error);

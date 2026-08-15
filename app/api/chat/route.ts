@@ -15,9 +15,9 @@ export async function POST(req: Request) {
 
         // 1. Fetch user API key and provider preference
         const { data: userConfig, error } = await supabase
-            .from('users')
+            .from('user_settings')
             .select('byok_provider, byok_key, goals, constraints')
-            .eq('id', userId)
+            .eq('user_id', userId)
             .maybeSingle();
 
         if (error) {

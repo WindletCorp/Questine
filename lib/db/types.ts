@@ -90,3 +90,27 @@ export type UserStats = Database["public"]["Tables"]["user_stats"]["Row"];
 export type MetricDefinition = Database["public"]["Tables"]["metric_definitions"]["Row"];
 export type UserMetric = Database["public"]["Tables"]["user_metrics"]["Row"];
 export type MetricEntry = Database["public"]["Tables"]["metric_entries"]["Row"];
+
+export type StoreItem = Database["public"]["Tables"]["store_items"]["Row"];
+export type UserInventoryItem = Database["public"]["Tables"]["user_inventory"]["Row"];
+export type UserEquipment = Database["public"]["Tables"]["user_equipment"]["Row"];
+export type OrbTransaction = Database["public"]["Tables"]["orb_transactions"]["Row"];
+
+export type ItemType = 'theme' | 'personality' | 'avatar_frame';
+
+export type ThemeMetadata = {
+  layout: string;
+  variables: Record<string, string>;
+};
+
+export type PersonalityMetadata = {
+  system_prompt: string;
+  tone: string;
+  display_name: string;
+  avatar_url: string | null;
+};
+
+export type AvatarFrameMetadata = {
+  asset_url: string;
+  animation?: string;
+};

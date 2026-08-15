@@ -443,7 +443,7 @@ function UserStatsPanel({ userId }: { userId: string }) {
     
     // If we haven't synced stats yet, don't show it as a glaring error
     if (r.error && (r.error as any).code === 'NOT_FOUND') {
-      setStats({ user_id: userId, xp: 0, coins: 0, current_streak: 0, longest_streak: 0 } as UserStats);
+      setStats({ user_id: userId, xp: 0, current_streak: 0, longest_streak: 0, created_at: null, updated_at: null, last_active_date: null } as UserStats);
       setResult(null); // Clear result so we don't render the error box
       return;
     }
@@ -464,7 +464,6 @@ function UserStatsPanel({ userId }: { userId: string }) {
       {stats && (
         <div className="profile-grid">
           <div className="stat"><span className="stat-label">XP</span><span className="stat-value">{stats.xp}</span></div>
-          <div className="stat"><span className="stat-label">Coins</span><span className="stat-value">{stats.coins}</span></div>
           <div className="stat"><span className="stat-label">Streak</span><span className="stat-value">{stats.current_streak}🔥</span></div>
           <div className="stat"><span className="stat-label">Best Streak</span><span className="stat-value">{stats.longest_streak}</span></div>
         </div>
@@ -476,7 +475,7 @@ function UserStatsPanel({ userId }: { userId: string }) {
             await db.delete();
             window.location.reload();
           }
-        }} variant="secondary" style={{ backgroundColor: '#ef4444' }} />
+        }} variant="danger" />
       </div>
       {result ? <Result data={result} /> : null}
     </Section>

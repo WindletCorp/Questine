@@ -131,6 +131,44 @@ export type Database = {
           },
         ]
       }
+      orb_transactions: {
+        Row: {
+          amount: number
+          balance_after: number
+          created_at: string | null
+          id: string
+          reason: string
+          reference_id: string | null
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          balance_after: number
+          created_at?: string | null
+          id?: string
+          reason: string
+          reference_id?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          balance_after?: number
+          created_at?: string | null
+          id?: string
+          reason?: string
+          reference_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orb_transactions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       routine_blocks: {
         Row: {
           category: string
@@ -175,6 +213,51 @@ export type Database = {
           },
         ]
       }
+      store_items: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          is_premium: boolean | null
+          metadata: Json | null
+          name: string
+          preview_url: string | null
+          price_orbs: number
+          slug: string
+          store_metadata: Json | null
+          type: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_premium?: boolean | null
+          metadata?: Json | null
+          name: string
+          preview_url?: string | null
+          price_orbs?: number
+          slug: string
+          store_metadata?: Json | null
+          type: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_premium?: boolean | null
+          metadata?: Json | null
+          name?: string
+          preview_url?: string | null
+          price_orbs?: number
+          slug?: string
+          store_metadata?: Json | null
+          type?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       tasks: {
         Row: {
           completed_at: string | null
@@ -212,6 +295,101 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "tasks_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_equipment: {
+        Row: {
+          avatar_frame_id: string | null
+          personality_id: string | null
+          personality_metadata: Json | null
+          theme_id: string | null
+          theme_metadata: Json | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          avatar_frame_id?: string | null
+          personality_id?: string | null
+          personality_metadata?: Json | null
+          theme_id?: string | null
+          theme_metadata?: Json | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          avatar_frame_id?: string | null
+          personality_id?: string | null
+          personality_metadata?: Json | null
+          theme_id?: string | null
+          theme_metadata?: Json | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_equipment_avatar_frame_id_fkey"
+            columns: ["avatar_frame_id"]
+            isOneToOne: false
+            referencedRelation: "store_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_equipment_personality_id_fkey"
+            columns: ["personality_id"]
+            isOneToOne: false
+            referencedRelation: "store_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_equipment_theme_id_fkey"
+            columns: ["theme_id"]
+            isOneToOne: false
+            referencedRelation: "store_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_equipment_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_inventory: {
+        Row: {
+          acquired_at: string | null
+          id: string
+          item_id: string
+          user_id: string
+        }
+        Insert: {
+          acquired_at?: string | null
+          id?: string
+          item_id: string
+          user_id: string
+        }
+        Update: {
+          acquired_at?: string | null
+          id?: string
+          item_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_inventory_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "store_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_inventory_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "users"
@@ -303,6 +481,9 @@ export type Database = {
           constraints: string | null
           created_at: string | null
           goals: string | null
+          orbs: number | null
+          subscription_expires_at: string | null
+          subscription_tier: string | null
           updated_at: string | null
           user_id: string
         }
@@ -312,6 +493,9 @@ export type Database = {
           constraints?: string | null
           created_at?: string | null
           goals?: string | null
+          orbs?: number | null
+          subscription_expires_at?: string | null
+          subscription_tier?: string | null
           updated_at?: string | null
           user_id: string
         }
@@ -321,6 +505,9 @@ export type Database = {
           constraints?: string | null
           created_at?: string | null
           goals?: string | null
+          orbs?: number | null
+          subscription_expires_at?: string | null
+          subscription_tier?: string | null
           updated_at?: string | null
           user_id?: string
         }
@@ -336,7 +523,6 @@ export type Database = {
       }
       user_stats: {
         Row: {
-          coins: number | null
           created_at: string | null
           current_streak: number | null
           last_active_date: string | null
@@ -346,7 +532,6 @@ export type Database = {
           xp: number | null
         }
         Insert: {
-          coins?: number | null
           created_at?: string | null
           current_streak?: number | null
           last_active_date?: string | null
@@ -356,7 +541,6 @@ export type Database = {
           xp?: number | null
         }
         Update: {
-          coins?: number | null
           created_at?: string | null
           current_streak?: number | null
           last_active_date?: string | null
@@ -398,7 +582,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      purchase_item: { Args: { p_item_id: string }; Returns: Json }
     }
     Enums: {
       [_ in never]: never

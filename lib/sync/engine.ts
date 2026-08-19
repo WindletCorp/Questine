@@ -41,7 +41,7 @@ export class SyncEngine {
             break;
             
           case "DELETE":
-            const { error: dErr } = await client.from(entry.table_name as any).delete().eq("id", entry.record_id);
+            const { error: dErr } = await client.from(entry.table_name as any).update({ deleted_at: new Date().toISOString() }).eq("id", entry.record_id);
             error = dErr;
             break;
         }
@@ -86,7 +86,9 @@ export class SyncEngine {
     for (const tableName of tables) {
       try {
         let query = client.from(tableName).select("*").eq("user_id", userId);
-        // Removed lastSync filter temporarily to avoid clock skew issues missing records
+        if (lastSync) {
+          query = query.gt("updated_at", lastSync);
+        }
         
         const { data, error } = await query;
         
@@ -97,31 +99,14 @@ export class SyncEngine {
 
         if (data) {
           const localTable = db.table(tableName);
-          const remoteIds = new Set(data.map(d => d.id));
-          
-          // Get all pending inserts to protect them from being deleted
-          const pendingInserts = await db.sync_queue
-            .where("table_name").equals(tableName)
-            .filter(p => p.operation === "INSERT")
-            .toArray();
-          const pendingInsertIds = new Set(pendingInserts.map(p => p.record_id));
           
           await db.transaction("rw", localTable, async () => {
-            // 1. Upsert remote data to local db
+            // Upsert remote data to local db using Last Write Wins
             for (const record of data) {
               const localRecord = await localTable.get(record.id);
               
               if (!localRecord || ((record.updated_at || "") > (localRecord.updated_at || ""))) {
                 await localTable.put({ ...record, sync_status: "synced" });
-                pulled++;
-              }
-            }
-
-            // 2. Handle Hard Deletes: Remove local records that aren't in remote AND aren't pending inserts
-            const localRecords = await localTable.toArray();
-            for (const local of localRecords) {
-              if (!remoteIds.has(local.id) && !pendingInsertIds.has(local.id)) {
-                await localTable.delete(local.id);
                 pulled++;
               }
             }

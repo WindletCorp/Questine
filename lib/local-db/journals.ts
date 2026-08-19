@@ -15,6 +15,7 @@ export async function getLocalJournals(
   try {
     let collection = db.journals.where("user_id").equals(userId);
     let journals = await collection.toArray();
+    journals = journals.filter(j => !j.deleted_at);
 
     const { from, to } = opts;
 
@@ -49,6 +50,7 @@ export async function createLocalJournal(journal: JournalInsert): Promise<DbResu
       end_time: journal.end_time ?? null,
       created_at: journal.created_at ?? now,
       updated_at: journal.updated_at ?? now,
+      deleted_at: null,
       sync_status: "pending"
     };
 
@@ -107,21 +109,7 @@ export async function updateLocalJournal(id: string, updates: JournalUpdate): Pr
 export async function deleteLocalJournal(id: string): Promise<DbResult<null>> {
   try {
     const now = new Date().toISOString();
-    
-    const queueEntry: SyncQueueEntry = {
-      id: crypto.randomUUID(),
-      table_name: "journals",
-      operation: "DELETE",
-      record_id: id,
-      payload: null,
-      created_at: now
-    };
-
-    await db.transaction("rw", db.journals, db.sync_queue, async () => {
-      await db.journals.delete(id);
-      await db.sync_queue.add(queueEntry);
-    });
-
+    await updateLocalJournal(id, { deleted_at: now });
     return ok(null);
   } catch (error) {
     return err(handleDbError(error));

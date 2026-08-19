@@ -36,10 +36,10 @@ export class QuestineDB extends Dexie {
   constructor() {
     super("QuestineDB");
     
-    this.version(3).stores({
-      tasks: "id, user_id, updated_at, sync_status, start_time, end_time",
-      routine_blocks: "id, user_id, updated_at, sync_status, start_time",
-      journals: "id, user_id, updated_at, sync_status, start_time",
+    this.version(4).stores({
+      tasks: "id, user_id, updated_at, sync_status, start_time, end_time, deleted_at",
+      routine_blocks: "id, user_id, updated_at, sync_status, start_time, deleted_at",
+      journals: "id, user_id, updated_at, sync_status, start_time, deleted_at",
       user_profiles: "user_id",
       user_settings: "user_id",
       user_stats: "user_id",

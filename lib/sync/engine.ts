@@ -36,12 +36,32 @@ export class SyncEngine {
           case "UPDATE":
             const updatePayload = { ...entry.payload };
             delete updatePayload.sync_status;
-            const { error: uErr } = await client.from(entry.table_name as any).update(updatePayload).eq("id", entry.record_id);
+            
+            let updateQuery = client.from(entry.table_name as any).update(updatePayload);
+            
+            // Handle composite PKs for metric_subscriptions
+            if (entry.table_name === "metric_subscriptions") {
+                const [userId, metricId] = entry.record_id.split(":");
+                updateQuery = updateQuery.eq("user_id", userId).eq("metric_id", metricId);
+            } else {
+                updateQuery = updateQuery.eq("id", entry.record_id);
+            }
+            
+            const { error: uErr } = await updateQuery;
             error = uErr;
             break;
             
           case "DELETE":
-            const { error: dErr } = await client.from(entry.table_name as any).update({ deleted_at: new Date().toISOString() }).eq("id", entry.record_id);
+            let deleteQuery = client.from(entry.table_name as any).update({ deleted_at: new Date().toISOString() });
+            
+            if (entry.table_name === "metric_subscriptions") {
+                const [userId, metricId] = entry.record_id.split(":");
+                deleteQuery = deleteQuery.eq("user_id", userId).eq("metric_id", metricId);
+            } else {
+                deleteQuery = deleteQuery.eq("id", entry.record_id);
+            }
+            
+            const { error: dErr } = await deleteQuery;
             error = dErr;
             break;
         }
@@ -55,7 +75,11 @@ export class SyncEngine {
           const dynamicTable = db.table(entry.table_name);
           await db.transaction("rw", dynamicTable, db.sync_queue, async () => {
             if (entry.operation !== "DELETE") {
-              await dynamicTable.update(entry.record_id, { sync_status: "synced" });
+                let pk: string | string[] = entry.record_id;
+                if (entry.table_name === "metric_subscriptions") {
+                    pk = entry.record_id.split(":"); // Dexie compound key format [user_id, metric_id]
+                }
+              await dynamicTable.update(pk, { sync_status: "synced" });
             }
             await db.sync_queue.delete(entry.id);
           });
@@ -81,12 +105,67 @@ export class SyncEngine {
     const userId = session.user.id;
     const lastSync = await this.getLastSyncTime();
     
-    const tables = ["tasks", "routine_blocks", "journals"] as const;
+    // 1. Pull global metrics
+    try {
+        const count = await db.metric_definitions.count();
+        let defQuery = client.from("metric_definitions").select("*").eq("is_global", true);
+        if (lastSync && count > 0) {
+            defQuery = defQuery.gt("updated_at", lastSync);
+        }
+        
+        const { data, error } = await defQuery;
+        if (!error && data) {
+            await db.transaction("rw", db.metric_definitions, async () => {
+                for (const record of data) {
+                    const localRecord = await db.metric_definitions.get(record.id);
+                    if (!localRecord || ((record.updated_at || "") > (localRecord.updated_at || ""))) {
+                        await db.metric_definitions.put({ ...record, sync_status: "synced" });
+                        pulled++;
+                    }
+                }
+            });
+        } else if (error) {
+            errors.push(error);
+        }
+    } catch (e) {
+        errors.push(e);
+    }
+    
+    // 2. Pull user-created definitions
+    try {
+        const count = await db.metric_definitions.count();
+        let defQuery = client.from("metric_definitions").select("*").eq("created_by", userId);
+        if (lastSync && count > 0) {
+            defQuery = defQuery.gt("updated_at", lastSync);
+        }
+        const { data, error } = await defQuery;
+        
+        if (!error && data) {
+            await db.transaction("rw", db.metric_definitions, async () => {
+                for (const record of data) {
+                    const localRecord = await db.metric_definitions.get(record.id);
+                    if (!localRecord || ((record.updated_at || "") > (localRecord.updated_at || ""))) {
+                        await db.metric_definitions.put({ ...record, sync_status: "synced" });
+                        pulled++;
+                    }
+                }
+            });
+        } else if (error) {
+            errors.push(error);
+        }
+    } catch(e) {
+        errors.push(e);
+    }
+    
+    // 3. Pull all user tables
+    const tables = ["tasks", "routine_blocks", "journals", "metric_subscriptions", "metric_entries"] as const;
     
     for (const tableName of tables) {
       try {
+        const localTable = db.table(tableName);
+        const count = await localTable.count();
         let query = client.from(tableName).select("*").eq("user_id", userId);
-        if (lastSync) {
+        if (lastSync && count > 0) {
           query = query.gt("updated_at", lastSync);
         }
         
@@ -103,7 +182,10 @@ export class SyncEngine {
           await db.transaction("rw", localTable, async () => {
             // Upsert remote data to local db using Last Write Wins
             for (const record of data) {
-              const localRecord = await localTable.get(record.id);
+              // Handle composite PK for subscriptions
+              const anyRecord = record as any;
+              const pk = tableName === "metric_subscriptions" ? [anyRecord.user_id, anyRecord.metric_id] : anyRecord.id;
+              const localRecord = await localTable.get(pk);
               
               if (!localRecord || ((record.updated_at || "") > (localRecord.updated_at || ""))) {
                 await localTable.put({ ...record, sync_status: "synced" });

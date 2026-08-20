@@ -87,30 +87,11 @@ export type UserSettingsInsert = Database["public"]["Tables"]["user_settings"]["
 
 export type UserStats = Database["public"]["Tables"]["user_stats"]["Row"];
 
-export type MetricDefinition = {
-  id: string;
-  name: string;
-  type: string;
-  unit: string | null;
-  polarity: string | null;
-  is_global: boolean | null;
-  created_by: string | null;
-  created_at: string | null;
-  updated_at: string | null;
-};
+export type MetricDefinition = Database["public"]["Tables"]["metric_definitions"]["Row"];
+export type MetricDefinitionInsert = Database["public"]["Tables"]["metric_definitions"]["Insert"];
 
-export type UserMetric = {
-  id: string;
-  user_id: string;
-  metric_id: string;
-  target_value: number | null;
-  created_at: string | null;
-};
+export type MetricSubscription = Database["public"]["Tables"]["metric_subscriptions"]["Row"];
+export type MetricSubscriptionInsert = Database["public"]["Tables"]["metric_subscriptions"]["Insert"];
 
-export type MetricEntry = {
-  id: string;
-  user_metric_id: string;
-  value: number;
-  timestamp: string;
-  entered_at: string;
-};
+export type MetricEntry = Database["public"]["Tables"]["metric_entries"]["Row"];
+export type MetricEntryInsert = Database["public"]["Tables"]["metric_entries"]["Insert"];

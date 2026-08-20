@@ -16,7 +16,8 @@ export async function getJournals(client: Client, userId: string, opts: GetJourn
   let query = client
     .from("journals")
     .select("*")
-    .eq("user_id", userId);
+    .eq("user_id", userId)
+    .is("deleted_at", null);
 
   const { from, to } = opts;
 
@@ -62,7 +63,7 @@ export async function updateJournal(client: Client, id: string, updates: Journal
 export async function deleteJournal(client: Client, id: string): Promise<DbResult<null>> {
   const { error } = await client
     .from("journals")
-    .delete()
+    .update({ deleted_at: new Date().toISOString() })
     .eq("id", id);
 
   if (error) return err(handleDbError(error));

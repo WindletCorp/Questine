@@ -104,32 +104,87 @@ export type Database = {
       }
       metric_entries: {
         Row: {
-          entered_at: string
+          created_at: string | null
           id: string
+          metric_id: string
           timestamp: string
-          user_metric_id: string
+          updated_at: string | null
+          user_id: string
           value: number
         }
         Insert: {
-          entered_at?: string
+          created_at?: string | null
           id?: string
+          metric_id: string
           timestamp: string
-          user_metric_id: string
+          updated_at?: string | null
+          user_id: string
           value: number
         }
         Update: {
-          entered_at?: string
+          created_at?: string | null
           id?: string
+          metric_id?: string
           timestamp?: string
-          user_metric_id?: string
+          updated_at?: string | null
+          user_id?: string
           value?: number
         }
         Relationships: [
           {
-            foreignKeyName: "metric_entries_user_metric_id_fkey"
-            columns: ["user_metric_id"]
+            foreignKeyName: "metric_entries_metric_id_fkey"
+            columns: ["metric_id"]
             isOneToOne: false
-            referencedRelation: "user_metrics"
+            referencedRelation: "metric_definitions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "metric_entries_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      metric_subscriptions: {
+        Row: {
+          created_at: string | null
+          is_active: boolean | null
+          metric_id: string
+          target_value: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          is_active?: boolean | null
+          metric_id: string
+          target_value?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          is_active?: boolean | null
+          metric_id?: string
+          target_value?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "metric_subscriptions_metric_id_fkey"
+            columns: ["metric_id"]
+            isOneToOne: false
+            referencedRelation: "metric_definitions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "metric_subscriptions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
@@ -221,45 +276,6 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "tasks_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      user_metrics: {
-        Row: {
-          created_at: string | null
-          id: string
-          metric_id: string
-          target_value: number | null
-          user_id: string
-        }
-        Insert: {
-          created_at?: string | null
-          id?: string
-          metric_id: string
-          target_value?: number | null
-          user_id: string
-        }
-        Update: {
-          created_at?: string | null
-          id?: string
-          metric_id?: string
-          target_value?: number | null
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "user_metrics_metric_id_fkey"
-            columns: ["metric_id"]
-            isOneToOne: false
-            referencedRelation: "metric_definitions"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "user_metrics_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "users"

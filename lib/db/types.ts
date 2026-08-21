@@ -95,3 +95,16 @@ export type MetricSubscriptionInsert = Database["public"]["Tables"]["metric_subs
 
 export type MetricEntry = Database["public"]["Tables"]["metric_entries"]["Row"];
 export type MetricEntryInsert = Database["public"]["Tables"]["metric_entries"]["Insert"];
+
+export type ShopItem = Database["public"]["Tables"]["shop_items"]["Row"];
+export type ShopItemInsert = Database["public"]["Tables"]["shop_items"]["Insert"];
+
+export type UserInventoryItem = Database["public"]["Tables"]["user_inventory"]["Row"];
+export type UserInventoryInsert = Database["public"]["Tables"]["user_inventory"]["Insert"];
+
+export type OrbTransaction = Database["public"]["Tables"]["orb_transactions"]["Row"];
+export type OrbTransactionInsert = Database["public"]["Tables"]["orb_transactions"]["Insert"];
+
+export type ItemCategory = Database["public"]["Enums"]["item_category"];
+export type ItemRarity = Database["public"]["Enums"]["item_rarity"];
+export type TransactionType = Database["public"]["Enums"]["transaction_type"];

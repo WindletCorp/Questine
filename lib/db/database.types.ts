@@ -189,6 +189,47 @@ export type Database = {
           },
         ]
       }
+      orb_transactions: {
+        Row: {
+          amount: number
+          balance_after: number
+          created_at: string | null
+          id: string
+          reference_id: string | null
+          source: string | null
+          type: Database["public"]["Enums"]["transaction_type"]
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          balance_after: number
+          created_at?: string | null
+          id?: string
+          reference_id?: string | null
+          source?: string | null
+          type: Database["public"]["Enums"]["transaction_type"]
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          balance_after?: number
+          created_at?: string | null
+          id?: string
+          reference_id?: string | null
+          source?: string | null
+          type?: Database["public"]["Enums"]["transaction_type"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orb_transactions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       routine_blocks: {
         Row: {
           category: string
@@ -236,6 +277,54 @@ export type Database = {
           },
         ]
       }
+      shop_items: {
+        Row: {
+          category: Database["public"]["Enums"]["item_category"]
+          created_at: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          is_premium_only: boolean | null
+          name: string
+          preview_data: Json | null
+          preview_image: string | null
+          price_orbs: number
+          rarity: Database["public"]["Enums"]["item_rarity"] | null
+          sort_order: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          category: Database["public"]["Enums"]["item_category"]
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_premium_only?: boolean | null
+          name: string
+          preview_data?: Json | null
+          preview_image?: string | null
+          price_orbs: number
+          rarity?: Database["public"]["Enums"]["item_rarity"] | null
+          sort_order?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          category?: Database["public"]["Enums"]["item_category"]
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_premium_only?: boolean | null
+          name?: string
+          preview_data?: Json | null
+          preview_image?: string | null
+          price_orbs?: number
+          rarity?: Database["public"]["Enums"]["item_rarity"] | null
+          sort_order?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       tasks: {
         Row: {
           completed_at: string | null
@@ -276,6 +365,51 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "tasks_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_inventory: {
+        Row: {
+          category: Database["public"]["Enums"]["item_category"]
+          id: string
+          is_equipped: boolean | null
+          item_id: string
+          purchased_at: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          category: Database["public"]["Enums"]["item_category"]
+          id?: string
+          is_equipped?: boolean | null
+          item_id: string
+          purchased_at?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          category?: Database["public"]["Enums"]["item_category"]
+          id?: string
+          is_equipped?: boolean | null
+          item_id?: string
+          purchased_at?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_inventory_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "shop_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_inventory_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "users"
@@ -328,6 +462,7 @@ export type Database = {
           constraints: string | null
           created_at: string | null
           goals: string | null
+          orbs: number | null
           updated_at: string | null
           user_id: string
         }
@@ -337,6 +472,7 @@ export type Database = {
           constraints?: string | null
           created_at?: string | null
           goals?: string | null
+          orbs?: number | null
           updated_at?: string | null
           user_id: string
         }
@@ -346,6 +482,7 @@ export type Database = {
           constraints?: string | null
           created_at?: string | null
           goals?: string | null
+          orbs?: number | null
           updated_at?: string | null
           user_id?: string
         }
@@ -361,7 +498,6 @@ export type Database = {
       }
       user_stats: {
         Row: {
-          coins: number | null
           created_at: string | null
           current_streak: number | null
           last_active_date: string | null
@@ -371,7 +507,6 @@ export type Database = {
           xp: number | null
         }
         Insert: {
-          coins?: number | null
           created_at?: string | null
           current_streak?: number | null
           last_active_date?: string | null
@@ -381,7 +516,6 @@ export type Database = {
           xp?: number | null
         }
         Update: {
-          coins?: number | null
           created_at?: string | null
           current_streak?: number | null
           last_active_date?: string | null
@@ -423,10 +557,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      equip_item: { Args: { p_inventory_id: string }; Returns: Json }
       purchase_item: { Args: { p_item_id: string }; Returns: Json }
     }
     Enums: {
-      [_ in never]: never
+      item_category: "theme" | "ai_personality" | "notification_style" | "profile_customization"
+      item_rarity: "common" | "rare" | "epic" | "legendary"
+      transaction_type: "earned" | "spent"
     }
     CompositeTypes: {
       [_ in never]: never

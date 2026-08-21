@@ -21,6 +21,9 @@ export class SyncEngine {
     const queue = await db.sync_queue.orderBy("created_at").toArray();
     if (queue.length === 0) return { pushed, errors };
 
+    const { data: { session } } = await client.auth.getSession();
+    if (!session?.user) return { pushed, errors }; // Do not attempt to push without a session
+
     for (const entry of queue) {
       try {
         let error = null;
@@ -39,10 +42,12 @@ export class SyncEngine {
             
             let updateQuery = client.from(entry.table_name as any).update(updatePayload);
             
-            // Handle composite PKs for metric_subscriptions
+            // Handle composite PKs for metric_subscriptions and user tables
             if (entry.table_name === "metric_subscriptions") {
                 const [userId, metricId] = entry.record_id.split(":");
                 updateQuery = updateQuery.eq("user_id", userId).eq("metric_id", metricId);
+            } else if (["user_profiles", "user_settings", "user_stats"].includes(entry.table_name)) {
+                updateQuery = updateQuery.eq("user_id", entry.record_id);
             } else {
                 updateQuery = updateQuery.eq("id", entry.record_id);
             }
@@ -57,6 +62,8 @@ export class SyncEngine {
             if (entry.table_name === "metric_subscriptions") {
                 const [userId, metricId] = entry.record_id.split(":");
                 deleteQuery = deleteQuery.eq("user_id", userId).eq("metric_id", metricId);
+            } else if (["user_profiles", "user_settings", "user_stats"].includes(entry.table_name)) {
+                deleteQuery = deleteQuery.eq("user_id", entry.record_id);
             } else {
                 deleteQuery = deleteQuery.eq("id", entry.record_id);
             }
@@ -78,6 +85,8 @@ export class SyncEngine {
                 let pk: string | string[] = entry.record_id;
                 if (entry.table_name === "metric_subscriptions") {
                     pk = entry.record_id.split(":"); // Dexie compound key format [user_id, metric_id]
+                } else if (["user_profiles", "user_settings", "user_stats"].includes(entry.table_name)) {
+                    pk = entry.record_id; // user_id is the pk
                 }
               await dynamicTable.update(pk, { sync_status: "synced" });
             }
@@ -94,29 +103,37 @@ export class SyncEngine {
     return { pushed, errors };
   }
 
-  static async pullChanges(): Promise<{ pulled: number; errors: any[] }> {
+  static async pullChanges(): Promise<{ pulled: number; errors: any[], newLastSync: string | null }> {
     const errors: any[] = [];
     let pulled = 0;
     
     // In a real app we'd get the userId securely, but for PWA local context we check current session
     const { data: { session } } = await client.auth.getSession();
-    if (!session?.user) return { pulled: 0, errors: ["No active session for pull"] };
+    const userId = session?.user?.id;
     
-    const userId = session.user.id;
     const lastSync = await this.getLastSyncTime();
+    let newLastSync = lastSync;
+
+    const trackMaxUpdated = (updated_at?: string | null) => {
+        if (!updated_at) return;
+        if (!newLastSync || updated_at > newLastSync) {
+            newLastSync = updated_at;
+        }
+    };
     
     // 1. Pull global metrics
     try {
         const count = await db.metric_definitions.count();
         let defQuery = client.from("metric_definitions").select("*").eq("is_global", true);
         if (lastSync && count > 0) {
-            defQuery = defQuery.gt("updated_at", lastSync);
+            defQuery = defQuery.gte("updated_at", lastSync); // Use gte to avoid clock skew misses
         }
         
         const { data, error } = await defQuery;
         if (!error && data) {
             await db.transaction("rw", db.metric_definitions, async () => {
                 for (const record of data) {
+                    trackMaxUpdated(record.updated_at);
                     const localRecord = await db.metric_definitions.get(record.id);
                     if (!localRecord || ((record.updated_at || "") > (localRecord.updated_at || ""))) {
                         await db.metric_definitions.put({ ...record, sync_status: "synced" });
@@ -132,17 +149,19 @@ export class SyncEngine {
     }
     
     // 2. Pull user-created definitions
-    try {
-        const count = await db.metric_definitions.count();
-        let defQuery = client.from("metric_definitions").select("*").eq("created_by", userId);
+    if (userId) {
+      try {
+          const count = await db.metric_definitions.count();
+          let defQuery = client.from("metric_definitions").select("*").eq("created_by", userId);
         if (lastSync && count > 0) {
-            defQuery = defQuery.gt("updated_at", lastSync);
+            defQuery = defQuery.gte("updated_at", lastSync);
         }
         const { data, error } = await defQuery;
         
         if (!error && data) {
             await db.transaction("rw", db.metric_definitions, async () => {
                 for (const record of data) {
+                    trackMaxUpdated(record.updated_at);
                     const localRecord = await db.metric_definitions.get(record.id);
                     if (!localRecord || ((record.updated_at || "") > (localRecord.updated_at || ""))) {
                         await db.metric_definitions.put({ ...record, sync_status: "synced" });
@@ -153,12 +172,24 @@ export class SyncEngine {
         } else if (error) {
             errors.push(error);
         }
-    } catch(e) {
-        errors.push(e);
+      } catch(e) {
+          errors.push(e);
+      }
     }
     
     // 3. Pull all user tables
-    const tables = ["tasks", "routine_blocks", "journals", "metric_subscriptions", "metric_entries"] as const;
+    if (userId) {
+      const tables = [
+        "user_profiles", 
+        "user_settings", 
+      "user_stats", 
+      "tasks", 
+      "routine_blocks", 
+      "journals", 
+      "metric_subscriptions", 
+      "metric_entries", 
+      "user_inventory"
+    ] as const;
     
     for (const tableName of tables) {
       try {
@@ -166,7 +197,7 @@ export class SyncEngine {
         const count = await localTable.count();
         let query = client.from(tableName).select("*").eq("user_id", userId);
         if (lastSync && count > 0) {
-          query = query.gt("updated_at", lastSync);
+          query = query.gte("updated_at", lastSync);
         }
         
         const { data, error } = await query;
@@ -182,9 +213,17 @@ export class SyncEngine {
           await db.transaction("rw", localTable, async () => {
             // Upsert remote data to local db using Last Write Wins
             for (const record of data) {
-              // Handle composite PK for subscriptions
+              trackMaxUpdated(record.updated_at);
+              // Handle composite/special PKs
               const anyRecord = record as any;
-              const pk = tableName === "metric_subscriptions" ? [anyRecord.user_id, anyRecord.metric_id] : anyRecord.id;
+              let pk: string | string[] = anyRecord.id;
+              
+              if (tableName === "metric_subscriptions") {
+                  pk = [anyRecord.user_id, anyRecord.metric_id];
+              } else if (["user_profiles", "user_settings", "user_stats"].includes(tableName)) {
+                  pk = anyRecord.user_id;
+              }
+
               const localRecord = await localTable.get(pk);
               
               if (!localRecord || ((record.updated_at || "") > (localRecord.updated_at || ""))) {
@@ -198,8 +237,36 @@ export class SyncEngine {
         errors.push(err);
       }
     }
+    }
     
-    return { pulled, errors };
+    // 4. Pull global shop items
+    try {
+        const count = await db.shop_items.count();
+        let query = client.from("shop_items").select("*");
+        if (lastSync && count > 0) {
+            query = query.gte("updated_at", lastSync);
+        }
+        
+        const { data, error } = await query;
+        if (!error && data) {
+            await db.transaction("rw", db.shop_items, async () => {
+                for (const record of data) {
+                    trackMaxUpdated(record.updated_at);
+                    const localRecord = await db.shop_items.get(record.id);
+                    if (!localRecord || ((record.updated_at || "") > (localRecord.updated_at || ""))) {
+                        await db.shop_items.put({ ...record, sync_status: "synced" });
+                        pulled++;
+                    }
+                }
+            });
+        } else if (error) {
+            errors.push(error);
+        }
+    } catch(e) {
+        errors.push(e);
+    }
+    
+    return { pulled, errors, newLastSync };
   }
 
   static async fullSync(): Promise<SyncResult> {
@@ -208,13 +275,14 @@ export class SyncEngine {
     }
 
     const { pushed, errors: pushErrors } = await this.pushChanges();
-    const { pulled, errors: pullErrors } = await this.pullChanges();
+    const { pulled, errors: pullErrors, newLastSync } = await this.pullChanges();
     
     const errors = [...pushErrors, ...pullErrors];
     const success = errors.length === 0;
 
-    if (success) {
-      await this.setLastSyncTime(new Date().toISOString());
+    // Use the maximum updated_at observed from the server rather than client clock
+    if (success && newLastSync) {
+      await this.setLastSyncTime(newLastSync);
     }
 
     return { success, pushed, pulled, errors };

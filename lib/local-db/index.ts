@@ -1,5 +1,5 @@
 import Dexie, { type Table } from "dexie";
-import type { Task, RoutineBlock, Journal, UserProfile, UserSettings, UserStats, MetricDefinition, MetricSubscription, MetricEntry } from "../db/types";
+import type { Task, RoutineBlock, Journal, UserProfile, UserSettings, UserStats, MetricDefinition, MetricSubscription, MetricEntry, ShopItem, UserInventoryItem } from "../db/types";
 
 // Extended types for local DB
 export type SyncStatus = "synced" | "pending" | "conflict";
@@ -11,6 +11,9 @@ export type LocalJournal = Journal & { sync_status: SyncStatus };
 export type LocalMetricDefinition = MetricDefinition & { sync_status: SyncStatus };
 export type LocalMetricSubscription = MetricSubscription & { sync_status: SyncStatus };
 export type LocalMetricEntry = MetricEntry & { sync_status: SyncStatus };
+
+export type LocalShopItem = ShopItem & { sync_status: SyncStatus };
+export type LocalUserInventoryItem = UserInventoryItem & { sync_status: SyncStatus };
 
 // Sync Queue Entry for offline mutations
 export type SyncOperation = "INSERT" | "UPDATE" | "DELETE";
@@ -37,6 +40,9 @@ export class QuestineDB extends Dexie {
   user_settings!: Table<UserSettings, string>;
   user_stats!: Table<UserStats, string>;
   
+  shop_items!: Table<LocalShopItem, string>;
+  user_inventory!: Table<LocalUserInventoryItem, string>;
+  
   // Offline sync queue and metadata
   sync_queue!: Table<SyncQueueEntry, string>;
   meta!: Table<{ key: string; value: any }, string>;
@@ -44,7 +50,7 @@ export class QuestineDB extends Dexie {
   constructor() {
     super("QuestineDB");
     
-    this.version(5).stores({
+    this.version(6).stores({
       tasks: "id, user_id, updated_at, sync_status, start_time, end_time, deleted_at",
       routine_blocks: "id, user_id, updated_at, sync_status, start_time, deleted_at",
       journals: "id, user_id, updated_at, sync_status, start_time, deleted_at",
@@ -54,6 +60,8 @@ export class QuestineDB extends Dexie {
       user_profiles: "user_id",
       user_settings: "user_id",
       user_stats: "user_id",
+      shop_items: "id, category, rarity, is_active, sort_order, updated_at, sync_status",
+      user_inventory: "id, user_id, item_id, category, is_equipped, updated_at, sync_status",
       sync_queue: "id, table_name, created_at",
       meta: "key"
     });

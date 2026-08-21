@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useTransition } from "react";
+import { RefreshCw, Plus, Clock, Save, Trash2, ArrowRight, Play, Square, History, Flame, LineChart, Target, Zap, CheckCircle2, TrendingUp, Coins } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { useAuth } from "@/components/providers/auth-provider";
 
@@ -22,8 +23,11 @@ import {
 import {
   getLocalUserStats,
 } from "@/lib/local-db/users";
+import { getLocalShopItems, getLocalInventory, equipLocalItem } from "@/lib/local-db/shop";
+import { purchaseItem } from "@/lib/db/shop";
+import { equipItem } from "@/lib/db/inventory";
 
-import type { Task, RoutineBlock, Journal, UserStats, TaskMetadata, Waypoint } from "@/lib/db/types";
+import type { Task, RoutineBlock, Journal, UserStats, UserSettings, TaskMetadata, Waypoint, ShopItem, UserInventoryItem } from "@/lib/db/types";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -78,6 +82,97 @@ function ActionBtn({
     <button className={`btn btn-${variant}`} onClick={onClick}>
       {label}
     </button>
+  );
+}
+
+// ─── Shop Panel ───────────────────────────────────────────────────────────────
+
+function ShopPanel({ userId }: { userId: string }) {
+  const [shopItems, setShopItems] = useState<ShopItem[]>([]);
+  const [inventory, setInventory] = useState<UserInventoryItem[]>([]);
+  const [result, setResult] = useState<unknown>(null);
+  const client = createSupabaseBrowserClient();
+
+  const refresh = useCallback(async () => {
+    const items = await getLocalShopItems();
+    setShopItems(items);
+    const inv = await getLocalInventory(userId);
+    setInventory(inv);
+  }, [userId]);
+
+  useEffect(() => {
+    refresh();
+    const handleSync = () => refresh();
+    window.addEventListener("sync-completed", handleSync);
+    return () => window.removeEventListener("sync-completed", handleSync);
+  }, [refresh]);
+
+  const handlePurchase = async (itemId: string) => {
+    const res = await purchaseItem(client, itemId);
+    setResult(res);
+    if (!res.error) {
+      alert("Purchase successful! Wait for sync or check DB.");
+      refresh();
+    }
+  };
+
+  const handleEquip = async (inventoryId: string) => {
+    const res = await equipLocalItem(userId, inventoryId);
+    setResult(res);
+    if (!res.error) {
+      alert("Equipped successful! (Offline)");
+      refresh();
+    }
+  };
+
+  return (
+    <Section title="🛒 Shop & Inventory">
+      <div className="flex gap-2 mb-4">
+        <ActionBtn label="Refresh Local" onClick={refresh} />
+      </div>
+
+      <div className="grid">
+        <div className="card">
+          <h3 className="card-title">Available Shop Items (Local Cache)</h3>
+          {shopItems.length === 0 && <p className="text-xs text-slate-500">No items available (run sync to pull, and ensure items exist in DB).</p>}
+          <div className="flex flex-col gap-2 mt-2">
+            {shopItems.map(item => (
+              <div key={item.id} className="p-2 border border-slate-700 rounded text-xs flex justify-between items-center bg-slate-900/50">
+                <div>
+                  <div className="font-bold">{item.name}</div>
+                  <div className="text-slate-500">{item.price_orbs} Orbs • {item.category}</div>
+                </div>
+                <ActionBtn label="Buy" variant="primary" onClick={() => handlePurchase(item.id)} />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="card">
+          <h3 className="card-title">Your Inventory (Local Cache)</h3>
+          {inventory.length === 0 && <p className="text-xs text-slate-500">Inventory is empty.</p>}
+          <div className="flex flex-col gap-2 mt-2">
+            {inventory.map(inv => (
+              <div key={inv.id} className="p-2 border border-slate-700 rounded text-xs flex justify-between items-center bg-slate-900/50">
+                <div>
+                  <div className="font-bold">Item: {inv.item_id.substring(0, 8)}...</div>
+                  <div className="text-slate-500">
+                    {inv.category} {inv.is_equipped ? "✅ (Equipped)" : ""}
+                  </div>
+                </div>
+                {!inv.is_equipped && (
+                  <ActionBtn label="Equip" variant="secondary" onClick={() => handleEquip(inv.id)} />
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+      
+      <div className="mt-4">
+        <Result data={result} />
+      </div>
+    </Section>
   );
 }
 
@@ -428,13 +523,23 @@ function JournalsPanel({ userId }: { userId: string }) {
 function UserStatsPanel({ userId }: { userId: string }) {
   const [stats, setStats] = useState<UserStats | null>(null);
   const [result, setResult] = useState<unknown>(null);
+  const [settings, setSettings] = useState<UserSettings>({
+    user_id: userId,
+    orbs: 350,
+    byok_key: null,
+    byok_provider: null,
+    constraints: null,
+    created_at: new Date().toISOString(),
+    goals: null,
+    updated_at: new Date().toISOString()
+  });
 
   const refresh = useCallback(async () => {
     const r = await getLocalUserStats(userId);
     
     // If we haven't synced stats yet, don't show it as a glaring error
     if (r.error && (r.error as any).code === 'NOT_FOUND') {
-      setStats({ user_id: userId, xp: 0, coins: 0, current_streak: 0, longest_streak: 0 } as UserStats);
+      setStats({ user_id: userId, xp: 0, current_streak: 0, longest_streak: 0 } as UserStats);
       setResult(null); // Clear result so we don't render the error box
       return;
     }
@@ -455,7 +560,7 @@ function UserStatsPanel({ userId }: { userId: string }) {
       {stats && (
         <div className="profile-grid">
           <div className="stat"><span className="stat-label">XP</span><span className="stat-value">{stats.xp}</span></div>
-          <div className="stat"><span className="stat-label">Coins</span><span className="stat-value">{stats.coins}</span></div>
+          <div className="flex items-center gap-1.5"><Coins className="w-4 h-4 text-yellow-500" /> <span className="font-bold">{settings.orbs} Orbs</span></div>
           <div className="stat"><span className="stat-label">Streak</span><span className="stat-value">{stats.current_streak}🔥</span></div>
           <div className="stat"><span className="stat-label">Best Streak</span><span className="stat-value">{stats.longest_streak}</span></div>
         </div>
@@ -615,6 +720,7 @@ export default function CRUDTestPage() {
           <JournalsPanel userId={userId} />
           <UserStatsPanel userId={userId} />
           <MetricsPanel userId={userId} />
+          <ShopPanel userId={userId} />
         </div>
       </div>
     </>

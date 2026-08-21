@@ -4,6 +4,7 @@ import { ServiceWorkerRegistrar } from "@/components/service-worker-registrar";
 import { OfflineBanner } from "@/components/offline-banner";
 import { AuthProvider } from "@/components/providers/auth-provider";
 import { SyncStatusBar } from "@/components/sync-status-bar";
+import { ThemeProvider } from "@/themes/provider";
 
 export const metadata: Metadata = {
   title: "Questine",
@@ -37,10 +38,12 @@ export default function RootLayout({
     <html lang="en">
       <body>
         <AuthProvider>
-          <OfflineBanner />
-          {children}
-          <ServiceWorkerRegistrar />
-          <SyncStatusBar />
+          <ThemeProvider>
+            <OfflineBanner />
+            {children}
+            <ServiceWorkerRegistrar />
+            <SyncStatusBar />
+          </ThemeProvider>
         </AuthProvider>
       </body>
     </html>

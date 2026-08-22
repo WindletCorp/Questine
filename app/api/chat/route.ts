@@ -59,8 +59,8 @@ export async function POST(req: Request) {
         const equippedPersonalityRes = await getEquippedByCategory(supabase, userId, 'ai_personality');
         
         let basePrompt = "You are Questine, an elite, no-nonsense personal operating system.";
-        if (equippedPersonalityRes.ok && equippedPersonalityRes.value?.shop_item?.preview_data) {
-            const previewData = equippedPersonalityRes.value.shop_item.preview_data as any;
+        if (equippedPersonalityRes.data?.shop_item?.preview_data) {
+            const previewData = equippedPersonalityRes.data.shop_item.preview_data as any;
             if (previewData.system_prompt) {
                 basePrompt = previewData.system_prompt;
             }

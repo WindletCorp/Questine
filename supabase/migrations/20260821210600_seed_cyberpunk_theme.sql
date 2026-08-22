@@ -1,0 +1,1 @@
+INSERT INTO public.shop_items (name, description, category, rarity, price_orbs, preview_data, is_active, sort_order) VALUES ('Cyberpunk Terminal', 'A green-on-black terminal interface', 'theme', 'rare', 10, '{"theme_id": "cyberpunk"}', true, 10);

@@ -1,4 +1,4 @@
-import type { ThemeContract } from '../../contract';
+import type { ThemeContract } from '../contract';
 import { AppShell, LoadingState } from './shell/AppShell';
 import TestLab from './pages/TestLab';
 import Placeholder from './pages/Placeholder';

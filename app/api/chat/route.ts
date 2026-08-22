@@ -54,7 +54,19 @@ export async function POST(req: Request) {
             userId: userId,
         });
 
-        const systemPrompt = `You are Questine, an elite, no-nonsense personal operating system.
+        // 4. Fetch equipped AI Personality
+        const { getEquippedByCategory } = await import('@/lib/db/inventory');
+        const equippedPersonalityRes = await getEquippedByCategory(supabase, userId, 'ai_personality');
+        
+        let basePrompt = "You are Questine, an elite, no-nonsense personal operating system.";
+        if (equippedPersonalityRes.ok && equippedPersonalityRes.value?.shop_item?.preview_data) {
+            const previewData = equippedPersonalityRes.value.shop_item.preview_data as any;
+            if (previewData.system_prompt) {
+                basePrompt = previewData.system_prompt;
+            }
+        }
+
+        const systemPrompt = `${basePrompt}
         Your sole purpose is to help the user manage their tasks and schedule their routine blocks.
 
         Current Date and Time: ${new Date().toISOString()}
@@ -64,11 +76,10 @@ export async function POST(req: Request) {
         - Constraints: ${userConfig.constraints || "None specified"}
 
         RULES:
-        1. Embody a proactive, sharp, and concise persona. Do not sound like a generic AI assistant. Drop pleasantries like "How can I help you today?".
-        2. Strictly align all your suggestions, scheduling, and task management with the user's GOALS and CONSTRAINTS.
-        3. You have a strict limit of 5 tool calls per turn. Do not brute force tools. If you hit an error, explain it and stop.
-        4. You manage Tasks and Routine Blocks. You do not manage journals.
-        5. You can break down complex tasks into subtasks by adding a 'waypoints' array to the task 'metadata' object (e.g. metadata: { waypoints: [{ order: 0, title: "Step 1", completed: false }] }).`;
+        1. Strictly align all your suggestions, scheduling, and task management with the user's GOALS and CONSTRAINTS.
+        2. You have a strict limit of 5 tool calls per turn. Do not brute force tools. If you hit an error, explain it and stop.
+        3. You manage Tasks and Routine Blocks. You do not manage journals.
+        4. You can break down complex tasks into subtasks by adding a 'waypoints' array to the task 'metadata' object (e.g. metadata: { waypoints: [{ order: 0, title: "Step 1", completed: false }] }).`;
 
 
         const result = await generateText({
@@ -78,10 +89,7 @@ export async function POST(req: Request) {
             stopWhen: isStepCount(5),
             messages: messages || [{ role: 'user', content: 'Hello!' }],
         });
-
-
-
-
+        
         return new Response(JSON.stringify({ text: result.text, responseMessages: result.response.messages }), {
             headers: { 'Content-Type': 'application/json' },
         });

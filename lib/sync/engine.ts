@@ -21,6 +21,9 @@ export class SyncEngine {
     const queue = await db.sync_queue.orderBy("created_at").toArray();
     if (queue.length === 0) return { pushed, errors };
 
+    const { data: { session } } = await client.auth.getSession();
+    if (!session?.user) return { pushed, errors }; // Do not attempt to push without a session
+
     for (const entry of queue) {
       try {
         let error = null;
@@ -36,12 +39,36 @@ export class SyncEngine {
           case "UPDATE":
             const updatePayload = { ...entry.payload };
             delete updatePayload.sync_status;
-            const { error: uErr } = await client.from(entry.table_name as any).update(updatePayload).eq("id", entry.record_id);
+            
+            let updateQuery = client.from(entry.table_name as any).update(updatePayload);
+            
+            // Handle composite PKs for metric_subscriptions and user tables
+            if (entry.table_name === "metric_subscriptions") {
+                const [userId, metricId] = entry.record_id.split(":");
+                updateQuery = updateQuery.eq("user_id", userId).eq("metric_id", metricId);
+            } else if (["user_profiles", "user_settings", "user_stats"].includes(entry.table_name)) {
+                updateQuery = updateQuery.eq("user_id", entry.record_id);
+            } else {
+                updateQuery = updateQuery.eq("id", entry.record_id);
+            }
+            
+            const { error: uErr } = await updateQuery;
             error = uErr;
             break;
             
           case "DELETE":
-            const { error: dErr } = await client.from(entry.table_name as any).delete().eq("id", entry.record_id);
+            let deleteQuery = client.from(entry.table_name as any).update({ deleted_at: new Date().toISOString() });
+            
+            if (entry.table_name === "metric_subscriptions") {
+                const [userId, metricId] = entry.record_id.split(":");
+                deleteQuery = deleteQuery.eq("user_id", userId).eq("metric_id", metricId);
+            } else if (["user_profiles", "user_settings", "user_stats"].includes(entry.table_name)) {
+                deleteQuery = deleteQuery.eq("user_id", entry.record_id);
+            } else {
+                deleteQuery = deleteQuery.eq("id", entry.record_id);
+            }
+            
+            const { error: dErr } = await deleteQuery;
             error = dErr;
             break;
         }
@@ -55,7 +82,13 @@ export class SyncEngine {
           const dynamicTable = db.table(entry.table_name);
           await db.transaction("rw", dynamicTable, db.sync_queue, async () => {
             if (entry.operation !== "DELETE") {
-              await dynamicTable.update(entry.record_id, { sync_status: "synced" });
+                let pk: string | string[] = entry.record_id;
+                if (entry.table_name === "metric_subscriptions") {
+                    pk = entry.record_id.split(":"); // Dexie compound key format [user_id, metric_id]
+                } else if (["user_profiles", "user_settings", "user_stats"].includes(entry.table_name)) {
+                    pk = entry.record_id; // user_id is the pk
+                }
+              await dynamicTable.update(pk, { sync_status: "synced" });
             }
             await db.sync_queue.delete(entry.id);
           });
@@ -70,39 +103,104 @@ export class SyncEngine {
     return { pushed, errors };
   }
 
-  static async pullChanges(): Promise<{ pulled: number; errors: any[] }> {
+  static async pullChanges(): Promise<{ pulled: number; errors: any[], newLastSync: string | null }> {
     const errors: any[] = [];
     let pulled = 0;
     
     // In a real app we'd get the userId securely, but for PWA local context we check current session
     const { data: { session } } = await client.auth.getSession();
-    if (!session?.user) return { pulled: 0, errors: ["No active session for pull"] };
+    const userId = session?.user?.id;
     
-    const userId = session.user.id;
     const lastSync = await this.getLastSyncTime();
+    let newLastSync = lastSync;
+
+    const trackMaxUpdated = (updated_at?: string | null) => {
+        if (!updated_at) return;
+        if (!newLastSync || updated_at > newLastSync) {
+            newLastSync = updated_at;
+        }
+    };
     
-    const tables = ["tasks", "routine_blocks", "journals", "metric_definitions", "user_metrics", "metric_entries"] as const;
+    // 1. Pull global metrics
+    try {
+        const count = await db.metric_definitions.count();
+        let defQuery = client.from("metric_definitions").select("*").eq("is_global", true);
+        if (lastSync && count > 0) {
+            defQuery = defQuery.gte("updated_at", lastSync); // Use gte to avoid clock skew misses
+        }
+        
+        const { data, error } = await defQuery;
+        if (!error && data) {
+            await db.transaction("rw", db.metric_definitions, async () => {
+                for (const record of data) {
+                    trackMaxUpdated(record.updated_at);
+                    const localRecord = await db.metric_definitions.get(record.id);
+                    if (!localRecord || ((record.updated_at || "") > (localRecord.updated_at || ""))) {
+                        await db.metric_definitions.put({ ...record, sync_status: "synced" });
+                        pulled++;
+                    }
+                }
+            });
+        } else if (error) {
+            errors.push(error);
+        }
+    } catch (e) {
+        errors.push(e);
+    }
+    
+    // 2. Pull user-created definitions
+    if (userId) {
+      try {
+          const count = await db.metric_definitions.count();
+          let defQuery = client.from("metric_definitions").select("*").eq("created_by", userId);
+        if (lastSync && count > 0) {
+            defQuery = defQuery.gte("updated_at", lastSync);
+        }
+        const { data, error } = await defQuery;
+        
+        if (!error && data) {
+            await db.transaction("rw", db.metric_definitions, async () => {
+                for (const record of data) {
+                    trackMaxUpdated(record.updated_at);
+                    const localRecord = await db.metric_definitions.get(record.id);
+                    if (!localRecord || ((record.updated_at || "") > (localRecord.updated_at || ""))) {
+                        await db.metric_definitions.put({ ...record, sync_status: "synced" });
+                        pulled++;
+                    }
+                }
+            });
+        } else if (error) {
+            errors.push(error);
+        }
+      } catch(e) {
+          errors.push(e);
+      }
+    }
+    
+    // 3. Pull all user tables
+    if (userId) {
+      const tables = [
+        "user_profiles", 
+        "user_settings", 
+      "user_stats", 
+      "tasks", 
+      "routine_blocks", 
+      "journals", 
+      "metric_subscriptions", 
+      "metric_entries", 
+      "user_inventory"
+    ] as const;
     
     for (const tableName of tables) {
       try {
-        let data: Array<{ id: string; updated_at?: string | null }> | null = null;
-        let error = null;
-
-        if (tableName === "metric_definitions") {
-          const res = await client.from("metric_definitions").select("*").or(`created_by.eq.${userId},is_global.eq.true`);
-          data = res.data;
-          error = res.error;
-        } else if (tableName === "metric_entries") {
-          // Rely entirely on RLS for metric_entries since it lacks a user_id column
-          const res = await client.from("metric_entries").select("*");
-          // map entered_at/timestamp to updated_at for sync comparison purposes, or just cast
-          data = res.data as Array<{ id: string; updated_at?: string | null }>;
-          error = res.error;
-        } else {
-          const res = await client.from(tableName).select("*").eq("user_id", userId);
-          data = res.data;
-          error = res.error;
+        const localTable = db.table(tableName);
+        const count = await localTable.count();
+        let query = client.from(tableName).select("*").eq("user_id", userId);
+        if (lastSync && count > 0) {
+          query = query.gte("updated_at", lastSync);
         }
+        
+        const { data, error } = await query;
         
         if (error) {
           errors.push(error);
@@ -111,31 +209,25 @@ export class SyncEngine {
 
         if (data) {
           const localTable = db.table(tableName);
-          const remoteIds = new Set(data.map(d => d.id));
-          
-          // Get all pending inserts to protect them from being deleted
-          const pendingInserts = await db.sync_queue
-            .where("table_name").equals(tableName)
-            .filter(p => p.operation === "INSERT")
-            .toArray();
-          const pendingInsertIds = new Set(pendingInserts.map(p => p.record_id));
           
           await db.transaction("rw", localTable, async () => {
-            // 1. Upsert remote data to local db
+            // Upsert remote data to local db using Last Write Wins
             for (const record of data) {
-              const localRecord = await localTable.get(record.id);
+              trackMaxUpdated(record.updated_at);
+              // Handle composite/special PKs
+              const anyRecord = record as any;
+              let pk: string | string[] = anyRecord.id;
+              
+              if (tableName === "metric_subscriptions") {
+                  pk = [anyRecord.user_id, anyRecord.metric_id];
+              } else if (["user_profiles", "user_settings", "user_stats"].includes(tableName)) {
+                  pk = anyRecord.user_id;
+              }
+
+              const localRecord = await localTable.get(pk);
               
               if (!localRecord || ((record.updated_at || "") > (localRecord.updated_at || ""))) {
                 await localTable.put({ ...record, sync_status: "synced" });
-                pulled++;
-              }
-            }
-
-            // 2. Handle Hard Deletes: Remove local records that aren't in remote AND aren't pending inserts
-            const localRecords = await localTable.toArray();
-            for (const local of localRecords) {
-              if (!remoteIds.has(local.id) && !pendingInsertIds.has(local.id)) {
-                await localTable.delete(local.id);
                 pulled++;
               }
             }
@@ -145,8 +237,36 @@ export class SyncEngine {
         errors.push(err);
       }
     }
+    }
     
-    return { pulled, errors };
+    // 4. Pull global shop items
+    try {
+        const count = await db.shop_items.count();
+        let query = client.from("shop_items").select("*");
+        if (lastSync && count > 0) {
+            query = query.gte("updated_at", lastSync);
+        }
+        
+        const { data, error } = await query;
+        if (!error && data) {
+            await db.transaction("rw", db.shop_items, async () => {
+                for (const record of data) {
+                    trackMaxUpdated(record.updated_at);
+                    const localRecord = await db.shop_items.get(record.id);
+                    if (!localRecord || ((record.updated_at || "") > (localRecord.updated_at || ""))) {
+                        await db.shop_items.put({ ...record, sync_status: "synced" });
+                        pulled++;
+                    }
+                }
+            });
+        } else if (error) {
+            errors.push(error);
+        }
+    } catch(e) {
+        errors.push(e);
+    }
+    
+    return { pulled, errors, newLastSync };
   }
 
   static async fullSync(): Promise<SyncResult> {
@@ -155,13 +275,14 @@ export class SyncEngine {
     }
 
     const { pushed, errors: pushErrors } = await this.pushChanges();
-    const { pulled, errors: pullErrors } = await this.pullChanges();
+    const { pulled, errors: pullErrors, newLastSync } = await this.pullChanges();
     
     const errors = [...pushErrors, ...pullErrors];
     const success = errors.length === 0;
 
-    if (success) {
-      await this.setLastSyncTime(new Date().toISOString());
+    // Use the maximum updated_at observed from the server rather than client clock
+    if (success && newLastSync) {
+      await this.setLastSyncTime(newLastSync);
     }
 
     return { success, pushed, pulled, errors };

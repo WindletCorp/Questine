@@ -1,146 +1,281 @@
-import { db, type LocalMetricDefinition, type LocalUserMetric, type LocalMetricEntry, type SyncQueueEntry } from "./index";
-import { ok, err, type DbResult } from "../db/types";
+import { db } from "./index";
+import type { DbResult } from "../db/types";
+import { ok, err } from "../db/types";
 import { handleDbError } from "../db/errors";
+import type { LocalMetricDefinition, LocalMetricSubscription, LocalMetricEntry } from "./index";
+import type { EnrolledMetric } from "../db/metrics";
 
-export async function getLocalGlobalMetrics(): Promise<DbResult<LocalMetricDefinition[]>> {
+export async function getLocalAvailableMetrics(userId: string): Promise<DbResult<LocalMetricDefinition[]>> {
   try {
-    const globalMetrics = await db.metric_definitions.filter(m => m.is_global === true).toArray();
-    return ok(globalMetrics);
+    const metrics = await db.metric_definitions
+      .filter(m => m.is_global === true || m.created_by === userId)
+      .toArray();
+    return ok(metrics);
   } catch (error) {
     return err(handleDbError(error));
   }
 }
 
-export async function getLocalUserMetrics(userId: string): Promise<DbResult<(LocalUserMetric & { definition?: LocalMetricDefinition })[]>> {
+export async function getLocalUserSubscriptions(userId: string, activeOnly: boolean = true): Promise<DbResult<EnrolledMetric[]>> {
   try {
-    const userMetrics = await db.user_metrics.where("user_id").equals(userId).toArray();
-    
-    // Populate definitions manually
-    const populated = await Promise.all(userMetrics.map(async (um) => {
-      const def = await db.metric_definitions.get(um.metric_id);
-      return { ...um, definition: def };
-    }));
+    let subscriptions = await db.metric_subscriptions
+      .where("user_id")
+      .equals(userId)
+      .toArray();
+      
+    if (activeOnly) {
+      subscriptions = subscriptions.filter(sub => sub.is_active);
+    }
 
-    return ok(populated);
+    const enrolled: EnrolledMetric[] = [];
+    for (const sub of subscriptions) {
+      const def = await db.metric_definitions.get(sub.metric_id);
+      if (def) {
+        // Construct the joined object
+        enrolled.push({
+          ...sub,
+          metric_definition: def,
+        });
+      }
+    }
+
+    return ok(enrolled);
   } catch (error) {
     return err(handleDbError(error));
   }
 }
 
-export async function enrollLocalMetric(userId: string, metricId: string, targetValue?: number): Promise<DbResult<LocalUserMetric>> {
+export async function subscribeLocal(
+  userId: string,
+  metricId: string,
+  targetValue?: number
+): Promise<DbResult<LocalMetricSubscription>> {
   try {
-    const id = crypto.randomUUID();
     const now = new Date().toISOString();
-
-    const localUserMetric: LocalUserMetric = {
-      id,
+    const subscription: LocalMetricSubscription = {
       user_id: userId,
       metric_id: metricId,
       target_value: targetValue ?? null,
+      is_active: true,
       created_at: now,
-      sync_status: "pending"
+      updated_at: now,
+      sync_status: "pending",
     };
 
-    const queueEntry: SyncQueueEntry = {
-      id: crypto.randomUUID(),
-      table_name: "user_metrics",
-      operation: "INSERT",
-      record_id: id,
-      payload: localUserMetric,
-      created_at: now
-    };
-
-    await db.transaction("rw", db.user_metrics, db.sync_queue, async () => {
-      await db.user_metrics.add(localUserMetric);
-      await db.sync_queue.add(queueEntry);
+    await db.transaction("rw", db.metric_subscriptions, db.sync_queue, async () => {
+      await db.metric_subscriptions.put(subscription);
+      await db.sync_queue.add({
+        id: crypto.randomUUID(),
+        table_name: "metric_subscriptions",
+        operation: "UPDATE", // Upsert semantics
+        record_id: `${userId}:${metricId}`,
+        payload: {
+          user_id: userId,
+          metric_id: metricId,
+          target_value: targetValue ?? null,
+          is_active: true,
+          updated_at: now,
+        },
+        created_at: now,
+      });
     });
 
-    return ok(localUserMetric);
+    return ok(subscription);
   } catch (error) {
     return err(handleDbError(error));
   }
 }
 
-export async function createLocalCustomMetric(userId: string, name: string, type: string, polarity: string): Promise<DbResult<LocalMetricDefinition>> {
+export async function unsubscribeLocal(
+  userId: string,
+  metricId: string
+): Promise<DbResult<LocalMetricSubscription>> {
   try {
-    const metricId = crypto.randomUUID();
     const now = new Date().toISOString();
+    const pk: [string, string] = [userId, metricId];
+    
+    let subscription = await db.metric_subscriptions.get(pk);
+    if (!subscription) {
+      return err(handleDbError(new Error("Subscription not found")));
+    }
+    
+    subscription = {
+      ...subscription,
+      is_active: false,
+      updated_at: now,
+      sync_status: "pending",
+    };
 
-    const localMetric: LocalMetricDefinition = {
+    await db.transaction("rw", db.metric_subscriptions, db.sync_queue, async () => {
+      await db.metric_subscriptions.put(subscription!);
+      await db.sync_queue.add({
+        id: crypto.randomUUID(),
+        table_name: "metric_subscriptions",
+        operation: "UPDATE",
+        record_id: `${userId}:${metricId}`,
+        payload: {
+          user_id: userId,
+          metric_id: metricId,
+          is_active: false,
+          updated_at: now,
+        },
+        created_at: now,
+      });
+    });
+
+    return ok(subscription);
+  } catch (error) {
+    return err(handleDbError(error));
+  }
+}
+
+export async function createLocalCustomMetric(
+  userId: string,
+  name: string,
+  type: string = 'boolean',
+  polarity: string = 'positive'
+): Promise<DbResult<LocalMetricDefinition>> {
+  try {
+    const now = new Date().toISOString();
+    const metricId = crypto.randomUUID();
+    const definition: LocalMetricDefinition = {
       id: metricId,
       name,
       type,
-      unit: null,
       polarity,
+      unit: null,
       is_global: false,
       created_by: userId,
       created_at: now,
       updated_at: now,
-      sync_status: "pending"
+      sync_status: "pending",
     };
 
-    const queueEntry: SyncQueueEntry = {
-      id: crypto.randomUUID(),
-      table_name: "metric_definitions",
-      operation: "INSERT",
-      record_id: metricId,
-      payload: localMetric,
-      created_at: now
-    };
+    await db.transaction("rw", db.metric_definitions, db.metric_subscriptions, db.sync_queue, async () => {
+      // 1. Insert definition
+      await db.metric_definitions.add(definition);
+      await db.sync_queue.add({
+        id: crypto.randomUUID(),
+        table_name: "metric_definitions",
+        operation: "INSERT",
+        record_id: metricId,
+        payload: {
+          id: metricId,
+          name,
+          type,
+          polarity,
+          is_global: false,
+          created_by: userId,
+          created_at: now,
+          updated_at: now,
+        },
+        created_at: now,
+      });
 
-    await db.transaction("rw", db.metric_definitions, db.sync_queue, async () => {
-      await db.metric_definitions.add(localMetric);
-      await db.sync_queue.add(queueEntry);
+      // 2. Auto-subscribe
+      const subscription: LocalMetricSubscription = {
+        user_id: userId,
+        metric_id: metricId,
+        target_value: null,
+        is_active: true,
+        created_at: now,
+        updated_at: now,
+        sync_status: "pending",
+      };
+      
+      await db.metric_subscriptions.put(subscription);
+      await db.sync_queue.add({
+        id: crypto.randomUUID(),
+        table_name: "metric_subscriptions",
+        operation: "UPDATE",
+        record_id: `${userId}:${metricId}`,
+        payload: {
+          user_id: userId,
+          metric_id: metricId,
+          target_value: null,
+          is_active: true,
+          updated_at: now,
+        },
+        created_at: now,
+      });
     });
 
-    // Auto enroll
-    await enrollLocalMetric(userId, metricId);
-
-    return ok(localMetric);
+    return ok(definition);
   } catch (error) {
     return err(handleDbError(error));
   }
 }
 
-export async function createLocalMetricEntry(userMetricId: string, value: number, timestamp: string): Promise<DbResult<LocalMetricEntry>> {
+export async function logLocalEntry(
+  userId: string,
+  metricId: string,
+  value: number,
+  timestamp: string
+): Promise<DbResult<LocalMetricEntry>> {
   try {
-    const id = crypto.randomUUID();
     const now = new Date().toISOString();
-
-    const localEntry: LocalMetricEntry = {
-      id,
-      user_metric_id: userMetricId,
+    const entryId = crypto.randomUUID();
+    const entry: LocalMetricEntry = {
+      id: entryId,
+      user_id: userId,
+      metric_id: metricId,
       value,
       timestamp,
-      entered_at: now,
-      sync_status: "pending"
-    };
-
-    const queueEntry: SyncQueueEntry = {
-      id: crypto.randomUUID(),
-      table_name: "metric_entries",
-      operation: "INSERT",
-      record_id: id,
-      payload: localEntry,
-      created_at: now
+      created_at: now,
+      updated_at: now,
+      sync_status: "pending",
     };
 
     await db.transaction("rw", db.metric_entries, db.sync_queue, async () => {
-      await db.metric_entries.add(localEntry);
-      await db.sync_queue.add(queueEntry);
+      await db.metric_entries.add(entry);
+      await db.sync_queue.add({
+        id: crypto.randomUUID(),
+        table_name: "metric_entries",
+        operation: "INSERT",
+        record_id: entryId,
+        payload: {
+          id: entryId,
+          user_id: userId,
+          metric_id: metricId,
+          value,
+          timestamp,
+          created_at: now,
+          updated_at: now,
+        },
+        created_at: now,
+      });
     });
 
-    return ok(localEntry);
+    return ok(entry);
   } catch (error) {
     return err(handleDbError(error));
   }
 }
 
-export async function getLocalMetricEntries(userMetricId: string): Promise<DbResult<LocalMetricEntry[]>> {
+export async function getLocalEntries(
+  userId: string,
+  metricId?: string,
+  timeRange?: { from: string; to: string }
+): Promise<DbResult<LocalMetricEntry[]>> {
   try {
-    const entries = await db.metric_entries.where("user_metric_id").equals(userMetricId).toArray();
-    entries.sort((a, b) => (b.timestamp || "").localeCompare(a.timestamp || ""));
-    return ok(entries);
+    let collection = db.metric_entries.where("user_id").equals(userId);
+
+    const entries = await collection.toArray();
+    
+    // Dexie filter in memory for complex queries
+    let filtered = entries;
+    
+    if (metricId) {
+      filtered = filtered.filter(e => e.metric_id === metricId);
+    }
+    
+    if (timeRange) {
+      filtered = filtered.filter(e => e.timestamp >= timeRange.from && e.timestamp <= timeRange.to);
+    }
+
+    filtered.sort((a, b) => b.timestamp.localeCompare(a.timestamp)); // Descending
+
+    return ok(filtered);
   } catch (error) {
     return err(handleDbError(error));
   }

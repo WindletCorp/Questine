@@ -88,29 +88,23 @@ export type UserSettingsInsert = Database["public"]["Tables"]["user_settings"]["
 export type UserStats = Database["public"]["Tables"]["user_stats"]["Row"];
 
 export type MetricDefinition = Database["public"]["Tables"]["metric_definitions"]["Row"];
-export type UserMetric = Database["public"]["Tables"]["user_metrics"]["Row"];
+export type MetricDefinitionInsert = Database["public"]["Tables"]["metric_definitions"]["Insert"];
+
+export type MetricSubscription = Database["public"]["Tables"]["metric_subscriptions"]["Row"];
+export type MetricSubscriptionInsert = Database["public"]["Tables"]["metric_subscriptions"]["Insert"];
+
 export type MetricEntry = Database["public"]["Tables"]["metric_entries"]["Row"];
+export type MetricEntryInsert = Database["public"]["Tables"]["metric_entries"]["Insert"];
 
-export type StoreItem = Database["public"]["Tables"]["store_items"]["Row"];
+export type ShopItem = Database["public"]["Tables"]["shop_items"]["Row"];
+export type ShopItemInsert = Database["public"]["Tables"]["shop_items"]["Insert"];
+
 export type UserInventoryItem = Database["public"]["Tables"]["user_inventory"]["Row"];
-export type UserEquipment = Database["public"]["Tables"]["user_equipment"]["Row"];
+export type UserInventoryInsert = Database["public"]["Tables"]["user_inventory"]["Insert"];
+
 export type OrbTransaction = Database["public"]["Tables"]["orb_transactions"]["Row"];
+export type OrbTransactionInsert = Database["public"]["Tables"]["orb_transactions"]["Insert"];
 
-export type ItemType = 'theme' | 'personality' | 'avatar_frame';
-
-export type ThemeMetadata = {
-  layout: string;
-  variables: Record<string, string>;
-};
-
-export type PersonalityMetadata = {
-  system_prompt: string;
-  tone: string;
-  display_name: string;
-  avatar_url: string | null;
-};
-
-export type AvatarFrameMetadata = {
-  asset_url: string;
-  animation?: string;
-};
+export type ItemCategory = Database["public"]["Enums"]["item_category"];
+export type ItemRarity = Database["public"]["Enums"]["item_rarity"];
+export type TransactionType = Database["public"]["Enums"]["transaction_type"];

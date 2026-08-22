@@ -17,6 +17,7 @@ export async function getLocalTasks(
   try {
     let collection = db.tasks.where("user_id").equals(userId);
     let tasks = await collection.toArray();
+    tasks = tasks.filter(t => !t.deleted_at);
 
     const { from, to, updatedAfter, updatedBefore } = opts;
 
@@ -53,6 +54,7 @@ export async function createLocalTask(task: TaskInsert): Promise<DbResult<LocalT
       completed_at: task.completed_at ?? null,
       created_at: task.created_at ?? now,
       updated_at: task.updated_at ?? now,
+      deleted_at: null,
       sync_status: "pending"
     };
 
@@ -111,21 +113,7 @@ export async function updateLocalTask(id: string, updates: TaskUpdate): Promise<
 export async function deleteLocalTask(id: string): Promise<DbResult<null>> {
   try {
     const now = new Date().toISOString();
-
-    const queueEntry: SyncQueueEntry = {
-      id: crypto.randomUUID(),
-      table_name: "tasks",
-      operation: "DELETE",
-      record_id: id,
-      payload: null,
-      created_at: now
-    };
-
-    await db.transaction("rw", db.tasks, db.sync_queue, async () => {
-      await db.tasks.delete(id);
-      await db.sync_queue.add(queueEntry);
-    });
-
+    await updateLocalTask(id, { deleted_at: now });
     return ok(null);
   } catch (error) {
     return err(handleDbError(error));

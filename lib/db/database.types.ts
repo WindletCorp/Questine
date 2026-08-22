@@ -19,6 +19,7 @@ export type Database = {
           ai_analysis: Json | null
           content: string
           created_at: string | null
+          deleted_at: string | null
           end_time: string | null
           id: string
           start_time: string | null
@@ -29,6 +30,7 @@ export type Database = {
           ai_analysis?: Json | null
           content: string
           created_at?: string | null
+          deleted_at?: string | null
           end_time?: string | null
           id?: string
           start_time?: string | null
@@ -39,6 +41,7 @@ export type Database = {
           ai_analysis?: Json | null
           content?: string
           created_at?: string | null
+          deleted_at?: string | null
           end_time?: string | null
           id?: string
           start_time?: string | null
@@ -101,32 +104,87 @@ export type Database = {
       }
       metric_entries: {
         Row: {
-          entered_at: string
+          created_at: string | null
           id: string
+          metric_id: string
           timestamp: string
-          user_metric_id: string
+          updated_at: string | null
+          user_id: string
           value: number
         }
         Insert: {
-          entered_at?: string
+          created_at?: string | null
           id?: string
+          metric_id: string
           timestamp: string
-          user_metric_id: string
+          updated_at?: string | null
+          user_id: string
           value: number
         }
         Update: {
-          entered_at?: string
+          created_at?: string | null
           id?: string
+          metric_id?: string
           timestamp?: string
-          user_metric_id?: string
+          updated_at?: string | null
+          user_id?: string
           value?: number
         }
         Relationships: [
           {
-            foreignKeyName: "metric_entries_user_metric_id_fkey"
-            columns: ["user_metric_id"]
+            foreignKeyName: "metric_entries_metric_id_fkey"
+            columns: ["metric_id"]
             isOneToOne: false
-            referencedRelation: "user_metrics"
+            referencedRelation: "metric_definitions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "metric_entries_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      metric_subscriptions: {
+        Row: {
+          created_at: string | null
+          is_active: boolean | null
+          metric_id: string
+          target_value: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          is_active?: boolean | null
+          metric_id: string
+          target_value?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          is_active?: boolean | null
+          metric_id?: string
+          target_value?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "metric_subscriptions_metric_id_fkey"
+            columns: ["metric_id"]
+            isOneToOne: false
+            referencedRelation: "metric_definitions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "metric_subscriptions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
@@ -137,8 +195,9 @@ export type Database = {
           balance_after: number
           created_at: string | null
           id: string
-          reason: string
           reference_id: string | null
+          source: string | null
+          type: Database["public"]["Enums"]["transaction_type"]
           user_id: string
         }
         Insert: {
@@ -146,8 +205,9 @@ export type Database = {
           balance_after: number
           created_at?: string | null
           id?: string
-          reason: string
           reference_id?: string | null
+          source?: string | null
+          type: Database["public"]["Enums"]["transaction_type"]
           user_id: string
         }
         Update: {
@@ -155,8 +215,9 @@ export type Database = {
           balance_after?: number
           created_at?: string | null
           id?: string
-          reason?: string
           reference_id?: string | null
+          source?: string | null
+          type?: Database["public"]["Enums"]["transaction_type"]
           user_id?: string
         }
         Relationships: [
@@ -173,6 +234,7 @@ export type Database = {
         Row: {
           category: string
           created_at: string | null
+          deleted_at: string | null
           end_time: string
           id: string
           label: string
@@ -184,6 +246,7 @@ export type Database = {
         Insert: {
           category: string
           created_at?: string | null
+          deleted_at?: string | null
           end_time: string
           id?: string
           label: string
@@ -195,6 +258,7 @@ export type Database = {
         Update: {
           category?: string
           created_at?: string | null
+          deleted_at?: string | null
           end_time?: string
           id?: string
           label?: string
@@ -213,47 +277,50 @@ export type Database = {
           },
         ]
       }
-      store_items: {
+      shop_items: {
         Row: {
+          category: Database["public"]["Enums"]["item_category"]
           created_at: string | null
           description: string | null
           id: string
-          is_premium: boolean | null
-          metadata: Json | null
+          is_active: boolean | null
+          is_premium_only: boolean | null
           name: string
-          preview_url: string | null
+          preview_data: Json | null
+          preview_image: string | null
           price_orbs: number
-          slug: string
-          store_metadata: Json | null
-          type: string
+          rarity: Database["public"]["Enums"]["item_rarity"] | null
+          sort_order: number | null
           updated_at: string | null
         }
         Insert: {
+          category: Database["public"]["Enums"]["item_category"]
           created_at?: string | null
           description?: string | null
           id?: string
-          is_premium?: boolean | null
-          metadata?: Json | null
+          is_active?: boolean | null
+          is_premium_only?: boolean | null
           name: string
-          preview_url?: string | null
-          price_orbs?: number
-          slug: string
-          store_metadata?: Json | null
-          type: string
+          preview_data?: Json | null
+          preview_image?: string | null
+          price_orbs: number
+          rarity?: Database["public"]["Enums"]["item_rarity"] | null
+          sort_order?: number | null
           updated_at?: string | null
         }
         Update: {
+          category?: Database["public"]["Enums"]["item_category"]
           created_at?: string | null
           description?: string | null
           id?: string
-          is_premium?: boolean | null
-          metadata?: Json | null
+          is_active?: boolean | null
+          is_premium_only?: boolean | null
           name?: string
-          preview_url?: string | null
+          preview_data?: Json | null
+          preview_image?: string | null
           price_orbs?: number
-          slug?: string
-          store_metadata?: Json | null
-          type?: string
+          rarity?: Database["public"]["Enums"]["item_rarity"] | null
+          sort_order?: number | null
           updated_at?: string | null
         }
         Relationships: []
@@ -262,6 +329,7 @@ export type Database = {
         Row: {
           completed_at: string | null
           created_at: string | null
+          deleted_at: string | null
           end_time: string | null
           id: string
           label: string
@@ -273,6 +341,7 @@ export type Database = {
         Insert: {
           completed_at?: string | null
           created_at?: string | null
+          deleted_at?: string | null
           end_time?: string | null
           id?: string
           label: string
@@ -284,6 +353,7 @@ export type Database = {
         Update: {
           completed_at?: string | null
           created_at?: string | null
+          deleted_at?: string | null
           end_time?: string | null
           id?: string
           label?: string
@@ -302,82 +372,32 @@ export type Database = {
           },
         ]
       }
-      user_equipment: {
+      user_inventory: {
         Row: {
-          avatar_frame_id: string | null
-          personality_id: string | null
-          personality_metadata: Json | null
-          theme_id: string | null
-          theme_metadata: Json | null
+          category: Database["public"]["Enums"]["item_category"]
+          id: string
+          is_equipped: boolean | null
+          item_id: string
+          purchased_at: string | null
           updated_at: string | null
           user_id: string
         }
         Insert: {
-          avatar_frame_id?: string | null
-          personality_id?: string | null
-          personality_metadata?: Json | null
-          theme_id?: string | null
-          theme_metadata?: Json | null
+          category: Database["public"]["Enums"]["item_category"]
+          id?: string
+          is_equipped?: boolean | null
+          item_id: string
+          purchased_at?: string | null
           updated_at?: string | null
           user_id: string
         }
         Update: {
-          avatar_frame_id?: string | null
-          personality_id?: string | null
-          personality_metadata?: Json | null
-          theme_id?: string | null
-          theme_metadata?: Json | null
-          updated_at?: string | null
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "user_equipment_avatar_frame_id_fkey"
-            columns: ["avatar_frame_id"]
-            isOneToOne: false
-            referencedRelation: "store_items"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "user_equipment_personality_id_fkey"
-            columns: ["personality_id"]
-            isOneToOne: false
-            referencedRelation: "store_items"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "user_equipment_theme_id_fkey"
-            columns: ["theme_id"]
-            isOneToOne: false
-            referencedRelation: "store_items"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "user_equipment_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: true
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      user_inventory: {
-        Row: {
-          acquired_at: string | null
-          id: string
-          item_id: string
-          user_id: string
-        }
-        Insert: {
-          acquired_at?: string | null
+          category?: Database["public"]["Enums"]["item_category"]
           id?: string
-          item_id: string
-          user_id: string
-        }
-        Update: {
-          acquired_at?: string | null
-          id?: string
+          is_equipped?: boolean | null
           item_id?: string
+          purchased_at?: string | null
+          updated_at?: string | null
           user_id?: string
         }
         Relationships: [
@@ -385,50 +405,11 @@ export type Database = {
             foreignKeyName: "user_inventory_item_id_fkey"
             columns: ["item_id"]
             isOneToOne: false
-            referencedRelation: "store_items"
+            referencedRelation: "shop_items"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "user_inventory_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      user_metrics: {
-        Row: {
-          created_at: string | null
-          id: string
-          metric_id: string
-          target_value: number | null
-          user_id: string
-        }
-        Insert: {
-          created_at?: string | null
-          id?: string
-          metric_id: string
-          target_value?: number | null
-          user_id: string
-        }
-        Update: {
-          created_at?: string | null
-          id?: string
-          metric_id?: string
-          target_value?: number | null
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "user_metrics_metric_id_fkey"
-            columns: ["metric_id"]
-            isOneToOne: false
-            referencedRelation: "metric_definitions"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "user_metrics_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "users"
@@ -482,8 +463,6 @@ export type Database = {
           created_at: string | null
           goals: string | null
           orbs: number | null
-          subscription_expires_at: string | null
-          subscription_tier: string | null
           updated_at: string | null
           user_id: string
         }
@@ -494,8 +473,6 @@ export type Database = {
           created_at?: string | null
           goals?: string | null
           orbs?: number | null
-          subscription_expires_at?: string | null
-          subscription_tier?: string | null
           updated_at?: string | null
           user_id: string
         }
@@ -506,8 +483,6 @@ export type Database = {
           created_at?: string | null
           goals?: string | null
           orbs?: number | null
-          subscription_expires_at?: string | null
-          subscription_tier?: string | null
           updated_at?: string | null
           user_id?: string
         }
@@ -582,10 +557,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      equip_item: { Args: { p_inventory_id: string }; Returns: Json }
       purchase_item: { Args: { p_item_id: string }; Returns: Json }
     }
     Enums: {
-      [_ in never]: never
+      item_category: "theme" | "ai_personality" | "notification_style" | "profile_customization"
+      item_rarity: "common" | "rare" | "epic" | "legendary"
+      transaction_type: "earned" | "spent"
     }
     CompositeTypes: {
       [_ in never]: never

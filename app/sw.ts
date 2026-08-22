@@ -1,7 +1,7 @@
 /// <reference lib="webworker" />
 import { defaultCache } from "@serwist/next/worker";
 import type { PrecacheEntry, SerwistGlobalConfig } from "serwist";
-import { Serwist, NetworkFirst, ExpirationPlugin } from "serwist";
+import { Serwist, NetworkFirst, ExpirationPlugin, CacheFirst } from "serwist";
 
 declare global {
   interface WorkerGlobalScope extends SerwistGlobalConfig {
@@ -18,6 +18,19 @@ const serwist = new Serwist({
   navigationPreload: true,
   runtimeCaching: [
     ...defaultCache,
+    // Cache theme chunks for offline use
+    {
+      matcher: ({ url }) => url.pathname.match(/themes.*\.js$/),
+      handler: new CacheFirst({
+        cacheName: "theme-chunks",
+        plugins: [
+          new ExpirationPlugin({
+            maxEntries: 30,
+            maxAgeSeconds: 60 * 60 * 24 * 365, // 1 year
+          }),
+        ],
+      }),
+    },
     // Add custom caching for supabase GET requests
     {
       matcher: ({ url, request }) => url.href.includes(".supabase.co/rest/v1/") && request.method === "GET",

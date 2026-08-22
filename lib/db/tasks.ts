@@ -18,7 +18,8 @@ export async function getTasks(client: Client, userId: string, opts: GetTasksOpt
   let query = client
     .from("tasks")
     .select("*")
-    .eq("user_id", userId);
+    .eq("user_id", userId)
+    .is("deleted_at", null);
 
   const { from, to, updatedAfter, updatedBefore } = opts;
 
@@ -65,7 +66,7 @@ export async function updateTask(client: Client, id: string, updates: TaskUpdate
 export async function deleteTask(client: Client, id: string): Promise<DbResult<null>> {
   const { error } = await client
     .from("tasks")
-    .delete()
+    .update({ deleted_at: new Date().toISOString() })
     .eq("id", id);
 
   if (error) return err(handleDbError(error));

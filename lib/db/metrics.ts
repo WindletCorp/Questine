@@ -1,10 +1,10 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { DbResult, MetricDefinition, UserMetric, MetricEntry } from "./types";
+import type { Database } from "./database.types";
+import type { DbResult, MetricDefinition, MetricSubscription, MetricEntry } from "./types";
 import { ok, err } from "./types";
 import { handleDbError } from "./errors";
 
-// Use any to bypass generated types until supabase gen types is run again
-type Client = SupabaseClient<any, "public", any>;
+type Client = SupabaseClient<Database>;
 
 export async function getGlobalMetrics(
   client: Client
@@ -14,46 +14,66 @@ export async function getGlobalMetrics(
     .select("*")
     .eq("is_global", true);
 
-  if (error) return err(handleDbError(error as any));
-  return ok(data as MetricDefinition[]);
+  if (error) return err(handleDbError(error));
+  return ok(data);
 }
 
-export type EnrolledMetric = UserMetric & { metric_definition: MetricDefinition };
+export type EnrolledMetric = MetricSubscription & { metric_definition: MetricDefinition };
 
-export async function getUserMetrics(
+export async function getUserSubscriptions(
   client: Client,
   userId: string
 ): Promise<DbResult<EnrolledMetric[]>> {
   const { data, error } = await client
-    .from("user_metrics")
+    .from("metric_subscriptions")
     .select(`
       *,
       metric_definition:metric_definitions(*)
     `)
     .eq("user_id", userId);
 
-  if (error) return err(handleDbError(error as any));
-  return ok(data as EnrolledMetric[]);
+  if (error) return err(handleDbError(error));
+  
+  // Note: the joined data might be an array depending on foreign key setup,
+  // but since it's a many-to-one it should be an object. We'll cast it to match EnrolledMetric.
+  return ok(data as unknown as EnrolledMetric[]);
 }
 
-export async function enrollInMetric(
+export async function subscribe(
   client: Client,
   userId: string,
   metricId: string,
   targetValue?: number
-): Promise<DbResult<UserMetric>> {
+): Promise<DbResult<MetricSubscription>> {
   const { data, error } = await client
-    .from("user_metrics")
-    .insert({
+    .from("metric_subscriptions")
+    .upsert({
       user_id: userId,
       metric_id: metricId,
-      target_value: targetValue,
-    })
+      target_value: targetValue ?? null,
+      is_active: true,
+      updated_at: new Date().toISOString()
+    }, { onConflict: 'user_id,metric_id' })
     .select()
     .single();
 
-  if (error) return err(handleDbError(error as any));
-  return ok(data as UserMetric);
+  if (error) return err(handleDbError(error));
+  return ok(data);
+}
+
+export async function unsubscribe(
+  client: Client,
+  userId: string,
+  metricId: string
+): Promise<DbResult<null>> {
+  const { error } = await client
+    .from("metric_subscriptions")
+    .delete()
+    .eq("user_id", userId)
+    .eq("metric_id", metricId);
+
+  if (error) return err(handleDbError(error));
+  return ok(null);
 }
 
 export async function createCustomMetric(
@@ -75,40 +95,54 @@ export async function createCustomMetric(
     .select()
     .single();
 
-  if (error) return err(handleDbError(error as any));
-  return ok(data as MetricDefinition);
+  if (error) return err(handleDbError(error));
+  
+  // Auto-subscribe the user
+  const subResult = await subscribe(client, userId, data.id);
+  if (subResult.error) {
+    return err(subResult.error);
+  }
+
+  return ok(data);
 }
 
-export async function logMetricEntry(
+export async function logEntry(
   client: Client,
-  userMetricId: string,
+  userId: string,
+  metricId: string,
   value: number,
   timestamp: string
 ): Promise<DbResult<MetricEntry>> {
   const { data, error } = await client
     .from("metric_entries")
     .insert({
-      user_metric_id: userMetricId,
+      user_id: userId,
+      metric_id: metricId,
       value,
       timestamp,
     })
     .select()
     .single();
 
-  if (error) return err(handleDbError(error as any));
-  return ok(data as MetricEntry);
+  if (error) return err(handleDbError(error));
+  return ok(data);
 }
 
-export async function getMetricEntries(
+export async function getEntries(
   client: Client,
-  userMetricId: string,
+  userId: string,
+  metricId?: string,
   timeRange?: { from: string; to: string }
 ): Promise<DbResult<MetricEntry[]>> {
   let query = client
     .from("metric_entries")
     .select("*")
-    .eq("user_metric_id", userMetricId)
+    .eq("user_id", userId)
     .order("timestamp", { ascending: false });
+
+  if (metricId) {
+    query = query.eq("metric_id", metricId);
+  }
 
   if (timeRange) {
     query = query.gte("timestamp", timeRange.from).lte("timestamp", timeRange.to);
@@ -116,7 +150,6 @@ export async function getMetricEntries(
 
   const { data, error } = await query;
 
-  if (error) return err(handleDbError(error as any));
-  return ok(data as MetricEntry[]);
+  if (error) return err(handleDbError(error));
+  return ok(data);
 }
-

@@ -4,6 +4,11 @@ RETURNS TRIGGER AS $$
 BEGIN
   INSERT INTO public.users (id, created_at, updated_at)
   VALUES (NEW.id, NOW(), NOW());
+  
+  INSERT INTO public.user_profiles (user_id) VALUES (NEW.id);
+  INSERT INTO public.user_settings (user_id) VALUES (NEW.id);
+  INSERT INTO public.user_stats (user_id) VALUES (NEW.id);
+  
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;

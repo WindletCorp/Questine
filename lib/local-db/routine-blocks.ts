@@ -15,6 +15,7 @@ export async function getLocalRoutineBlocks(
   try {
     let collection = db.routine_blocks.where("user_id").equals(userId);
     let blocks = await collection.toArray();
+    blocks = blocks.filter(b => !b.deleted_at);
 
     const { from, to } = opts;
 
@@ -50,6 +51,7 @@ export async function createLocalRoutineBlock(block: RoutineBlockInsert): Promis
       end_time: block.end_time,
       created_at: block.created_at ?? now,
       updated_at: block.updated_at ?? now,
+      deleted_at: null,
       sync_status: "pending"
     };
 
@@ -108,21 +110,7 @@ export async function updateLocalRoutineBlock(id: string, updates: RoutineBlockU
 export async function deleteLocalRoutineBlock(id: string): Promise<DbResult<null>> {
   try {
     const now = new Date().toISOString();
-    
-    const queueEntry: SyncQueueEntry = {
-      id: crypto.randomUUID(),
-      table_name: "routine_blocks",
-      operation: "DELETE",
-      record_id: id,
-      payload: null,
-      created_at: now
-    };
-
-    await db.transaction("rw", db.routine_blocks, db.sync_queue, async () => {
-      await db.routine_blocks.delete(id);
-      await db.sync_queue.add(queueEntry);
-    });
-
+    await updateLocalRoutineBlock(id, { deleted_at: now });
     return ok(null);
   } catch (error) {
     return err(handleDbError(error));

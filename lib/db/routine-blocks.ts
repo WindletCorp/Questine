@@ -16,7 +16,8 @@ export async function getRoutineBlocks(client: Client, userId: string, opts: Get
   let query = client
     .from("routine_blocks")
     .select("*")
-    .eq("user_id", userId);
+    .eq("user_id", userId)
+    .is("deleted_at", null);
 
   const { from, to } = opts;
 
@@ -62,7 +63,7 @@ export async function updateRoutineBlock(client: Client, id: string, updates: Ro
 export async function deleteRoutineBlock(client: Client, id: string): Promise<DbResult<null>> {
   const { error } = await client
     .from("routine_blocks")
-    .delete()
+    .update({ deleted_at: new Date().toISOString() })
     .eq("id", id);
 
   if (error) return err(handleDbError(error));

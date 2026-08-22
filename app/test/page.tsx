@@ -100,7 +100,29 @@ export default function TestPage() {
           }}
           style={{ padding: "0.5rem", background: "#10b981", color: "white", borderRadius: "4px", border: "none", cursor: "pointer" }}
         >
-          2. Schedule Notification
+          2. Schedule Local Notification
+        </button>
+
+        <button 
+          onClick={async () => {
+            const { createSupabaseBrowserClient } = await import("@/lib/supabase/client");
+            const supabase = createSupabaseBrowserClient();
+            const { data } = await supabase.auth.getUser();
+            if (!data?.user) return alert("Not logged in");
+            
+            await supabase.functions.invoke('send-push', {
+              body: {
+                userId: data.user.id,
+                title: "Test Web Push",
+                body: "This is coming directly from the backend!",
+                icon: "/icon.png"
+              },
+            });
+            alert("Sent Web Push request to backend!");
+          }}
+          style={{ padding: "0.5rem", background: "#f59e0b", color: "white", borderRadius: "4px", border: "none", cursor: "pointer", marginTop: "0.5rem" }}
+        >
+          3. Test Immediate Web Push
         </button>
       </div>
 

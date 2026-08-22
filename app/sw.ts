@@ -57,7 +57,7 @@ self.addEventListener("push", (event: PushEvent) => {
       const title = data.title || "Questine Reminder";
       const options = {
         body: data.body || "It's time!",
-        icon: data.icon || "/icon-192x192.png",
+        icon: data.icon || "/icon.png",
         data: data.data || { url: "/" },
       };
       event.waitUntil(self.registration.showNotification(title, options));

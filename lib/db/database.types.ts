@@ -230,6 +230,44 @@ export type Database = {
           },
         ]
       }
+      push_subscriptions: {
+        Row: {
+          auth: string
+          created_at: string | null
+          endpoint: string
+          id: string
+          p256dh: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          auth: string
+          created_at?: string | null
+          endpoint: string
+          id?: string
+          p256dh: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          auth?: string
+          created_at?: string | null
+          endpoint?: string
+          id?: string
+          p256dh?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "push_subscriptions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       routine_blocks: {
         Row: {
           category: string
@@ -561,7 +599,11 @@ export type Database = {
       purchase_item: { Args: { p_item_id: string }; Returns: Json }
     }
     Enums: {
-      item_category: "theme" | "ai_personality" | "notification_style" | "profile_customization"
+      item_category:
+        | "theme"
+        | "ai_personality"
+        | "notification_style"
+        | "profile_customization"
       item_rarity: "common" | "rare" | "epic" | "legendary"
       transaction_type: "earned" | "spent"
     }
@@ -690,6 +732,15 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      item_category: [
+        "theme",
+        "ai_personality",
+        "notification_style",
+        "profile_customization",
+      ],
+      item_rarity: ["common", "rare", "epic", "legendary"],
+      transaction_type: ["earned", "spent"],
+    },
   },
 } as const

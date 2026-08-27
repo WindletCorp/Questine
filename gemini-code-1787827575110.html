@@ -1,0 +1,1136 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full w-full dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Questine - Personal Life OS</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Lucide Icons -->
+  <script src="https://cdn.jsdelivr.net/npm/lucide@latest/dist/umd/lucide.min.js"></script>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    :root {
+      --bg-base: #07090d;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      height: 100%;
+      width: 100%;
+      background-color: var(--bg-base);
+      font-family: 'Inter', sans-serif;
+      user-select: none;
+      position: relative;
+      margin: 0;
+      padding: 0;
+    }
+
+    /* Micro-Dot Mesh Overlay */
+    .bg-dot-mesh {
+      position: fixed;
+      inset: 0;
+      background-image: radial-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px);
+      background-size: 24px 24px;
+      mask-image: radial-gradient(circle at 50% 50%, black 30%, transparent 90%);
+      -webkit-mask-image: radial-gradient(circle at 50% 50%, black 30%, transparent 90%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* visionOS Glassmorphic Circular Profile Button */
+    .glass-profile-btn {
+      width: 46px;
+      height: 46px;
+      border-radius: 9999px;
+      background: rgba(255, 255, 255, 0.07);
+      backdrop-filter: blur(28px) saturate(190%);
+      -webkit-backdrop-filter: blur(28px) saturate(190%);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: rgba(255, 255, 255, 0.85);
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: 
+        0 12px 32px rgba(0, 0, 0, 0.45),
+        inset 0 1px 1.5px rgba(255, 255, 255, 0.45),
+        inset 0 -1px 1.5px rgba(0, 0, 0, 0.3);
+    }
+
+    .glass-profile-btn:hover {
+      background: rgba(255, 255, 255, 0.16);
+      border-color: rgba(255, 255, 255, 0.38);
+      color: #ffffff;
+      transform: scale(1.05);
+      box-shadow: 
+        0 16px 40px rgba(0, 0, 0, 0.55),
+        inset 0 1px 2px rgba(255, 255, 255, 0.65);
+    }
+
+    .glass-profile-btn:active {
+      transform: scale(0.94);
+    }
+
+    /* Standardized visionOS Glass Pill Button */
+    .glass-btn-pill {
+      border-radius: 9999px;
+      background: rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      color: rgba(255, 255, 255, 0.9);
+      font-size: 0.75rem;
+      font-weight: 500;
+      padding: 0.4rem 0.85rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: 
+        0 6px 16px rgba(0, 0, 0, 0.3),
+        inset 0 1px 1px rgba(255, 255, 255, 0.3);
+      cursor: pointer;
+    }
+
+    .glass-btn-pill:hover {
+      background: rgba(255, 255, 255, 0.16);
+      border-color: rgba(255, 255, 255, 0.35);
+      color: #ffffff;
+      transform: translateY(-1px);
+    }
+
+    .glass-btn-pill:active {
+      transform: scale(0.96);
+    }
+
+    /* Compact Monochrome Glass Stepper Button */
+    .glass-step-btn {
+      width: 24px;
+      height: 24px;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.07);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: rgba(255, 255, 255, 0.85);
+      font-size: 13px;
+      line-height: 1;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .glass-step-btn:hover {
+      background: rgba(255, 255, 255, 0.2);
+      border-color: rgba(255, 255, 255, 0.4);
+      color: #ffffff;
+    }
+
+    .glass-step-btn:active {
+      transform: scale(0.9);
+    }
+
+    /* Circular visionOS Glass Micro Button */
+    .glass-circle-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 9999px;
+      background: rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: rgba(255, 255, 255, 0.8);
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+
+    .glass-circle-btn:hover {
+      background: rgba(255, 255, 255, 0.18);
+      border-color: rgba(255, 255, 255, 0.4);
+      color: #ffffff;
+      transform: scale(1.06);
+    }
+
+    .glass-circle-btn:active {
+      transform: scale(0.92);
+    }
+
+    /* VISIONOS GLASS SPHERE (THE CORE) */
+    .glass-sphere-wrapper {
+      position: relative;
+      width: 210px;
+      height: 210px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .glass-sphere {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(44px) saturate(210%);
+      -webkit-backdrop-filter: blur(44px) saturate(210%);
+      border: 1.5px solid rgba(255, 255, 255, 0.28);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      position: relative;
+      z-index: 10;
+      box-shadow: 
+        0 30px 80px rgba(0, 0, 0, 0.8),
+        inset 0 3px 10px rgba(255, 255, 255, 0.7),
+        inset 0 -5px 12px rgba(0, 0, 0, 0.5);
+      animation: standbyBreathing 3.6s ease-in-out infinite alternate;
+      transition: background 0.4s ease, border-color 0.4s ease, box-shadow 0.4s ease;
+    }
+
+    .glass-sphere:hover {
+      background: rgba(255, 255, 255, 0.15);
+      border-color: rgba(255, 255, 255, 0.5);
+      box-shadow: 
+        0 40px 100px rgba(0, 0, 0, 0.9),
+        0 0 50px rgba(255, 255, 255, 0.25),
+        inset 0 4px 14px rgba(255, 255, 255, 0.9);
+    }
+
+    @keyframes standbyBreathing {
+      0% {
+        transform: scale(1);
+        box-shadow: 
+          0 30px 80px rgba(0, 0, 0, 0.8),
+          0 0 15px rgba(255, 255, 255, 0.06),
+          inset 0 3px 10px rgba(255, 255, 255, 0.7);
+      }
+      100% {
+        transform: scale(1.05);
+        box-shadow: 
+          0 40px 100px rgba(0, 0, 0, 0.9),
+          0 0 45px rgba(255, 255, 255, 0.25),
+          inset 0 4px 14px rgba(255, 255, 255, 0.85);
+      }
+    }
+
+    /* ENTRY MODE ACTIVE FOCUS STATE */
+    .entry-mode-active .glass-sphere {
+      transform: scale(1.18) !important;
+      border-color: rgba(255, 255, 255, 0.75);
+      background: rgba(255, 255, 255, 0.16);
+      box-shadow: 
+        0 0 100px rgba(255, 255, 255, 0.35),
+        0 45px 110px rgba(0, 0, 0, 0.9),
+        inset 0 4px 16px rgba(255, 255, 255, 0.95) !important;
+      animation: activeFocusPulse 2.2s ease-in-out infinite alternate !important;
+    }
+
+    @keyframes activeFocusPulse {
+      0% { transform: scale(1.15); }
+      100% { transform: scale(1.22); }
+    }
+
+    /* visionOS Glass Panel */
+    .glass-panel {
+      background: rgba(255, 255, 255, 0.07);
+      backdrop-filter: blur(28px) saturate(190%);
+      -webkit-backdrop-filter: blur(28px) saturate(190%);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      border-radius: 22px;
+      box-shadow: 
+        0 20px 50px rgba(0, 0, 0, 0.6),
+        inset 0 1px 1.5px rgba(255, 255, 255, 0.35),
+        inset 0 -1px 1px rgba(0, 0, 0, 0.25);
+    }
+
+    /* visionOS Glass Input Box */
+    .glass-input-box {
+      background: rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(32px) saturate(200%);
+      -webkit-backdrop-filter: blur(32px) saturate(200%);
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      border-radius: 9999px;
+      box-shadow: 
+        0 16px 48px rgba(0, 0, 0, 0.6),
+        inset 0 1px 2px rgba(255, 255, 255, 0.45);
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .glass-input-box:focus-within {
+      background: rgba(255, 255, 255, 0.14);
+      border-color: rgba(255, 255, 255, 0.45);
+    }
+
+    /* 3D STACKED DECK CONTAINER & CARDS */
+    .deck-perspective {
+      perspective: 1200px;
+      width: 100%;
+      max-width: 25rem;
+      min-height: 110px;
+      position: relative;
+      overflow: visible !important;
+    }
+
+    .deck-card {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      width: 100%;
+      transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1), 
+                  opacity 0.45s ease, 
+                  border-color 0.3s ease, 
+                  box-shadow 0.4s ease;
+      transform-origin: center top;
+      cursor: pointer;
+    }
+
+    /* Stack Depth Position Classes */
+    .deck-card.pos-0 {
+      z-index: 40;
+      transform: translateY(0px) translateZ(0px) scale(1);
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .deck-card.pos-1 {
+      z-index: 30;
+      transform: translateY(12px) translateZ(-35px) scale(0.95);
+      opacity: 0.65;
+      pointer-events: auto;
+    }
+
+    .deck-card.pos-1:hover {
+      opacity: 0.85;
+      transform: translateY(9px) translateZ(-20px) scale(0.97);
+    }
+
+    .deck-card.pos-2 {
+      z-index: 20;
+      transform: translateY(24px) translateZ(-70px) scale(0.90);
+      opacity: 0.38;
+      pointer-events: auto;
+    }
+
+    .deck-card.pos-2:hover {
+      opacity: 0.55;
+      transform: translateY(20px) translateZ(-50px) scale(0.92);
+    }
+
+    .deck-card.pos-3 {
+      z-index: 10;
+      transform: translateY(34px) translateZ(-105px) scale(0.85);
+      opacity: 0.18;
+      pointer-events: auto;
+    }
+
+    /* Expandable Grid for Accordion Content */
+    .expandable-grid {
+      display: grid;
+      grid-template-rows: 0fr;
+      transition: grid-template-rows 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+      opacity: 0;
+    }
+
+    .expandable-grid.is-expanded {
+      grid-template-rows: 1fr;
+      opacity: 1;
+    }
+
+    .expandable-inner {
+      overflow: hidden;
+    }
+
+    /* Isolated Internal Glass Scroller (No Cutoff, No Gesture Stealing) */
+    .custom-glass-scroll {
+      max-height: 190px;
+      overflow-y: auto;
+      overflow-x: hidden;
+      overscroll-behavior: contain;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255, 255, 255, 0.22) transparent;
+      padding-right: 4px;
+    }
+
+    .custom-glass-scroll::-webkit-scrollbar {
+      width: 4px;
+    }
+    .custom-glass-scroll::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .custom-glass-scroll::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.22);
+      border-radius: 9999px;
+    }
+    .custom-glass-scroll::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.4);
+    }
+
+    /* Duration Radial Timer Ring */
+    .time-ring-badge {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      box-shadow: inset 0 1px 1.5px rgba(255, 255, 255, 0.35);
+      position: relative;
+    }
+
+    .lively-timer-ring {
+      position: absolute;
+      inset: -2.5px;
+      border-radius: 50%;
+      border: 1.5px solid transparent;
+      border-top-color: rgba(255, 255, 255, 0.95);
+      border-right-color: rgba(255, 255, 255, 0.35);
+      animation: spinTimerRing 6s linear infinite;
+    }
+
+    @keyframes spinTimerRing {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    /* Voice Waveform Animation */
+    .waveform-container {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      height: 22px;
+      overflow: hidden;
+      padding: 0 2px;
+    }
+
+    .waveform-bar {
+      width: 3px;
+      border-radius: 9999px;
+      background: rgba(255, 255, 255, 0.9);
+      box-shadow: 0 0 8px rgba(255, 255, 255, 0.5);
+      animation: wavePulse 1.2s ease-in-out infinite alternate;
+    }
+
+    .waveform-bar:nth-child(1) { height: 8px; animation-delay: 0.1s; }
+    .waveform-bar:nth-child(2) { height: 16px; animation-delay: 0.3s; }
+    .waveform-bar:nth-child(3) { height: 20px; animation-delay: 0.0s; }
+    .waveform-bar:nth-child(4) { height: 12px; animation-delay: 0.4s; }
+    .waveform-bar:nth-child(5) { height: 8px; animation-delay: 0.2s; }
+
+    .waveform-container.paused { opacity: 0.25; }
+    .waveform-container.paused .waveform-bar { animation-play-state: paused !important; }
+
+    @keyframes wavePulse {
+      0% { transform: scaleY(0.4); opacity: 0.4; }
+      100% { transform: scaleY(1.1); opacity: 1; }
+    }
+
+    /* Lower Slot Container (Visible Overflow to eliminate abrupt clipping) */
+    .lower-slot-container {
+      position: relative;
+      width: 100%;
+      max-width: 25rem;
+      min-height: 150px;
+      overflow: visible !important;
+    }
+
+    .slot-deck-wrapper {
+      transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      pointer-events: auto;
+      overflow: visible !important;
+    }
+
+    .slot-entry-view {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+      opacity: 0;
+      transform: translateY(12px) scale(0.95);
+      pointer-events: none;
+      z-index: 60;
+    }
+
+    .entry-mode-active .slot-deck-wrapper {
+      opacity: 0;
+      transform: translateY(-12px) scale(0.95);
+      pointer-events: none;
+    }
+
+    .entry-mode-active .slot-entry-view {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      pointer-events: auto;
+    }
+
+    /* Toast Animation */
+    @keyframes toastIn {
+      from { opacity: 0; transform: translateY(-8px) scale(0.95); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    .animate-toast {
+      animation: toastIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+  </style>
+</head>
+<body class="relative flex flex-col justify-between p-5 md:p-6 antialiased select-none min-h-screen">
+
+  <!-- Micro-Dot Mesh Grid -->
+  <div class="bg-dot-mesh"></div>
+
+  <!-- Header Section with Greeting Shifted Up and Profile Button -->
+  <header class="w-full flex justify-between items-center z-20 max-w-lg mx-auto">
+    <div class="flex flex-col">
+      <span class="text-[10px] font-semibold tracking-widest uppercase text-white/40 font-mono">Questine OS</span>
+      <span id="userGreeting" class="text-xs font-medium text-white/75 mt-0.5">Good Afternoon, Alex</span>
+    </div>
+
+    <button 
+      id="profileBtn"
+      aria-label="User Profile"
+      class="glass-profile-btn"
+    >
+      <i data-lucide="user" class="w-4 h-4"></i>
+    </button>
+  </header>
+
+  <!-- Main Canvas -->
+  <main id="mainContainer" class="flex-1 flex flex-col items-center justify-between z-10 max-w-lg mx-auto w-full px-2 py-4 relative my-auto">
+    
+    <!-- Central Omni Core Sphere -->
+    <div class="w-full flex flex-col items-center justify-center my-auto py-2">
+      <div class="glass-sphere-wrapper">
+        <button id="coreSphereBtn" class="glass-sphere" aria-label="Activate Core Entry Mode">
+          <i data-lucide="sparkles" class="w-14 h-14 text-white/95 drop-shadow-[0_0_24px_rgba(255,255,255,0.9)]"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- LOWER AREA: 3D Stacked Deck or Entry Mode -->
+    <div class="w-full flex flex-col items-center mt-auto pb-4">
+      <div class="lower-slot-container flex justify-center">
+
+        <!-- 1. LIVE CONTEXT 3D STACKED DECK -->
+        <div id="deckWrapper" class="slot-deck-wrapper w-full flex flex-col items-center">
+          <div id="deckPerspective" class="deck-perspective">
+            
+            <!-- CARD 0: ROUTINE -->
+            <div id="cardRoutine" class="deck-card pos-0 glass-panel p-4" data-index="0">
+              <div class="flex items-center justify-between gap-3">
+                <div class="flex items-center gap-3 min-w-0">
+                  <div class="time-ring-badge flex-shrink-0">
+                    <div class="lively-timer-ring"></div>
+                    <span class="text-[10px] font-bold text-white font-mono leading-none z-10">45m</span>
+                  </div>
+
+                  <div class="min-w-0">
+                    <div class="flex items-center gap-1.5">
+                      <span class="text-[9px] font-mono uppercase tracking-wider text-white/40">Routine</span>
+                      <span class="text-[9px] text-white/30">•</span>
+                      <span class="text-[9px] text-white/50 font-mono">09:00 AM – 11:00 AM</span>
+                    </div>
+                    <h2 class="text-xs font-semibold text-white truncate mt-0.5">Deep Work & Architecture</h2>
+                  </div>
+                </div>
+
+                <div class="flex items-center gap-1 flex-shrink-0">
+                  <i data-lucide="chevron-down" class="w-4 h-4 text-white/40 transition-transform duration-300 card-chevron"></i>
+                </div>
+              </div>
+
+              <!-- Expanded View -->
+              <div class="expandable-grid card-expandable">
+                <div class="expandable-inner">
+                  <div class="mt-3 pt-3 border-t border-white/10 space-y-2 custom-glass-scroll">
+                    <div class="flex items-center justify-between px-1">
+                      <span class="text-[9px] font-mono text-white/40 uppercase tracking-wider">Phase Progress</span>
+                      <span class="text-[9px] font-mono text-white/60">45m of 120m</span>
+                    </div>
+                    <div class="w-full bg-white/10 h-1 rounded-full overflow-hidden">
+                      <div class="bg-white/80 h-full rounded-full" style="width: 37.5%;"></div>
+                    </div>
+                    <p class="text-[11px] text-white/60 leading-relaxed pt-1">
+                      Next phase begins at 11:00 AM: System Review & Sync.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- CARD 1: TASKS (With Individual Start & End Times) -->
+            <div id="cardTasks" class="deck-card pos-1 glass-panel p-4" data-index="1">
+              <div class="flex items-center justify-between gap-3">
+                <div class="flex items-center gap-3 min-w-0">
+                  <div class="w-9 h-9 rounded-full bg-white/10 border border-white/15 flex items-center justify-center flex-shrink-0">
+                    <i data-lucide="check-square" class="w-4 h-4 text-white/80"></i>
+                  </div>
+                  <div class="min-w-0">
+                    <div class="flex items-center gap-1.5">
+                      <span class="text-[9px] font-mono uppercase tracking-wider text-white/40">Tasks</span>
+                      <span class="text-[9px] text-white/30">•</span>
+                      <span class="text-[9px] text-white/50 font-mono task-summary-count">1/2 Completed</span>
+                    </div>
+                    <h2 class="text-xs font-semibold text-white truncate mt-0.5">Scheduled Action Items</h2>
+                  </div>
+                </div>
+
+                <div class="flex items-center gap-1 flex-shrink-0">
+                  <i data-lucide="chevron-down" class="w-4 h-4 text-white/40 transition-transform duration-300 card-chevron"></i>
+                </div>
+              </div>
+
+              <!-- Expanded Task List with Start/End Times -->
+              <div class="expandable-grid card-expandable">
+                <div class="expandable-inner">
+                  <div class="mt-3 pt-3 border-t border-white/10 space-y-2 custom-glass-scroll">
+                    <div class="space-y-1.5">
+                      
+                      <!-- Task Item 1 -->
+                      <div class="p-2 rounded-xl bg-white/[0.04] border border-white/10 flex items-center justify-between gap-2">
+                        <label class="flex items-center gap-2 text-xs text-white/90 cursor-pointer min-w-0">
+                          <input type="checkbox" checked class="task-checkbox accent-white w-3.5 h-3.5 rounded border-white/30 cursor-pointer flex-shrink-0" />
+                          <span class="line-through opacity-50 truncate text-[11px]">Deploy glassmorphic core</span>
+                        </label>
+                        <span class="text-[9px] font-mono text-white/40 flex-shrink-0 bg-white/5 px-2 py-0.5 rounded-full">
+                          09:15 – 09:45
+                        </span>
+                      </div>
+
+                      <!-- Task Item 2 -->
+                      <div class="p-2 rounded-xl bg-white/[0.04] border border-white/10 flex items-center justify-between gap-2">
+                        <label class="flex items-center gap-2 text-xs text-white/90 cursor-pointer min-w-0">
+                          <input type="checkbox" class="task-checkbox accent-white w-3.5 h-3.5 rounded border-white/30 cursor-pointer flex-shrink-0" />
+                          <span class="truncate text-[11px]">Isolate scroll gesture engine</span>
+                        </label>
+                        <span class="text-[9px] font-mono text-white/40 flex-shrink-0 bg-white/5 px-2 py-0.5 rounded-full">
+                          10:00 – 10:45
+                        </span>
+                      </div>
+
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- CARD 2: METRICS (Monochrome, Icon-Free, Pure Glass) -->
+            <div id="cardMetrics" class="deck-card pos-2 glass-panel p-4" data-index="2">
+              <div class="flex items-center justify-between gap-3">
+                <div class="flex items-center gap-3 min-w-0">
+                  <div class="w-9 h-9 rounded-full bg-white/10 border border-white/15 flex items-center justify-center flex-shrink-0">
+                    <i data-lucide="bar-chart-2" class="w-4 h-4 text-white/80"></i>
+                  </div>
+                  <div class="min-w-0">
+                    <div class="flex items-center gap-1.5">
+                      <span class="text-[9px] font-mono uppercase tracking-wider text-white/40">Metrics</span>
+                      <span class="text-[9px] text-white/30">•</span>
+                      <span class="text-[9px] text-white/50 font-mono">Active</span>
+                    </div>
+                    <h2 class="text-xs font-semibold text-white truncate mt-0.5">Daily Targets & Tracking</h2>
+                  </div>
+                </div>
+
+                <div class="flex items-center gap-1 flex-shrink-0">
+                  <i data-lucide="chevron-down" class="w-4 h-4 text-white/40 transition-transform duration-300 card-chevron"></i>
+                </div>
+              </div>
+
+              <!-- Expanded Monochrome Metrics List (No external icons, consistent visionOS glass) -->
+              <div class="expandable-grid card-expandable">
+                <div class="expandable-inner">
+                  <div class="mt-3 pt-3 border-t border-white/10 space-y-2.5 custom-glass-scroll">
+                    
+                    <!-- Metric Row: Pushups -->
+                    <div class="p-2.5 rounded-xl bg-white/[0.04] border border-white/10 flex flex-col gap-1.5" data-metric-row="pushups">
+                      <div class="flex items-center justify-between">
+                        <div>
+                          <span class="text-[11px] font-medium text-white/90">Pushups</span>
+                          <span class="text-[9px] font-mono text-white/40 ml-1.5">/ 50 target</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                          <span class="text-[11px] font-mono text-white font-semibold metric-display-val">35</span>
+                          <div class="flex items-center gap-1">
+                            <button class="glass-step-btn" data-step="-5" aria-label="Decrease Pushups">-</button>
+                            <button class="glass-step-btn" data-step="5" aria-label="Increase Pushups">+</button>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="w-full bg-white/10 h-1 rounded-full overflow-hidden">
+                        <div class="bg-white/80 h-full rounded-full metric-progress" style="width: 70%;"></div>
+                      </div>
+                    </div>
+
+                    <!-- Metric Row: Water -->
+                    <div class="p-2.5 rounded-xl bg-white/[0.04] border border-white/10 flex flex-col gap-1.5" data-metric-row="water">
+                      <div class="flex items-center justify-between">
+                        <div>
+                          <span class="text-[11px] font-medium text-white/90">Water</span>
+                          <span class="text-[9px] font-mono text-white/40 ml-1.5">/ 2.5 L target</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                          <span class="text-[11px] font-mono text-white font-semibold metric-display-val">1.5 L</span>
+                          <div class="flex items-center gap-1">
+                            <button class="glass-step-btn" data-step="-0.25" aria-label="Decrease Water">-</button>
+                            <button class="glass-step-btn" data-step="0.25" aria-label="Increase Water">+</button>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="w-full bg-white/10 h-1 rounded-full overflow-hidden">
+                        <div class="bg-white/80 h-full rounded-full metric-progress" style="width: 60%;"></div>
+                      </div>
+                    </div>
+
+                    <!-- Metric Row: Focus Blocks -->
+                    <div class="p-2.5 rounded-xl bg-white/[0.04] border border-white/10 flex flex-col gap-1.5" data-metric-row="focus">
+                      <div class="flex items-center justify-between">
+                        <div>
+                          <span class="text-[11px] font-medium text-white/90">Deep Focus</span>
+                          <span class="text-[9px] font-mono text-white/40 ml-1.5">/ 4 sessions</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                          <span class="text-[11px] font-mono text-white font-semibold metric-display-val">2</span>
+                          <div class="flex items-center gap-1">
+                            <button class="glass-step-btn" data-step="-1" aria-label="Decrease Focus">-</button>
+                            <button class="glass-step-btn" data-step="1" aria-label="Increase Focus">+</button>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="w-full bg-white/10 h-1 rounded-full overflow-hidden">
+                        <div class="bg-white/80 h-full rounded-full metric-progress" style="width: 50%;"></div>
+                      </div>
+                    </div>
+
+                    <!-- Add Metric Trigger Button -->
+                    <button id="addMetricBtn" class="glass-btn-pill w-full justify-center py-2 text-[10px] mt-1 border-dashed">
+                      <span>+ Add Metric</span>
+                    </button>
+
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- CARD 3: JOURNAL & REFLECTIONS -->
+            <div id="cardJournal" class="deck-card pos-3 glass-panel p-4" data-index="3">
+              <div class="flex items-center justify-between gap-3">
+                <div class="flex items-center gap-3 min-w-0">
+                  <div class="w-9 h-9 rounded-full bg-white/10 border border-white/15 flex items-center justify-center flex-shrink-0">
+                    <i data-lucide="book-open" class="w-4 h-4 text-white/80"></i>
+                  </div>
+                  <div class="min-w-0">
+                    <div class="flex items-center gap-1.5">
+                      <span class="text-[9px] font-mono uppercase tracking-wider text-white/40">Journal</span>
+                      <span class="text-[9px] text-white/30">•</span>
+                      <span class="text-[9px] text-white/50 font-mono">Evening</span>
+                    </div>
+                    <h2 class="text-xs font-semibold text-white truncate mt-0.5">Daily Reflection Log</h2>
+                  </div>
+                </div>
+
+                <div class="flex items-center gap-1 flex-shrink-0">
+                  <i data-lucide="chevron-down" class="w-4 h-4 text-white/40 transition-transform duration-300 card-chevron"></i>
+                </div>
+              </div>
+
+              <!-- Expanded Journal Content -->
+              <div class="expandable-grid card-expandable">
+                <div class="expandable-inner">
+                  <div class="mt-3 pt-3 border-t border-white/10 flex flex-col gap-2 custom-glass-scroll">
+                    <p class="text-[11px] text-white/60 italic leading-relaxed">
+                      "What was your most focused session today?"
+                    </p>
+                    <button id="quickJournalBtn" class="glass-btn-pill w-full justify-center text-[10px] py-2">
+                      <i data-lucide="pen-tool" class="w-3 h-3"></i>
+                      <span>Log Reflection</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- 2. SPATIAL VOICE & TEXT ENTRY VIEW -->
+        <div id="entryInlineView" class="slot-entry-view w-full glass-panel p-4 flex flex-col items-center justify-center">
+          <div class="flex items-center justify-between w-full mb-3 px-1">
+            <div class="flex items-center gap-2">
+              <div id="waveformContainer" class="waveform-container">
+                <div class="waveform-bar"></div>
+                <div class="waveform-bar"></div>
+                <div class="waveform-bar"></div>
+                <div class="waveform-bar"></div>
+                <div class="waveform-bar"></div>
+              </div>
+              <span class="text-[10px] font-semibold tracking-wider uppercase text-white/80 font-mono">Listening...</span>
+            </div>
+
+            <button id="closeEntryBtn" class="glass-circle-btn" aria-label="Close Entry Mode">
+              <i data-lucide="x" class="w-3.5 h-3.5"></i>
+            </button>
+          </div>
+
+          <form id="omniForm" class="w-full">
+            <div class="glass-input-box flex items-center px-3.5 py-2 w-full">
+              <i data-lucide="keyboard" class="w-3.5 h-3.5 text-white/50 mr-2 flex-shrink-0"></i>
+              <input 
+                type="text" 
+                id="omniInput"
+                placeholder="Type command, task, or thought..."
+                class="bg-transparent border-none outline-none text-xs text-white placeholder-white/35 w-full font-medium"
+                autocomplete="off"
+              />
+              <button 
+                type="submit" 
+                class="ml-2 glass-circle-btn w-7 h-7 flex-shrink-0 text-white"
+                aria-label="Submit Entry"
+              >
+                <i data-lucide="arrow-up" class="w-3 h-3"></i>
+              </button>
+            </div>
+          </form>
+        </div>
+
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Toast Notification Container -->
+  <div id="toastContainer" class="fixed top-20 right-6 z-50 flex flex-col gap-2 items-end pointer-events-none"></div>
+
+  <script>
+    // Defensive Lucide Icon Renderer
+    function renderIcons() {
+      if (typeof lucide !== 'undefined' && lucide.createIcons) {
+        try {
+          lucide.createIcons();
+        } catch (e) {
+          console.warn('Lucide icon rendering deferred:', e);
+        }
+      }
+    }
+
+    // DOM Elements
+    const coreSphereBtn = document.getElementById('coreSphereBtn');
+    const closeEntryBtn = document.getElementById('closeEntryBtn');
+    const omniForm = document.getElementById('omniForm');
+    const omniInput = document.getElementById('omniInput');
+    const waveformContainer = document.getElementById('waveformContainer');
+    const toastContainer = document.getElementById('toastContainer');
+    const deckPerspective = document.getElementById('deckPerspective');
+
+    const cards = [
+      document.getElementById('cardRoutine'),
+      document.getElementById('cardTasks'),
+      document.getElementById('cardMetrics'),
+      document.getElementById('cardJournal')
+    ];
+
+    let activeDeckIndex = 0;
+    let expandedCardIndex = -1;
+
+    // Deck Positional Updater (Clean 3D Depth)
+    function updateDeckPositions() {
+      cards.forEach((card, i) => {
+        const relativePos = (i - activeDeckIndex + cards.length) % cards.length;
+        
+        card.classList.remove('pos-0', 'pos-1', 'pos-2', 'pos-3');
+        card.classList.add(`pos-${relativePos}`);
+
+        const expandable = card.querySelector('.card-expandable');
+        const chevron = card.querySelector('.card-chevron');
+
+        if (i === activeDeckIndex && expandedCardIndex === i) {
+          expandable.classList.add('is-expanded');
+          if (chevron) chevron.style.transform = 'rotate(180deg)';
+        } else {
+          expandable.classList.remove('is-expanded');
+          if (chevron) chevron.style.transform = 'rotate(0deg)';
+        }
+      });
+    }
+
+    // Cycle Deck Forward / Backward
+    function cycleDeck(direction = 1) {
+      expandedCardIndex = -1;
+      if (direction === 1) {
+        activeDeckIndex = (activeDeckIndex + 1) % cards.length;
+      } else {
+        activeDeckIndex = (activeDeckIndex - 1 + cards.length) % cards.length;
+      }
+      updateDeckPositions();
+    }
+
+    // Card Tap Handler: Tap front to expand/collapse, tap back card to bring to front and expand
+    function handleCardClick(index) {
+      if (activeDeckIndex !== index) {
+        activeDeckIndex = index;
+        expandedCardIndex = index;
+      } else {
+        expandedCardIndex = (expandedCardIndex === index) ? -1 : index;
+      }
+      updateDeckPositions();
+    }
+
+    // Register Click Listeners on Cards
+    cards.forEach((card, index) => {
+      card.addEventListener('click', (e) => {
+        if (e.target.closest('button, input, label, .custom-glass-scroll')) return;
+        handleCardClick(index);
+      });
+    });
+
+    // Gesture & Wheel Event Isolation for Internal Scrollbars
+    document.querySelectorAll('.custom-glass-scroll').forEach(scroller => {
+      const stopAll = (e) => e.stopPropagation();
+      scroller.addEventListener('wheel', stopAll, { passive: true });
+      scroller.addEventListener('touchstart', stopAll, { passive: true });
+      scroller.addEventListener('touchmove', stopAll, { passive: true });
+      scroller.addEventListener('touchend', stopAll, { passive: true });
+      scroller.addEventListener('mousedown', stopAll);
+    });
+
+    // Swipe & Drag Gestures on Deck Perspective
+    let startX = 0;
+    let currentX = 0;
+    let isDragging = false;
+
+    deckPerspective.addEventListener('touchstart', (e) => {
+      startX = e.touches[0].clientX;
+      isDragging = true;
+    }, { passive: true });
+
+    deckPerspective.addEventListener('touchmove', (e) => {
+      if (!isDragging) return;
+      currentX = e.touches[0].clientX;
+    }, { passive: true });
+
+    deckPerspective.addEventListener('touchend', () => {
+      if (!isDragging) return;
+      const diffX = currentX - startX;
+      if (Math.abs(diffX) > 40) {
+        if (diffX < 0) cycleDeck(1);
+        else cycleDeck(-1);
+      }
+      isDragging = false;
+      startX = 0;
+      currentX = 0;
+    });
+
+    deckPerspective.addEventListener('mousedown', (e) => {
+      if (e.target.closest('button, input, label, .custom-glass-scroll')) return;
+      startX = e.clientX;
+      isDragging = true;
+    });
+
+    window.addEventListener('mousemove', (e) => {
+      if (!isDragging) return;
+      currentX = e.clientX;
+    });
+
+    window.addEventListener('mouseup', () => {
+      if (!isDragging) return;
+      const diffX = currentX - startX;
+      if (Math.abs(diffX) > 50) {
+        if (diffX < 0) cycleDeck(1);
+        else cycleDeck(-1);
+      }
+      isDragging = false;
+      startX = 0;
+      currentX = 0;
+    });
+
+    // Mouse Wheel Scroll on Stack
+    deckPerspective.addEventListener('wheel', (e) => {
+      if (Math.abs(e.deltaX) > 20 || Math.abs(e.deltaY) > 20) {
+        if (e.deltaY > 0 || e.deltaX > 0) cycleDeck(1);
+        else cycleDeck(-1);
+      }
+    }, { passive: true });
+
+    // Toast Utility
+    function showGlassToast(message, iconName = 'sparkles') {
+      const toast = document.createElement('div');
+      toast.className = 'glass-panel px-4 py-2 rounded-full flex items-center gap-2 animate-toast text-xs font-medium text-white shadow-2xl border-white/20 pointer-events-auto';
+      toast.innerHTML = `
+        <i data-lucide="${iconName}" class="w-3.5 h-3.5 text-white/90"></i>
+        <span>${message}</span>
+      `;
+      toastContainer.appendChild(toast);
+      renderIcons();
+
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(-8px)';
+        toast.style.transition = 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)';
+        setTimeout(() => toast.remove(), 300);
+      }, 2600);
+    }
+
+    // Toggle Spatial Entry Mode
+    function toggleEntryMode(forceClose = false) {
+      const isActive = document.body.classList.contains('entry-mode-active');
+      
+      if (isActive || forceClose) {
+        document.body.classList.remove('entry-mode-active');
+        omniInput.blur();
+        omniInput.value = '';
+        waveformContainer.classList.remove('paused');
+      } else {
+        if (expandedCardIndex !== -1) {
+          expandedCardIndex = -1;
+          updateDeckPositions();
+        }
+        document.body.classList.add('entry-mode-active');
+        setTimeout(() => omniInput.focus(), 250);
+      }
+    }
+
+    coreSphereBtn.addEventListener('click', () => toggleEntryMode());
+    closeEntryBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleEntryMode(true);
+    });
+
+    omniInput.addEventListener('input', (e) => {
+      if (e.target.value.trim().length > 0) {
+        waveformContainer.classList.add('paused');
+      } else {
+        waveformContainer.classList.remove('paused');
+      }
+    });
+
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') toggleEntryMode(true);
+      if (e.key === 'ArrowRight' && !document.body.classList.contains('entry-mode-active')) cycleDeck(1);
+      if (e.key === 'ArrowLeft' && !document.body.classList.contains('entry-mode-active')) cycleDeck(-1);
+    });
+
+    omniForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const val = omniInput.value.trim();
+      if (!val) return;
+      showGlassToast(`Captured: "${val}"`, 'check');
+      omniInput.value = '';
+      toggleEntryMode(true);
+    });
+
+    // Task Checklist Handler
+    const taskCheckboxes = document.querySelectorAll('.task-checkbox');
+    taskCheckboxes.forEach(cb => {
+      cb.addEventListener('change', () => {
+        const total = taskCheckboxes.length;
+        let checked = 0;
+        taskCheckboxes.forEach(c => {
+          const textSpan = c.nextElementSibling;
+          if (c.checked) {
+            checked++;
+            textSpan.classList.add('line-through', 'opacity-50');
+          } else {
+            textSpan.classList.remove('line-through', 'opacity-50');
+          }
+        });
+        document.querySelector('.task-summary-count').textContent = `${checked}/${total} Completed`;
+        showGlassToast('Task status updated', 'check-square');
+      });
+    });
+
+    // Metric Increments / Decrements (Pure Numeric Controls)
+    const metricData = {
+      pushups: { val: 35, max: 50, unit: '', step: 5 },
+      water: { val: 1.5, max: 2.5, unit: ' L', step: 0.25 },
+      focus: { val: 2, max: 4, unit: '', step: 1 }
+    };
+
+    document.querySelectorAll('[data-metric-row]').forEach(row => {
+      const type = row.dataset.metricRow;
+      const displayVal = row.querySelector('.metric-display-val');
+      const progressBar = row.querySelector('.metric-progress');
+
+      row.querySelectorAll('.glass-step-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const stepDelta = parseFloat(btn.dataset.step);
+          const item = metricData[type];
+          if (!item) return;
+
+          let newVal = item.val + stepDelta;
+          if (newVal < 0) newVal = 0;
+          if (newVal > item.max * 1.5) newVal = item.max * 1.5;
+
+          item.val = type === 'water' ? parseFloat(newVal.toFixed(2)) : Math.round(newVal);
+          displayVal.textContent = `${item.val}${item.unit}`;
+          
+          const pct = Math.min(100, Math.round((item.val / item.max) * 100));
+          progressBar.style.width = `${pct}%`;
+          showGlassToast(`${type.toUpperCase()}: ${item.val}${item.unit}`, 'sliders');
+        });
+      });
+    });
+
+    const addMetricBtn = document.getElementById('addMetricBtn');
+    if (addMetricBtn) {
+      addMetricBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        toggleEntryMode();
+        omniInput.value = "New Metric: ";
+      });
+    }
+
+    const quickJournalBtn = document.getElementById('quickJournalBtn');
+    if (quickJournalBtn) {
+      quickJournalBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        toggleEntryMode();
+        omniInput.value = "Reflection: ";
+      });
+    }
+
+    // Initialization
+    document.addEventListener('DOMContentLoaded', () => {
+      updateDeckPositions();
+      renderIcons();
+    });
+    window.addEventListener('load', renderIcons);
+    renderIcons();
+  </script>
+</body>
+</html>

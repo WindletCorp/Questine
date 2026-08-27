@@ -10,22 +10,6 @@ interface EntryViewProps {
 }
 
 export function EntryView({ isActive, onClose }: EntryViewProps) {
-  // Waveform animation variants
-  const waveVariants = {
-    animate: (i: number) => ({
-      scaleY: [0.4, 1.1, 0.4],
-      opacity: [0.4, 1, 0.4],
-      transition: {
-        duration: 1.2,
-        repeat: Infinity,
-        delay: i * 0.1,
-        ease: "easeInOut",
-      }
-    })
-  };
-
-  const heights = [8, 16, 20, 12, 8];
-
   return (
     <motion.div
       initial={{ opacity: 0, y: 12, scale: 0.95 }}
@@ -40,17 +24,12 @@ export function EntryView({ isActive, onClose }: EntryViewProps) {
     >
       <div className="flex items-center justify-between w-full mb-3 px-1">
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-[3px] h-[22px] px-0.5 overflow-hidden">
-            {heights.map((h, i) => (
-              <motion.div
-                key={i}
-                custom={i}
-                variants={waveVariants}
-                animate="animate"
-                className="w-[3px] rounded-full bg-white/90 shadow-[0_0_8px_rgba(255,255,255,0.5)]"
-                style={{ height: h }}
-              />
-            ))}
+          <div className="waveform-container">
+            <div className="waveform-bar" />
+            <div className="waveform-bar" />
+            <div className="waveform-bar" />
+            <div className="waveform-bar" />
+            <div className="waveform-bar" />
           </div>
           <span className="text-[10px] font-mono text-white/50 animate-pulse">Listening...</span>
         </div>

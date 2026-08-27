@@ -2,8 +2,14 @@
 
 import { useState, useEffect, useRef, Children, cloneElement, ReactElement } from "react";
 
+interface CardComponentProps {
+  position?: 0 | 1 | 2 | 3;
+  isExpanded?: boolean;
+  onClick?: (e: React.MouseEvent) => void;
+}
+
 interface StackedDeckProps {
-  children: ReactElement[];
+  children: ReactElement<CardComponentProps>[];
 }
 
 export function StackedDeck({ children }: StackedDeckProps) {
@@ -109,7 +115,7 @@ export function StackedDeck({ children }: StackedDeckProps) {
         const relativePos = ((index - activeDeckIndex + totalCards) % totalCards) as 0 | 1 | 2 | 3;
         const isExpanded = index === activeDeckIndex && index === expandedCardIndex;
 
-        return cloneElement(child, {
+        return cloneElement(child as ReactElement<CardComponentProps>, {
           position: relativePos,
           isExpanded,
           onClick: (e: React.MouseEvent) => handleCardClick(index, e),

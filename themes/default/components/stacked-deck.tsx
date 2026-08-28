@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, Children, cloneElement, ReactElement } from "react";
+import styles from "../theme.module.css";
 
 interface CardComponentProps {
   position?: 0 | 1 | 2 | 3;
@@ -68,24 +69,42 @@ export function StackedDeck({ children }: StackedDeckProps) {
     }
   };
 
-  // Touch Swipe Handling
+  // Touch Swipe Handling (Mobile-optimized)
+  const touchCoords = useRef<{ x: number; y: number } | null>(null);
+
   const handleTouchStart = (e: React.TouchEvent) => {
-    dragStartX.current = e.touches[0].clientX;
+    if ((e.target as HTMLElement).closest("button, input, label, .custom-glass-scroll")) {
+      touchCoords.current = null;
+      return;
+    }
+    touchCoords.current = {
+      x: e.touches[0].clientX,
+      y: e.touches[0].clientY,
+    };
   };
 
   const handleTouchEnd = (e: React.TouchEvent) => {
-    if (dragStartX.current === null) return;
-    const diffX = e.changedTouches[0].clientX - dragStartX.current;
-    if (Math.abs(diffX) > 40) {
-      if (diffX < 0) cycleDeck(1);
-      else cycleDeck(-1);
+    if (!touchCoords.current) return;
+    const diffX = e.changedTouches[0].clientX - touchCoords.current.x;
+    const diffY = e.changedTouches[0].clientY - touchCoords.current.y;
+
+    // Detect horizontal swipe or vertical flick
+    if (Math.abs(diffX) > 30 || Math.abs(diffY) > 35) {
+      if (Math.abs(diffX) > Math.abs(diffY)) {
+        if (diffX < 0) cycleDeck(1);
+        else cycleDeck(-1);
+      } else {
+        if (diffY < 0) cycleDeck(1);
+        else cycleDeck(-1);
+      }
     }
-    dragStartX.current = null;
+    touchCoords.current = null;
   };
 
   // Mouse Drag Handling
   const handleMouseDown = (e: React.MouseEvent) => {
     if ((e.target as HTMLElement).closest("button, input, label, .custom-glass-scroll")) {
+      dragStartX.current = null;
       return;
     }
     dragStartX.current = e.clientX;
@@ -94,7 +113,7 @@ export function StackedDeck({ children }: StackedDeckProps) {
   const handleMouseUp = (e: React.MouseEvent) => {
     if (dragStartX.current === null) return;
     const diffX = e.clientX - dragStartX.current;
-    if (Math.abs(diffX) > 50) {
+    if (Math.abs(diffX) > 40) {
       if (diffX < 0) cycleDeck(1);
       else cycleDeck(-1);
     }
@@ -104,7 +123,7 @@ export function StackedDeck({ children }: StackedDeckProps) {
   return (
     <div
       ref={containerRef}
-      className="deck-perspective"
+      className={styles.deckPerspective}
       onWheel={handleWheel}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}

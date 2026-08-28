@@ -3,6 +3,7 @@
 import { ChevronDown } from "lucide-react";
 import { ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import styles from "../theme.module.css";
 
 export interface DeckCardProps {
   position: 0 | 1 | 2 | 3;
@@ -29,7 +30,7 @@ export function DeckCard({
 }: DeckCardProps) {
   return (
     <div 
-      className={cn("deck-card glass-panel p-4", `pos-${position}`)}
+      className={cn(styles.deckCard, styles.glassPanel, "p-4", styles[`pos${position}` as keyof typeof styles])}
       onClick={onClick}
     >
       <div className="flex items-center justify-between gap-3">
@@ -70,9 +71,9 @@ export function DeckCard({
       </div>
 
       {/* Expandable Content (CSS Grid Technique) */}
-      <div className={cn("expandable-grid card-expandable", isExpanded && "is-expanded")}>
-        <div className="expandable-inner">
-          <div className="mt-3 pt-3 border-t border-white/10 custom-glass-scroll">
+      <div className={cn(styles.expandableGrid, "card-expandable", isExpanded && styles.expandableGridExpanded)}>
+        <div className={styles.expandableInner}>
+          <div className={cn("mt-3 pt-3 border-t border-white/10", styles.customGlassScroll)}>
             {children}
           </div>
         </div>

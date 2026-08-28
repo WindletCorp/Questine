@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { GlassSphere } from "../components/glass-sphere";
 import { GlassButton } from "../components/glass-button";
 import { StackedDeck } from "../components/stacked-deck";
@@ -15,12 +16,30 @@ export function Dashboard({ userId }: { userId?: string }) {
   const [entryModeActive, setEntryModeActive] = useState(false);
 
   return (
-    <div className="relative flex flex-col justify-between p-5 md:p-6 antialiased select-none min-h-[100dvh] w-full max-w-lg mx-auto overflow-hidden">
-      {/* Micro-Dot Mesh Grid is handled by global body class in layout, but we can add it here if needed */}
-      <div className="bg-dot-mesh fixed inset-0 pointer-events-none -z-10" />
+    <div className="relative flex flex-col justify-between p-5 md:p-6 antialiased select-none h-[100dvh] w-full max-w-lg mx-auto">
+      {/* Background Dot Mesh Grid */}
+      <div className="bg-dot-mesh fixed inset-0 pointer-events-none -z-20" />
 
-      {/* Header */}
-      <header className="w-full flex justify-between items-center z-20">
+      {/* Atmospheric Luminous Aura (Full-screen background glow that never gets cropped) */}
+      <div 
+        className="fixed inset-0 pointer-events-none -z-10 flex items-center justify-center transition-all duration-1000 ease-out"
+      >
+        <div 
+          className="rounded-full transition-all duration-1000 ease-out"
+          style={{
+            width: entryModeActive ? "520px" : "380px",
+            height: entryModeActive ? "520px" : "380px",
+            background: entryModeActive 
+              ? "radial-gradient(circle, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0.05) 50%, transparent 75%)" 
+              : "radial-gradient(circle, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.02) 50%, transparent 75%)",
+            filter: "blur(40px)",
+            transform: entryModeActive ? "scale(1.15)" : "scale(1)",
+          }}
+        />
+      </div>
+
+      {/* Header Section */}
+      <header className="w-full flex justify-between items-center z-30 shrink-0">
         <div className="flex flex-col">
           <span className="text-[10px] font-semibold tracking-widest uppercase text-white/40 font-mono">Questine OS</span>
           <span className="text-xs font-medium text-white/75 mt-0.5">Good Afternoon, Alex</span>
@@ -31,42 +50,52 @@ export function Dashboard({ userId }: { userId?: string }) {
         </GlassButton>
       </header>
 
-      {/* Main Canvas */}
-      <main className="flex-1 flex flex-col items-center justify-between z-10 w-full px-2 py-4 relative my-auto">
-        
-        {/* Central Omni Core Sphere */}
-        <div className="w-full flex flex-col items-center justify-center my-auto py-2">
+      {/* Central Viewport-Centered Core Canvas */}
+      <main className="flex-1 flex flex-col items-center justify-center relative w-full z-10 my-auto py-2">
+        <div className="relative flex items-center justify-center">
           <GlassSphere 
             isActive={entryModeActive} 
             onClick={() => setEntryModeActive(!entryModeActive)} 
           />
         </div>
-
-        {/* LOWER AREA */}
-        <div className="w-full flex flex-col items-center mt-auto pb-4 relative min-h-[150px]">
-          
-          {/* Stacked Deck (hidden when entry mode is active) */}
-          <div 
-            className={`w-full flex flex-col items-center transition-all duration-350 ease-[cubic-bezier(0.16,1,0.3,1)] ${
-              entryModeActive ? "opacity-0 translate-y-[-12px] scale-95 pointer-events-none" : "opacity-100 translate-y-0 scale-100"
-            }`}
-          >
-            <StackedDeck>
-              <RoutineCard />
-              <TasksCard />
-              <MetricsCard />
-              <JournalCard />
-            </StackedDeck>
-          </div>
-
-          {/* Entry View */}
-          <EntryView 
-            isActive={entryModeActive} 
-            onClose={() => setEntryModeActive(false)} 
-          />
-
-        </div>
       </main>
+
+      {/* Lower Slot (Live Context Deck <-> Entry View with Zero Overlap) */}
+      <div className="w-full flex flex-col items-center z-20 pb-8 sm:pb-10 relative min-h-[140px] shrink-0">
+        <AnimatePresence mode="wait">
+          {!entryModeActive ? (
+            <motion.div
+              key="deck"
+              initial={{ opacity: 0, y: 30, scale: 0.9 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 30, scale: 0.9 }}
+              transition={{ type: "spring", stiffness: 120, damping: 20, mass: 1 }}
+              className="w-full flex justify-center origin-top"
+            >
+              <StackedDeck>
+                <RoutineCard />
+                <TasksCard />
+                <MetricsCard />
+                <JournalCard />
+              </StackedDeck>
+            </motion.div>
+          ) : (
+            <motion.div
+              key="entry"
+              initial={{ opacity: 0, y: 30, scale: 0.9 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 30, scale: 0.9 }}
+              transition={{ type: "spring", stiffness: 120, damping: 20, mass: 1 }}
+              className="w-full max-w-[25rem] origin-top"
+            >
+              <EntryView 
+                isActive={entryModeActive} 
+                onClose={() => setEntryModeActive(false)} 
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
     </div>
   );
 }

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { DeckCard } from "./deck-card";
+import styles from "../theme.module.css";
 
 export function RoutineCard({ 
   position = 0, 
@@ -17,7 +18,7 @@ export function RoutineCard({
   const headerElement = (
     <div className="time-ring-badge shrink-0 relative w-[38px] h-[38px] rounded-full bg-white/10 border border-white/20 flex flex-col items-center justify-center shadow-[inset_0_1px_1.5px_rgba(255,255,255,0.35)]">
       <div 
-        className="lively-timer-ring"
+        className={styles.livelyTimerRing}
       />
       <span className="text-[10px] font-bold text-white font-mono leading-none z-10">45m</span>
     </div>

@@ -41,6 +41,7 @@ export function TasksCard({
       title="Tasks"
       subtitleTop={`${completedCount}/${tasks.length} Completed`}
       subtitleBottom="Scheduled Action Items"
+      accentColor="blue"
     >
       <div className="space-y-1.5 pt-1">
         {tasks.map(task => (

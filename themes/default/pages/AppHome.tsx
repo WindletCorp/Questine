@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { GlassSphere } from "../components/glass-sphere";
 import { GlassButton } from "../components/glass-button";
@@ -13,8 +13,21 @@ import { EntryView } from "../components/entry-view";
 import { User, LayoutDashboard } from "lucide-react";
 import Link from "next/link";
 
+function getGreeting(): string {
+  const hour = new Date().getHours();
+  if (hour >= 5 && hour < 12) return "Good morning";
+  if (hour >= 12 && hour < 17) return "Good afternoon";
+  if (hour >= 17 && hour < 21) return "Good evening";
+  return "Good night";
+}
+
 export function AppHome({ userId }: { userId?: string }) {
   const [entryModeActive, setEntryModeActive] = useState(false);
+  const [greeting, setGreeting] = useState<string | null>(null);
+
+  useEffect(() => {
+    setGreeting(getGreeting());
+  }, []);
 
   return (
     <div className="relative flex flex-col justify-between p-5 md:p-6 antialiased select-none h-[100dvh] w-full max-w-lg mx-auto">
@@ -43,7 +56,7 @@ export function AppHome({ userId }: { userId?: string }) {
       <header className="w-full flex justify-between items-center z-30 shrink-0">
         <div className="flex flex-col">
           <span className="text-[10px] font-semibold tracking-widest uppercase text-white/40 font-mono">Questine OS</span>
-          <span className="text-xs font-medium text-white/75 mt-0.5">Focus Mode</span>
+          <span className="text-xs font-medium text-white/75 mt-0.5">{greeting ?? "\u00A0"}</span>
         </div>
 
         <div className="flex items-center gap-2">

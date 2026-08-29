@@ -48,6 +48,7 @@ export function MetricsCard({
       title="Metrics"
       subtitleTop="Active"
       subtitleBottom="Daily Targets & Tracking"
+      accentColor="purple"
     >
       <div className="space-y-2.5 pt-1">
         {metrics.map(metric => {

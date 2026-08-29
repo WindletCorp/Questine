@@ -5,6 +5,15 @@ import { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import styles from "../theme.module.css";
 
+export type AccentColor = "blue" | "amber" | "purple" | "emerald";
+
+const accentStyles: Record<AccentColor, { border: string; glow: string; label: string }> = {
+  blue:    { border: "border-blue-400/25",    glow: "0 0 20px rgba(96,165,250,0.10)",   label: "text-blue-300/60" },
+  amber:   { border: "border-amber-400/25",   glow: "0 0 20px rgba(251,191,36,0.10)",   label: "text-amber-300/60" },
+  purple:  { border: "border-purple-400/25",  glow: "0 0 20px rgba(192,132,252,0.10)",  label: "text-purple-300/60" },
+  emerald: { border: "border-emerald-400/25", glow: "0 0 20px rgba(52,211,153,0.10)",   label: "text-emerald-300/60" },
+};
+
 export interface DeckCardProps {
   position: 0 | 1 | 2 | 3;
   isExpanded?: boolean;
@@ -14,6 +23,7 @@ export interface DeckCardProps {
   subtitleTop: string;
   subtitleBottom: string;
   headerElement?: ReactNode;
+  accentColor?: AccentColor;
   children: ReactNode;
 }
 
@@ -26,13 +36,16 @@ export function DeckCard({
   subtitleTop,
   subtitleBottom,
   headerElement,
+  accentColor,
   children,
 }: DeckCardProps) {
   const isFront = position === 0;
+  const accent = accentColor ? accentStyles[accentColor] : null;
 
   return (
     <div 
-      className={cn(styles.deckCard, styles.glassPanel, "p-4", styles[`pos${position}` as keyof typeof styles])}
+      className={cn(styles.deckCard, styles.glassPanel, "p-4", styles[`pos${position}` as keyof typeof styles], accent?.border)}
+      style={accent ? { boxShadow: `0 20px 50px rgba(0,0,0,0.6), inset 0 1px 1.5px rgba(255,255,255,0.35), inset 0 -1px 1px rgba(0,0,0,0.25), ${accent.glow}` } : undefined}
       onClick={onClick}
     >
       <div className={cn("transition-opacity duration-350 ease-in-out", isFront ? "opacity-100" : "opacity-0 pointer-events-none")}>
@@ -47,7 +60,7 @@ export function DeckCard({
             )}
             <div className="min-w-0">
               <div className="flex items-center gap-1.5">
-                <span className="text-[9px] font-mono uppercase tracking-wider text-white/40">
+                <span className={cn("text-[9px] font-mono uppercase tracking-wider", accent ? accent.label : "text-white/40")}>
                   {title}
                 </span>
                 <span className="text-[9px] text-white/30">•</span>

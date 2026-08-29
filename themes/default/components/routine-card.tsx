@@ -33,6 +33,7 @@ export function RoutineCard({
       subtitleTop="09:00 AM – 11:00 AM"
       subtitleBottom="Deep Work & Architecture"
       headerElement={headerElement}
+      accentColor="amber"
     >
       <div className="flex items-center justify-between px-1 space-y-2">
         <span className="text-[9px] font-mono text-white/40 uppercase tracking-wider">Phase Progress</span>

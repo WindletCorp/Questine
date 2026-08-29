@@ -22,6 +22,7 @@ export function JournalCard({
       title="Journal"
       subtitleTop="Evening"
       subtitleBottom="Daily Reflection Log"
+      accentColor="emerald"
     >
       <div className="flex flex-col gap-2 pt-1">
         <p className="text-[11px] text-white/60 italic leading-relaxed">

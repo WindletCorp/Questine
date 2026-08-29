@@ -209,8 +209,8 @@ function TasksPanel({ userId }: { userId: string }) {
     const result = await createLocalTask({ 
       user_id: userId, 
       label, 
-      start_time: startTime ? new Date(startTime).toISOString() : null,
-      end_time: endTime ? new Date(endTime).toISOString() : null,
+      start_time: startTime ? new Date(startTime).toISOString() : new Date().toISOString(),
+      end_time: endTime ? new Date(endTime).toISOString() : new Date().toISOString(),
       metadata: null 
     });
     setResult(result);
@@ -460,8 +460,8 @@ function JournalsPanel({ userId }: { userId: string }) {
     const r = await createLocalJournal({ 
       user_id: userId, 
       content, 
-      start_time: startTime ? new Date(startTime).toISOString() : null, 
-      end_time: endTime ? new Date(endTime).toISOString() : null,
+      start_time: startTime ? new Date(startTime).toISOString() : new Date().toISOString(), 
+      end_time: endTime ? new Date(endTime).toISOString() : new Date().toISOString(),
       ai_analysis: null
     });
     setResult(r);

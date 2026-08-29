@@ -2,7 +2,7 @@ import { db } from "./index";
 import type { DbResult } from "../db/types";
 import { ok, err } from "../db/types";
 import { handleDbError } from "../db/errors";
-import type { LocalMetricDefinition, LocalMetricSubscription, LocalMetricEntry } from "./index";
+import type { LocalMetricDefinition, LocalMetricSubscription, LocalMetricEntry, SyncQueueEntry } from "./index";
 import type { EnrolledMetric } from "../db/metrics";
 
 export async function getLocalAvailableMetrics(userId: string): Promise<DbResult<LocalMetricDefinition[]>> {
@@ -283,3 +283,64 @@ export async function getLocalEntries(
     return err(handleDbError(error));
   }
 }
+
+export async function updateLocalEntry(
+  id: string,
+  updates: { value?: number; start_time?: string; end_time?: string }
+): Promise<DbResult<LocalMetricEntry>> {
+  try {
+    const now = new Date().toISOString();
+    const finalUpdates = {
+      ...updates,
+      updated_at: now,
+      sync_status: "pending" as const,
+    };
+
+    const queueEntry: SyncQueueEntry = {
+      id: crypto.randomUUID(),
+      table_name: "metric_entries",
+      operation: "UPDATE",
+      record_id: id,
+      payload: updates,
+      created_at: now,
+    };
+
+    await db.transaction("rw", db.metric_entries, db.sync_queue, async () => {
+      await db.metric_entries.update(id, finalUpdates);
+      await db.sync_queue.add(queueEntry);
+    });
+
+    const updated = await db.metric_entries.get(id);
+    if (!updated) return err({ code: "NOT_FOUND", message: "Metric entry not found after update" });
+    return ok(updated);
+  } catch (error) {
+    return err(handleDbError(error));
+  }
+}
+
+export async function deleteLocalEntry(id: string): Promise<DbResult<null>> {
+  try {
+    const entry = await db.metric_entries.get(id);
+    if (!entry) return err({ code: "NOT_FOUND", message: "Metric entry not found" });
+
+    const now = new Date().toISOString();
+    const queueEntry: SyncQueueEntry = {
+      id: crypto.randomUUID(),
+      table_name: "metric_entries",
+      operation: "DELETE",
+      record_id: id,
+      payload: {},
+      created_at: now,
+    };
+
+    await db.transaction("rw", db.metric_entries, db.sync_queue, async () => {
+      await db.metric_entries.delete(id);
+      await db.sync_queue.add(queueEntry);
+    });
+
+    return ok(null);
+  } catch (error) {
+    return err(handleDbError(error));
+  }
+}
+

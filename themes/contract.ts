@@ -2,6 +2,7 @@ import React from "react";
 import type { Task, RoutineBlock, Journal, UserStats, UserSettings, ShopItem, UserInventoryItem } from "@/lib/db/types";
 
 export interface DashboardPageProps { userId: string; }
+export interface AppHomePageProps { userId: string; }
 export interface TaskListPageProps { userId: string; }
 export interface TaskDetailPageProps { userId: string; }
 export interface JournalPageProps { userId: string; }
@@ -20,6 +21,7 @@ export interface ThemeContract {
   id: string;
   pages: {
     Dashboard: React.ComponentType<DashboardPageProps>;
+    AppHome: React.ComponentType<AppHomePageProps>;
     TaskList: React.ComponentType<TaskListPageProps>;
     TaskDetail: React.ComponentType<TaskDetailPageProps>;
     Journal: React.ComponentType<JournalPageProps>;

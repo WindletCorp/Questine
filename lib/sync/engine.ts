@@ -7,7 +7,20 @@ const client = createSupabaseBrowserClient();
 export class SyncEngine {
   static async getLastSyncTime(): Promise<string | null> {
     const record = await db.meta.get("last_sync_time");
-    return record?.value || null;
+    if (!record?.value) return null;
+
+    // Safety guard: if stored last_sync_time is in the future relative to local clock, auto-heal & reset
+    const maxAllowed = new Date(Date.now() + 60 * 1000).toISOString();
+    if (record.value > maxAllowed) {
+      console.warn("Detected contaminated future sync timestamp, auto-healing cursor:", record.value);
+      await db.meta.delete("last_sync_time");
+      return null;
+    }
+    return record.value;
+  }
+
+  static async resetSyncCursor(): Promise<void> {
+    await db.meta.delete("last_sync_time");
   }
 
   static async setLastSyncTime(time: string): Promise<void> {
@@ -111,12 +124,14 @@ export class SyncEngine {
     const { data: { session } } = await client.auth.getSession();
     const userId = session?.user?.id;
     
+    const syncStartTime = new Date().toISOString();
     const lastSync = await this.getLastSyncTime();
     let newLastSync = lastSync;
 
     const trackMaxUpdated = (updated_at?: string | null) => {
         if (!updated_at) return;
-        if (!newLastSync || updated_at > newLastSync) {
+        // Never allow sync cursor to advance beyond the current sync start time
+        if (updated_at <= syncStartTime && (!newLastSync || updated_at > newLastSync)) {
             newLastSync = updated_at;
         }
     };
@@ -280,9 +295,11 @@ export class SyncEngine {
     const errors = [...pushErrors, ...pullErrors];
     const success = errors.length === 0;
 
-    // Use the maximum updated_at observed from the server rather than client clock
-    if (success && newLastSync) {
-      await this.setLastSyncTime(newLastSync);
+    // Use the maximum updated_at observed from the server, capped at current time
+    if (success) {
+      const nowIso = new Date().toISOString();
+      const finalSyncTime = (newLastSync && newLastSync <= nowIso) ? newLastSync : nowIso;
+      await this.setLastSyncTime(finalSyncTime);
     }
 
     return { success, pushed, pulled, errors };

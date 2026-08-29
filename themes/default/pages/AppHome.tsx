@@ -17,7 +17,7 @@ export function AppHome({ userId }: { userId?: string }) {
   const [entryModeActive, setEntryModeActive] = useState(false);
 
   return (
-    <div className="relative flex flex-col justify-between p-5 md:p-6 antialiased select-none h-[100dvh] w-full max-w-lg mx-auto overflow-hidden">
+    <div className="relative flex flex-col justify-between p-5 md:p-6 antialiased select-none h-[100dvh] w-full max-w-lg mx-auto">
       {/* Background Dot Mesh Grid */}
       <div className="bg-dot-mesh fixed inset-0 pointer-events-none -z-20" />
 

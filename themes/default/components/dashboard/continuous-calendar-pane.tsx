@@ -3,11 +3,11 @@
 import React, { useEffect, useRef, useMemo, useState, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Check, BookOpen, Activity, Edit3, X, Sparkles, Clock, Plus, Repeat } from "lucide-react";
+import { Check, BookOpen, Activity, X } from "lucide-react";
 import type { TimelineItem, Journal, EnrichedMetricEntry, Task, RoutineBlock } from "@/lib/db/types";
 import type { DaySegment } from "@/lib/hooks/use-continuous-timeline";
 import { updateLocalTask } from "@/lib/local-db/tasks";
-import { createLocalRoutineBlock, updateLocalRoutineBlock } from "@/lib/local-db/routine-blocks";
+import { createLocalRoutineBlock } from "@/lib/local-db/routine-blocks";
 import { logLocalEntry } from "@/lib/local-db/metrics";
 import { cn } from "@/lib/utils";
 
@@ -58,8 +58,9 @@ export function ContinuousCalendarPane({
   const scrollRef = useRef<HTMLDivElement>(null);
   const isInitialScrollDone = useRef(false);
 
-  // Active Tooltip state (positioned directly beside click coordinates)
+  // Active Tooltip & Focused Expanded Item state
   const [activeTooltip, setActiveTooltip] = useState<ActiveTooltipState | null>(null);
+  const [focusedItemId, setFocusedItemId] = useState<string | null>(null);
 
   // Auto-scroll to Current Time on initial mount
   useEffect(() => {
@@ -82,7 +83,10 @@ export function ContinuousCalendarPane({
   const handleScroll = useCallback(() => {
     if (!scrollRef.current) return;
 
-    if (activeTooltip) setActiveTooltip(null);
+    if (activeTooltip) {
+      setActiveTooltip(null);
+      setFocusedItemId(null);
+    }
 
     const scrollTop = scrollRef.current.scrollTop;
     const scrollHeight = scrollRef.current.scrollHeight;
@@ -111,11 +115,17 @@ export function ContinuousCalendarPane({
   }, [isFetchingEarlier, isFetchingFuture, onLoadEarlierDays, onLoadFutureDays, activeTooltip]);
 
   const handleOpenTooltip = (item: TimelineItem, e: React.MouseEvent) => {
+    setFocusedItemId(item.data.id);
     setActiveTooltip({
       item,
       clickX: e.clientX,
       clickY: e.clientY,
     });
+  };
+
+  const handleCloseTooltip = () => {
+    setActiveTooltip(null);
+    setFocusedItemId(null);
   };
 
   return (
@@ -130,6 +140,7 @@ export function ContinuousCalendarPane({
           <DaySection
             key={segment.dayOffset}
             segment={segment}
+            focusedItemId={focusedItemId}
             onOpenTooltip={handleOpenTooltip}
             onRefresh={onRefresh}
           />
@@ -141,9 +152,9 @@ export function ContinuousCalendarPane({
         {activeTooltip && (
           <TimelineActionTooltip
             activeTooltip={activeTooltip}
-            onClose={() => setActiveTooltip(null)}
+            onClose={handleCloseTooltip}
             onEdit={(item) => {
-              setActiveTooltip(null);
+              handleCloseTooltip();
               onEditItem(item);
             }}
             onRefresh={onRefresh}
@@ -155,14 +166,16 @@ export function ContinuousCalendarPane({
 }
 
 /**
- * Individual 24-Hour Day Section
+ * Individual 24-Hour Day Section with Dynamic Cascade Overlap & Responsive Time Rail
  */
 function DaySection({
   segment,
+  focusedItemId,
   onOpenTooltip,
   onRefresh,
 }: {
   segment: DaySegment;
+  focusedItemId: string | null;
   onOpenTooltip: (item: TimelineItem, e: React.MouseEvent) => void;
   onRefresh: () => void;
 }) {
@@ -293,17 +306,18 @@ function DaySection({
   const hours = useMemo(() => {
     return Array.from({ length: 24 }, (_, i) => {
       const period = i >= 12 ? "PM" : "AM";
+      const shortPeriod = i >= 12 ? "P" : "A";
       const displayHour = i % 12 === 0 ? 12 : i % 12;
-      return { hour: i, label: `${displayHour} ${period}` };
+      return { hour: i, label: `${displayHour} ${period}`, shortLabel: `${displayHour}${shortPeriod}` };
     });
   }, []);
 
   return (
     <div className="relative w-full border-b border-white/10" style={{ height: `${DAY_HEIGHT}px` }}>
       {/* Sticky Day Header */}
-      <div className="sticky top-2 z-30 flex items-center justify-between px-4 pointer-events-none">
-        <div className="px-3 py-1 rounded-full bg-black/70 backdrop-blur-[24px] border border-white/20 shadow-[0_8px_20px_rgba(0,0,0,0.6)] flex items-center gap-2">
-          <span className="text-[11px] font-semibold text-white tracking-wide">
+      <div className="sticky top-2 z-30 flex items-center justify-between px-3 md:px-4 pointer-events-none">
+        <div className="px-2.5 md:px-3 py-1 rounded-full bg-black/70 backdrop-blur-[24px] border border-white/20 shadow-[0_8px_20px_rgba(0,0,0,0.6)] flex items-center gap-1.5 md:gap-2">
+          <span className="text-[10px] md:text-[11px] font-semibold text-white tracking-wide">
             {dateKey}
           </span>
           {isToday && (
@@ -312,16 +326,17 @@ function DaySection({
         </div>
       </div>
 
-      {/* Hour Grid Lines */}
-      {hours.map(({ hour, label }) => (
+      {/* Hour Grid Lines (Responsive 56px on mobile, 112px on desktop) */}
+      {hours.map(({ hour, label, shortLabel }) => (
         <div
           key={hour}
           className="absolute left-0 right-0 flex items-start border-t border-white/[0.06]"
           style={{ top: `${hour * HOUR_HEIGHT}px`, height: `${HOUR_HEIGHT}px` }}
         >
-          <div className="w-28 pl-3 pt-2 flex items-center justify-between pr-2 shrink-0">
-            <span className="text-[10px] font-mono tracking-widest uppercase text-white/35 font-medium">
-              {label}
+          <div className="w-14 md:w-28 pl-2 md:pl-3 pt-2 flex items-center justify-between pr-1.5 md:pr-2 shrink-0">
+            <span className="text-[9px] md:text-[10px] font-mono tracking-wider md:tracking-widest uppercase text-white/35 font-medium">
+              <span className="md:hidden">{shortLabel}</span>
+              <span className="hidden md:inline">{label}</span>
             </span>
             <div className="w-1 h-1 rounded-full bg-white/20" />
           </div>
@@ -329,12 +344,12 @@ function DaySection({
         </div>
       ))}
 
-      {/* Discrete Journal & Metric Markers on Time Rail */}
+      {/* Discrete Journal & Metric Markers on Responsive Time Rail */}
       {positionedMarkers.map((pos) => {
         const isJournal = pos.type === "journal";
-        const leftPx = isJournal
-          ? (pos.subCol === 0 ? 48 : 64)
-          : (pos.subCol === 0 ? 82 : 98);
+        // Responsive left positioning inside gutter
+        const leftMobilePx = isJournal ? (pos.subCol === 0 ? 24 : 32) : (pos.subCol === 0 ? 40 : 48);
+        const leftDesktopPx = isJournal ? (pos.subCol === 0 ? 48 : 64) : (pos.subCol === 0 ? 82 : 98);
 
         return (
           <motion.div
@@ -342,25 +357,37 @@ function DaySection({
             whileHover={{ scale: 1.15 }}
             whileTap={{ scale: 0.95 }}
             className="absolute z-20 flex flex-col items-center cursor-pointer group"
-            style={{ top: `${pos.top}px`, left: `${leftPx}px`, height: `${pos.height}px` }}
+            style={{
+              top: `${pos.top}px`,
+              height: `${pos.height}px`,
+              left: `var(--marker-left, ${leftMobilePx}px)`
+            }}
             onClick={(e) => {
               e.stopPropagation();
               onOpenTooltip(pos.item, e);
             }}
           >
+            {/* Desktop CSS Variable Override */}
+            <style jsx>{`
+              @media (min-width: 768px) {
+                div {
+                  --marker-left: ${leftDesktopPx}px;
+                }
+              }
+            `}</style>
             {isJournal ? (
               <div
-                className="w-4.5 rounded-full bg-emerald-400/20 border border-emerald-300/60 shadow-[0_0_12px_rgba(52,211,153,0.5),inset_0_1px_2px_rgba(255,255,255,0.7)] flex items-center justify-center transition-all hover:border-emerald-300"
-                style={{ height: `${pos.height}px`, minHeight: "22px" }}
+                className="w-4 md:w-4.5 rounded-full bg-emerald-400/20 border border-emerald-300/60 shadow-[0_0_12px_rgba(52,211,153,0.5),inset_0_1px_2px_rgba(255,255,255,0.7)] flex items-center justify-center transition-all hover:border-emerald-300"
+                style={{ height: `${pos.height}px`, minHeight: "20px" }}
               >
-                <BookOpen className="w-2.5 h-2.5 text-emerald-300 drop-shadow-[0_0_6px_rgba(52,211,153,0.8)]" />
+                <BookOpen className="w-2 md:w-2.5 h-2 md:h-2.5 text-emerald-300 drop-shadow-[0_0_6px_rgba(52,211,153,0.8)]" />
               </div>
             ) : (
               <div
-                className="w-4.5 rounded-full bg-purple-400/20 border border-purple-300/60 shadow-[0_0_12px_rgba(192,132,252,0.5),inset_0_1px_2px_rgba(255,255,255,0.7)] flex items-center justify-center transition-all hover:border-purple-300"
-                style={{ height: `${pos.height}px`, minHeight: "22px" }}
+                className="w-4 md:w-4.5 rounded-full bg-purple-400/20 border border-purple-300/60 shadow-[0_0_12px_rgba(192,132,252,0.5),inset_0_1px_2px_rgba(255,255,255,0.7)] flex items-center justify-center transition-all hover:border-purple-300"
+                style={{ height: `${pos.height}px`, minHeight: "20px" }}
               >
-                <Activity className="w-2.5 h-2.5 text-purple-300 drop-shadow-[0_0_6px_rgba(192,132,252,0.8)]" />
+                <Activity className="w-2 md:w-2.5 h-2 md:h-2.5 text-purple-300 drop-shadow-[0_0_6px_rgba(192,132,252,0.8)]" />
               </div>
             )}
           </motion.div>
@@ -370,12 +397,13 @@ function DaySection({
       {/* Luminous Current Time Line on Today (Client-Side Real-Time Mount) */}
       <CurrentTimeIndicator isToday={isToday} />
 
-      {/* Main Blocks Layer (Tasks & Routines) */}
-      <div className="absolute left-30 right-4 top-0 bottom-0 pointer-events-auto">
+      {/* Main Blocks Layer (Tasks & Routines) - Gutter offset: 58px on mobile, 114px on desktop */}
+      <div className="absolute left-15 md:left-30 right-2 md:right-4 top-0 bottom-0 pointer-events-auto">
         {positionedBlocks.map((pos) => (
           <VisionOSCardBlock
             key={`${pos.item.type}-${pos.item.data.id}-${pos.colIndex}`}
             positioned={pos}
+            isFocused={focusedItemId === pos.item.data.id}
             onOpenTooltip={(e) => onOpenTooltip(pos.item, e)}
             onRefresh={onRefresh}
           />
@@ -386,20 +414,25 @@ function DaySection({
 }
 
 /**
- * Ultra-Premium VisionOS Card Block with Harmonious Indigo Glass & Top Labels
+ * Ultra-Premium VisionOS Card Block with Dynamic Cascade Overlap & Tap-to-Elevate
  */
 function VisionOSCardBlock({
   positioned,
+  isFocused,
   onOpenTooltip,
   onRefresh,
 }: {
   positioned: PositionedItem;
+  isFocused: boolean;
   onOpenTooltip: (e: React.MouseEvent) => void;
   onRefresh: () => void;
 }) {
   const { item, top, height, colIndex, totalCols } = positioned;
-  const widthPercent = 100 / totalCols;
-  const leftPercent = colIndex * widthPercent;
+
+  // Dynamic Cascade Overlap geometry
+  // Cards take 88% width, stepped by 24px per overlapping index
+  const cascadeOffsetPx = colIndex * 24;
+  const isMultiCol = totalCols > 1;
 
   if (item.type === "task") {
     const task = item.data as Task;
@@ -415,7 +448,9 @@ function VisionOSCardBlock({
 
     return (
       <motion.div
-        whileHover={{ scale: 1.01, filter: "brightness(1.08)" }}
+        layout
+        transition={{ type: "spring", stiffness: 450, damping: 30 }}
+        whileHover={{ scale: 1.01, filter: "brightness(1.1)" }}
         whileTap={{ scale: 0.985 }}
         onClick={(e) => {
           e.stopPropagation();
@@ -425,13 +460,15 @@ function VisionOSCardBlock({
           "absolute rounded-2xl p-2.5 flex flex-col justify-start items-start border transition-all duration-300 group select-none backdrop-blur-[40px] overflow-hidden cursor-pointer",
           isCompleted
             ? "bg-gradient-to-br from-emerald-500/[0.14] via-emerald-600/[0.06] to-emerald-700/[0.02] border-emerald-400/30 text-emerald-100 shadow-[0_15px_40px_rgba(0,0,0,0.45),inset_0_1.5px_2px_rgba(52,211,153,0.35)]"
-            : "bg-gradient-to-br from-indigo-500/[0.18] via-blue-600/[0.08] to-purple-600/[0.03] border-indigo-400/35 text-indigo-100 shadow-[0_15px_40px_rgba(0,0,0,0.55),inset_0_1.5px_2px_rgba(165,180,252,0.4)] hover:border-indigo-300/60"
+            : "bg-gradient-to-br from-indigo-500/[0.18] via-blue-600/[0.08] to-purple-600/[0.03] border-indigo-400/35 text-indigo-100 shadow-[0_15px_40px_rgba(0,0,0,0.55),inset_0_1.5px_2px_rgba(165,180,252,0.4)] hover:border-indigo-300/60",
+          isFocused && "z-40 ring-1 ring-white/60 shadow-[0_25px_60px_rgba(0,0,0,0.85),inset_0_2px_4px_rgba(255,255,255,0.6)]"
         )}
         style={{
           top: `${top}px`,
           height: `${height}px`,
-          left: `calc(${leftPercent}% + 4px)`,
-          width: `calc(${widthPercent}% - 8px)`,
+          left: isFocused ? "2px" : isMultiCol ? `${cascadeOffsetPx}px` : "2px",
+          width: isFocused ? "calc(100% - 4px)" : isMultiCol ? "calc(88% - 4px)" : "calc(100% - 4px)",
+          zIndex: isFocused ? 40 : 10 + colIndex,
         }}
       >
         {/* Top-Aligned Content with Checkbox */}
@@ -447,7 +484,7 @@ function VisionOSCardBlock({
           >
             <Check className="w-2.5 h-2.5 stroke-[3]" />
           </button>
-          <div className="flex flex-col min-w-0">
+          <div className="flex flex-col min-w-0 flex-1">
             <span className={cn("text-[13px] font-semibold tracking-wide truncate leading-tight", isCompleted ? "line-through text-emerald-200/80" : "text-indigo-50")}>
               {task.label}
             </span>
@@ -466,7 +503,9 @@ function VisionOSCardBlock({
 
     return (
       <motion.div
-        whileHover={{ scale: 1.01, filter: "brightness(1.08)" }}
+        layout
+        transition={{ type: "spring", stiffness: 450, damping: 30 }}
+        whileHover={{ scale: 1.01, filter: "brightness(1.1)" }}
         whileTap={{ scale: 0.985 }}
         onClick={(e) => {
           e.stopPropagation();
@@ -476,13 +515,15 @@ function VisionOSCardBlock({
           "absolute rounded-2xl p-2.5 flex flex-col justify-start items-start border transition-all duration-300 group select-none backdrop-blur-[40px] overflow-hidden cursor-pointer",
           isPlan
             ? "bg-gradient-to-br from-amber-400/[0.16] via-amber-500/[0.08] to-amber-500/[0.03] border-amber-300/35 text-amber-100 shadow-[0_15px_40px_rgba(0,0,0,0.55),inset_0_1.5px_2px_rgba(251,191,36,0.4)] hover:border-amber-300/60"
-            : "bg-gradient-to-br from-emerald-400/[0.16] via-emerald-500/[0.08] to-emerald-500/[0.03] border-emerald-300/35 text-emerald-100 shadow-[0_15px_40px_rgba(0,0,0,0.55),inset_0_1.5px_2px_rgba(52,211,153,0.4)] hover:border-emerald-300/60"
+            : "bg-gradient-to-br from-emerald-400/[0.16] via-emerald-500/[0.08] to-emerald-500/[0.03] border-emerald-300/35 text-emerald-100 shadow-[0_15px_40px_rgba(0,0,0,0.55),inset_0_1.5px_2px_rgba(52,211,153,0.4)] hover:border-emerald-300/60",
+          isFocused && "z-40 ring-1 ring-white/60 shadow-[0_25px_60px_rgba(0,0,0,0.85),inset_0_2px_4px_rgba(255,255,255,0.6)]"
         )}
         style={{
           top: `${top}px`,
           height: `${height}px`,
-          left: `calc(${leftPercent}% + 4px)`,
-          width: `calc(${widthPercent}% - 8px)`,
+          left: isFocused ? "2px" : isMultiCol ? `${cascadeOffsetPx}px` : "2px",
+          width: isFocused ? "calc(100% - 4px)" : isMultiCol ? "calc(88% - 4px)" : "calc(100% - 4px)",
+          zIndex: isFocused ? 40 : 10 + colIndex,
         }}
       >
         {/* Top-Aligned Content */}
@@ -493,7 +534,7 @@ function VisionOSCardBlock({
               isPlan ? "bg-amber-300 text-amber-300" : "bg-emerald-300 text-emerald-300"
             )}
           />
-          <div className="flex flex-col min-w-0">
+          <div className="flex flex-col min-w-0 flex-1">
             <span className="text-[13px] font-semibold tracking-wide truncate leading-tight">
               {block.label}
             </span>
@@ -510,7 +551,7 @@ function VisionOSCardBlock({
 }
 
 /**
- * Unified VisionOS Quick Action Tooltip with Smart Contextual Interaction Suggestions
+ * Unified VisionOS Quick Action Tooltip with Clean Suggestions
  */
 function TimelineActionTooltip({
   activeTooltip,
@@ -533,11 +574,11 @@ function TimelineActionTooltip({
   if (!mounted || typeof document === "undefined") return null;
 
   // Position exactly beside where user clicked
-  const tooltipWidth = 270;
+  const tooltipWidth = 260;
   const left = Math.min(window.innerWidth - tooltipWidth - 16, Math.max(16, clickX + 14));
   const top = Math.max(16, Math.min(window.innerHeight - 230, clickY - 40));
 
-  // Handle Quick Interaction Suggestions
+  // Quick Action Handlers
   const handleExtendTask = async (mins: number) => {
     if (item.type !== "task") return;
     const task = item.data as Task;
@@ -746,8 +787,8 @@ function CurrentTimeIndicator({ isToday }: { isToday: boolean }) {
       className="absolute left-0 right-0 z-30 flex items-center pointer-events-none transition-all duration-300"
       style={{ top: `${currentPosition}px` }}
     >
-      <div className="w-28 flex justify-end pr-2">
-        <span className="w-2.5 h-2.5 rounded-full bg-white shadow-[0_0_12px_rgba(255,255,255,1),0_0_24px_rgba(255,255,255,0.8)] animate-pulse" />
+      <div className="w-14 md:w-28 flex justify-end pr-1.5 md:pr-2">
+        <span className="w-2 md:w-2.5 h-2 md:h-2.5 rounded-full bg-white shadow-[0_0_12px_rgba(255,255,255,1),0_0_24px_rgba(255,255,255,0.8)] animate-pulse" />
       </div>
       <div className="flex-1 h-[1.5px] bg-gradient-to-r from-white via-white/80 to-transparent shadow-[0_0_10px_rgba(255,255,255,0.8)]" />
     </div>

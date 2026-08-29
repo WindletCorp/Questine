@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.15"
+    PostgrestVersion: "14.5"
   }
   public: {
     Tables: {
@@ -20,9 +20,9 @@ export type Database = {
           content: string
           created_at: string | null
           deleted_at: string | null
-          end_time: string | null
+          end_time: string
           id: string
-          start_time: string | null
+          start_time: string
           updated_at: string | null
           user_id: string
         }
@@ -31,9 +31,9 @@ export type Database = {
           content: string
           created_at?: string | null
           deleted_at?: string | null
-          end_time?: string | null
+          end_time: string
           id?: string
-          start_time?: string | null
+          start_time: string
           updated_at?: string | null
           user_id: string
         }
@@ -42,9 +42,9 @@ export type Database = {
           content?: string
           created_at?: string | null
           deleted_at?: string | null
-          end_time?: string | null
+          end_time?: string
           id?: string
-          start_time?: string | null
+          start_time?: string
           updated_at?: string | null
           user_id?: string
         }
@@ -105,27 +105,30 @@ export type Database = {
       metric_entries: {
         Row: {
           created_at: string | null
+          end_time: string
           id: string
           metric_id: string
-          timestamp: string
+          start_time: string
           updated_at: string | null
           user_id: string
           value: number
         }
         Insert: {
           created_at?: string | null
+          end_time: string
           id?: string
           metric_id: string
-          timestamp: string
+          start_time: string
           updated_at?: string | null
           user_id: string
           value: number
         }
         Update: {
           created_at?: string | null
+          end_time?: string
           id?: string
           metric_id?: string
-          timestamp?: string
+          start_time?: string
           updated_at?: string | null
           user_id?: string
           value?: number
@@ -368,11 +371,11 @@ export type Database = {
           completed_at: string | null
           created_at: string | null
           deleted_at: string | null
-          end_time: string | null
+          end_time: string
           id: string
           label: string
           metadata: Json | null
-          start_time: string | null
+          start_time: string
           updated_at: string | null
           user_id: string
         }
@@ -380,11 +383,11 @@ export type Database = {
           completed_at?: string | null
           created_at?: string | null
           deleted_at?: string | null
-          end_time?: string | null
+          end_time: string
           id?: string
           label: string
           metadata?: Json | null
-          start_time?: string | null
+          start_time: string
           updated_at?: string | null
           user_id: string
         }
@@ -392,11 +395,11 @@ export type Database = {
           completed_at?: string | null
           created_at?: string | null
           deleted_at?: string | null
-          end_time?: string | null
+          end_time?: string
           id?: string
           label?: string
           metadata?: Json | null
-          start_time?: string | null
+          start_time?: string
           updated_at?: string | null
           user_id?: string
         }

@@ -2,6 +2,8 @@
 
 import { useAuth } from "@/components/providers/auth-provider";
 import { useThemeContext } from "@/themes/provider";
+import { TimelineTest } from "./timeline-test";
+import { SyncStatusBar } from "@/components/sync-status-bar";
 
 export default function TestPage() {
   const { user, loading } = useAuth();
@@ -126,7 +128,12 @@ export default function TestPage() {
         </button>
       </div>
 
+      <div style={{ marginBottom: "2rem" }}>
+        <SyncStatusBar />
+      </div>
+
       <TestLab userId={user.id} />
+      <TimelineTest userId={user.id} />
     </div>
   );
 }

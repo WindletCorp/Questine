@@ -111,7 +111,8 @@ export async function logEntry(
   userId: string,
   metricId: string,
   value: number,
-  timestamp: string
+  startTime: string,
+  endTime?: string
 ): Promise<DbResult<MetricEntry>> {
   const { data, error } = await client
     .from("metric_entries")
@@ -119,7 +120,8 @@ export async function logEntry(
       user_id: userId,
       metric_id: metricId,
       value,
-      timestamp,
+      start_time: startTime,
+      end_time: endTime ?? startTime,
     })
     .select()
     .single();
@@ -138,14 +140,14 @@ export async function getEntries(
     .from("metric_entries")
     .select("*")
     .eq("user_id", userId)
-    .order("timestamp", { ascending: false });
+    .order("start_time", { ascending: false });
 
   if (metricId) {
     query = query.eq("metric_id", metricId);
   }
 
   if (timeRange) {
-    query = query.gte("timestamp", timeRange.from).lte("timestamp", timeRange.to);
+    query = query.gte("start_time", timeRange.from).lte("start_time", timeRange.to);
   }
 
   const { data, error } = await query;

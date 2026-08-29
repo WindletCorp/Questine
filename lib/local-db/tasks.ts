@@ -23,8 +23,8 @@ export async function getLocalTasks(
 
     if (from || to) {
       // Overlap semantics: task overlaps window when start_time <= to AND end_time >= from
-      if (from) tasks = tasks.filter(t => t.end_time && t.end_time >= from);
-      if (to) tasks = tasks.filter(t => t.start_time && t.start_time <= to);
+      if (from) tasks = tasks.filter(t => t.end_time >= from);
+      if (to) tasks = tasks.filter(t => t.start_time <= to);
     } else {
       // Default: filter by updated_at within a 48-hour window
       const defaultStart = updatedAfter ?? new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
@@ -48,8 +48,8 @@ export async function createLocalTask(task: TaskInsert): Promise<DbResult<LocalT
       id,
       user_id: task.user_id,
       label: task.label,
-      start_time: task.start_time ?? null,
-      end_time: task.end_time ?? null,
+      start_time: task.start_time ?? now,
+      end_time: task.end_time ?? task.start_time ?? now,
       metadata: task.metadata ?? null,
       completed_at: task.completed_at ?? null,
       created_at: task.created_at ?? now,

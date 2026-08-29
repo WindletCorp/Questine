@@ -108,3 +108,22 @@ export type OrbTransactionInsert = Database["public"]["Tables"]["orb_transaction
 export type ItemCategory = Database["public"]["Enums"]["item_category"];
 export type ItemRarity = Database["public"]["Enums"]["item_rarity"];
 export type TransactionType = Database["public"]["Enums"]["transaction_type"];
+
+// --- Timeline Types ---
+
+export type MetricDefinitionSummary = {
+  name: string;
+  type: string;
+  unit: string | null;
+  polarity: string | null;
+};
+
+export type EnrichedMetricEntry = MetricEntry & {
+  definition: MetricDefinitionSummary;
+};
+
+export type TimelineItem =
+  | { type: "task"; data: Task }
+  | { type: "routine_block"; data: RoutineBlock }
+  | { type: "journal"; data: Journal }
+  | { type: "metric_entry"; data: EnrichedMetricEntry };

@@ -210,7 +210,8 @@ export async function logLocalEntry(
   userId: string,
   metricId: string,
   value: number,
-  timestamp: string
+  startTime: string,
+  endTime?: string
 ): Promise<DbResult<LocalMetricEntry>> {
   try {
     const now = new Date().toISOString();
@@ -220,7 +221,8 @@ export async function logLocalEntry(
       user_id: userId,
       metric_id: metricId,
       value,
-      timestamp,
+      start_time: startTime,
+      end_time: endTime ?? startTime,
       created_at: now,
       updated_at: now,
       sync_status: "pending",
@@ -238,7 +240,8 @@ export async function logLocalEntry(
           user_id: userId,
           metric_id: metricId,
           value,
-          timestamp,
+          start_time: startTime,
+          end_time: endTime ?? startTime,
           created_at: now,
           updated_at: now,
         },
@@ -270,10 +273,10 @@ export async function getLocalEntries(
     }
     
     if (timeRange) {
-      filtered = filtered.filter(e => e.timestamp >= timeRange.from && e.timestamp <= timeRange.to);
+      filtered = filtered.filter(e => e.start_time >= timeRange.from && e.start_time <= timeRange.to);
     }
 
-    filtered.sort((a, b) => b.timestamp.localeCompare(a.timestamp)); // Descending
+    filtered.sort((a, b) => b.start_time.localeCompare(a.start_time)); // Descending
 
     return ok(filtered);
   } catch (error) {

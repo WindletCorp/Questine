@@ -44,7 +44,7 @@ export function TasksCard({
       icon={<CheckSquare className="w-4 h-4 text-white/80" />}
       title="Next Task"
       subtitleTop={task ? formatTime(task.start_time) : ""}
-      subtitleBottom={task ? task.category : "No scheduled tasks"}
+      subtitleBottom={task ? (task.metadata?.category ?? task.label) : "No scheduled tasks"}
       accentColor="blue"
     >
       <div className="space-y-1.5 pt-1">

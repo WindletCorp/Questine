@@ -58,7 +58,7 @@ export function TasksCard({
                 className="accent-white w-3.5 h-3.5 rounded border-white/30 cursor-pointer shrink-0" 
               />
               <span className={cn("truncate text-[11px] transition-all", isCompleted && "line-through opacity-50")}>
-                {task.title}
+                {task.label}
               </span>
             </label>
             <span className="text-[9px] font-mono text-white/40 shrink-0 bg-white/5 px-2 py-0.5 rounded-full">

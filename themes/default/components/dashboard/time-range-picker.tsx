@@ -364,14 +364,14 @@ export function VisionOSTimeRangePicker({
       </div>
 
       {/* Ultra-Compact VisionOS Glass Calendar Popover */}
-      <AnimatePresence>
-        {openCalendar && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.96, y: -4 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.96, y: -4 }}
-            transition={{ type: "spring", stiffness: 500, damping: 32 }}
-            className="p-2.5 rounded-xl bg-black/90 backdrop-blur-[45px] border border-white/25 shadow-[0_20px_60px_rgba(0,0,0,0.9),inset_0_1px_2px_rgba(255,255,255,0.4)] flex flex-col gap-1.5 text-white select-none"
+      {openCalendar && (
+        <>
+          <div 
+            className="fixed inset-0 z-40 bg-black/20" 
+            onClick={() => setOpenCalendar(null)}
+          />
+          <div
+            className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[240px] z-50 p-4 rounded-[28px] bg-white/[0.12] backdrop-blur-[50px] saturate-[210%] border border-white/30 shadow-[0_40px_100px_rgba(0,0,0,0.9),0_0_40px_rgba(255,255,255,0.15),inset_0_2px_4px_rgba(255,255,255,0.6),inset_0_-2px_4px_rgba(0,0,0,0.4)] flex flex-col gap-2.5 text-white select-none"
           >
             {/* Header */}
             <div className="flex items-center justify-between px-1">
@@ -441,9 +441,9 @@ export function VisionOSTimeRangePicker({
                 );
               })}
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          </div>
+        </>
+      )}
 
       {/* Quick Duration Chips */}
       <div className="flex items-center gap-1.5 pt-0.5 border-t border-white/10">

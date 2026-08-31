@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useMemo, useState, useCallback } from "react";
+import React, { useEffect, useRef, useMemo, useState, useCallback, memo } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Check, BookOpen, Activity, X } from "lucide-react";
@@ -79,7 +79,9 @@ export function ContinuousCalendarPane({
     }
   }, [daySegments]);
 
-  // Seamless Bidirectional Infinite Scroll Detection
+  const isScrolling = useRef(false);
+
+  // Seamless Bidirectional Infinite Scroll Detection with rAF Throttling
   const handleScroll = useCallback(() => {
     if (!scrollRef.current) return;
 
@@ -88,40 +90,48 @@ export function ContinuousCalendarPane({
       setFocusedItemId(null);
     }
 
-    const scrollTop = scrollRef.current.scrollTop;
-    const scrollHeight = scrollRef.current.scrollHeight;
-    const clientHeight = scrollRef.current.clientHeight;
+    if (isScrolling.current) return;
+    isScrolling.current = true;
 
-    // Scroll UP -> Load earlier past days
-    if (scrollTop < 400 && !isFetchingEarlier) {
-      const prevScrollHeight = scrollRef.current.scrollHeight;
-      onLoadEarlierDays();
+    requestAnimationFrame(() => {
+      isScrolling.current = false;
+      if (!scrollRef.current) return;
 
-      requestAnimationFrame(() => {
-        if (scrollRef.current) {
-          const newScrollHeight = scrollRef.current.scrollHeight;
-          const diff = newScrollHeight - prevScrollHeight;
-          if (diff > 0) {
-            scrollRef.current.scrollTop = scrollTop + diff;
+      const scrollTop = scrollRef.current.scrollTop;
+      const scrollHeight = scrollRef.current.scrollHeight;
+      const clientHeight = scrollRef.current.clientHeight;
+
+      // Scroll UP -> Load earlier past days
+      if (scrollTop < 400 && !isFetchingEarlier) {
+        const prevScrollHeight = scrollRef.current.scrollHeight;
+        onLoadEarlierDays();
+
+        requestAnimationFrame(() => {
+          if (scrollRef.current) {
+            const newScrollHeight = scrollRef.current.scrollHeight;
+            const diff = newScrollHeight - prevScrollHeight;
+            if (diff > 0) {
+              scrollRef.current.scrollTop = scrollTop + diff;
+            }
           }
-        }
-      });
-    }
+        });
+      }
 
-    // Scroll DOWN -> Load future days
-    if (scrollHeight - (scrollTop + clientHeight) < 400 && !isFetchingFuture) {
-      onLoadFutureDays();
-    }
+      // Scroll DOWN -> Load future days
+      if (scrollHeight - (scrollTop + clientHeight) < 400 && !isFetchingFuture) {
+        onLoadFutureDays();
+      }
+    });
   }, [isFetchingEarlier, isFetchingFuture, onLoadEarlierDays, onLoadFutureDays, activeTooltip]);
 
-  const handleOpenTooltip = (item: TimelineItem, e: React.MouseEvent) => {
+  const handleOpenTooltip = useCallback((item: TimelineItem, e: React.MouseEvent) => {
     setFocusedItemId(item.data.id);
     setActiveTooltip({
       item,
       clickX: e.clientX,
       clickY: e.clientY,
     });
-  };
+  }, []);
 
   const handleCloseTooltip = () => {
     setActiveTooltip(null);
@@ -168,7 +178,7 @@ export function ContinuousCalendarPane({
 /**
  * Individual 24-Hour Day Section with Dynamic Cascade Overlap & Responsive Time Rail
  */
-function DaySection({
+const DaySection = memo(function DaySection({
   segment,
   focusedItemId,
   onOpenTooltip,
@@ -411,12 +421,12 @@ function DaySection({
       </div>
     </div>
   );
-}
+});
 
 /**
  * Ultra-Premium VisionOS Card Block with Dynamic Cascade Overlap & Tap-to-Elevate
  */
-function VisionOSCardBlock({
+const VisionOSCardBlock = memo(function VisionOSCardBlock({
   positioned,
   isFocused,
   onOpenTooltip,
@@ -548,7 +558,13 @@ function VisionOSCardBlock({
   }
 
   return null;
-}
+}, (prevProps, nextProps) => {
+  return (
+    prevProps.isFocused === nextProps.isFocused &&
+    prevProps.positioned.item.data.id === nextProps.positioned.item.data.id &&
+    prevProps.positioned.item.type === nextProps.positioned.item.type
+  );
+});
 
 /**
  * Unified VisionOS Quick Action Tooltip with Clean Suggestions

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, Children, cloneElement, ReactElement } from "react";
+import { useRouter } from "next/navigation";
 import styles from "../theme.module.css";
 
 interface CardComponentProps {
@@ -14,6 +15,7 @@ interface StackedDeckProps {
 }
 
 export function StackedDeck({ children }: StackedDeckProps) {
+  const router = useRouter();
   const [activeDeckIndex, setActiveDeckIndex] = useState(0);
   const [expandedCardIndex, setExpandedCardIndex] = useState(-1);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -35,11 +37,17 @@ export function StackedDeck({ children }: StackedDeckProps) {
     if ((e.target as HTMLElement).closest("button, input, label, .custom-glass-scroll")) {
       return;
     }
+    const isHeaderClick = !!(e.target as HTMLElement).closest(".deck-card-header");
+
     if (activeDeckIndex !== index) {
       setActiveDeckIndex(index);
       setExpandedCardIndex(index);
     } else {
-      setExpandedCardIndex((prev) => (prev === index ? -1 : index));
+      if (isHeaderClick) {
+        setExpandedCardIndex((prev) => (prev === index ? -1 : index));
+      } else if (expandedCardIndex === index) {
+        router.push("/dashboard");
+      }
     }
   };
 

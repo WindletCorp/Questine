@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { getTimelineRange } from "@/lib/local-db/timeline";
+import type { TimelineItem, Task, RoutineBlock, EnrichedMetricEntry, Journal } from "@/lib/db/types";
 import { GlassSphere } from "../components/glass-sphere";
 import { GlassButton } from "../components/glass-button";
 import { StackedDeck } from "../components/stacked-deck";
@@ -10,29 +12,37 @@ import { TasksCard } from "../components/tasks-card";
 import { MetricsCard } from "../components/metrics-card";
 import { JournalCard } from "../components/journal-card";
 import { EntryView } from "../components/entry-view";
-import { User, LayoutDashboard } from "lucide-react";
-import Link from "next/link";
-
-function getGreeting(): string {
-  const hour = new Date().getHours();
-  if (hour >= 5 && hour < 12) return "Good morning";
-  if (hour >= 12 && hour < 17) return "Good afternoon";
-  if (hour >= 17 && hour < 21) return "Good evening";
-  return "Good night";
-}
-
 export function AppHome({ userId }: { userId?: string }) {
   const [entryModeActive, setEntryModeActive] = useState(false);
-  const [greeting, setGreeting] = useState<string | null>(null);
+  const [timelineItems, setTimelineItems] = useState<TimelineItem[]>([]);
 
   useEffect(() => {
-    setGreeting(getGreeting());
-  }, []);
+    async function loadData() {
+      const now = new Date();
+      const start = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
+      const end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59).toISOString();
+      
+      const res = await getTimelineRange(userId || "guest", start, end);
+      if (res.data) {
+        setTimelineItems(res.data);
+      }
+    }
+    loadData();
+    
+    // Auto-refresh every minute just to keep "next" logic fresh
+    const timer = setInterval(loadData, 60000);
+    return () => clearInterval(timer);
+  }, [userId]);
+
+  // Extract exactly one of each type
+  const nextTask = timelineItems.find(i => i.type === "task" && !(i.data as Task).completed_at)?.data as Task | undefined;
+  const nextRoutine = timelineItems.find(i => i.type === "routine_block" && new Date((i.data as RoutineBlock).end_time).getTime() > Date.now())?.data as RoutineBlock | undefined;
+  const latestMetric = timelineItems.slice().reverse().find(i => i.type === "metric_entry")?.data as EnrichedMetricEntry | undefined;
+  const latestJournal = timelineItems.slice().reverse().find(i => i.type === "journal")?.data as Journal | undefined;
 
   return (
-    <div className="relative flex flex-col justify-between p-5 md:p-6 antialiased select-none h-[100dvh] w-full max-w-lg mx-auto">
-      {/* Background Dot Mesh Grid */}
-      <div className="bg-dot-mesh fixed inset-0 pointer-events-none -z-20" />
+    <div className="relative flex flex-col justify-between p-5 md:p-6 antialiased select-none flex-1 h-full w-full max-w-lg mx-auto">
+
 
       {/* Atmospheric Luminous Aura */}
       <div 
@@ -52,25 +62,6 @@ export function AppHome({ userId }: { userId?: string }) {
         />
       </div>
 
-      {/* Header Section */}
-      <header className="w-full flex justify-between items-center z-30 shrink-0">
-        <div className="flex flex-col">
-          <span className="text-[10px] font-semibold tracking-widest uppercase text-white/40 font-mono">Questine OS</span>
-          <span className="text-xs font-medium text-white/75 mt-0.5">{greeting ?? "\u00A0"}</span>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <Link href="/dashboard" aria-label="Open Full Dashboard">
-            <GlassButton variant="pill" className="gap-1.5 py-1 px-3">
-              <LayoutDashboard className="w-3.5 h-3.5" />
-              <span className="text-[11px] font-medium">Dashboard</span>
-            </GlassButton>
-          </Link>
-          <GlassButton variant="profile" aria-label="User Profile">
-            <User className="w-4 h-4" />
-          </GlassButton>
-        </div>
-      </header>
 
       {/* Central Viewport-Centered Core Canvas */}
       <main className="flex-1 flex flex-col items-center justify-center relative w-full z-10 my-auto py-2">
@@ -95,10 +86,10 @@ export function AppHome({ userId }: { userId?: string }) {
               className="w-full flex justify-center origin-top"
             >
               <StackedDeck>
-                <RoutineCard />
-                <TasksCard />
-                <MetricsCard />
-                <JournalCard />
+                <RoutineCard routine={nextRoutine} />
+                <TasksCard task={nextTask} />
+                <MetricsCard metric={latestMetric} />
+                <JournalCard journal={latestJournal} />
               </StackedDeck>
             </motion.div>
           ) : (
@@ -111,6 +102,7 @@ export function AppHome({ userId }: { userId?: string }) {
               className="w-full max-w-[25rem] origin-top"
             >
               <EntryView 
+                userId={userId}
                 isActive={entryModeActive} 
                 onClose={() => setEntryModeActive(false)} 
               />

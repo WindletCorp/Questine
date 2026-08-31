@@ -1,12 +1,13 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { X, Trash2, Activity, Plus, Minus } from "lucide-react";
 import type { EnrichedMetricEntry } from "@/lib/db/types";
 import type { LocalMetricDefinition } from "@/lib/local-db";
-import { getLocalAvailableMetrics, logLocalEntry, updateLocalEntry, deleteLocalEntry } from "@/lib/local-db/metrics";
+import { getLocalUserSubscriptions, logLocalEntry, updateLocalEntry, deleteLocalEntry } from "@/lib/local-db/metrics";
 import { VisionOSTimeRangePicker } from "../time-range-picker";
+import { ManageMetricsView } from "./manage-metrics-view";
 import { cn } from "@/lib/utils";
 
 interface MetricPaneProps {
@@ -33,18 +34,22 @@ export function MetricPane({ entry, userId, onClose, onSuccess }: MetricPaneProp
   const [endTime, setEndTime] = useState(entry?.end_time ? toLocalIso(entry.end_time) : toLocalIso(null, 20));
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  useEffect(() => {
-    async function loadDefinitions() {
-      const res = await getLocalAvailableMetrics(userId);
-      if (res.data) {
-        setDefinitions(res.data);
-        if (!selectedDefId && res.data.length > 0) {
-          setSelectedDefId(res.data[0].id);
-        }
+  const [isManaging, setIsManaging] = useState(false);
+
+  const loadDefinitions = async () => {
+    const res = await getLocalUserSubscriptions(userId, true);
+    if (res.data) {
+      const defs = res.data.map(sub => sub.metric_definition).filter(Boolean) as LocalMetricDefinition[];
+      setDefinitions(defs);
+      if (!selectedDefId && defs.length > 0) {
+        setSelectedDefId(defs[0].id);
       }
     }
+  };
+
+  useEffect(() => {
     loadDefinitions();
-  }, [userId, selectedDefId]);
+  }, [userId, isManaging]); // Reload when coming back from managing
 
   const activeDef = definitions.find((d) => d.id === selectedDefId);
 
@@ -96,30 +101,66 @@ export function MetricPane({ entry, userId, onClose, onSuccess }: MetricPaneProp
 
   return (
     <motion.div
+      layout
       initial={{ opacity: 0, y: 24, scale: 0.97 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: 24, scale: 0.97 }}
       transition={{ type: "spring", stiffness: 500, damping: 32 }}
-      className="w-full max-w-lg p-5 rounded-[30px] bg-white/[0.08] backdrop-blur-[50px] saturate-[210%] border border-white/25 shadow-[0_35px_90px_rgba(0,0,0,0.85),0_0_30px_rgba(255,255,255,0.1),inset_0_2px_4px_rgba(255,255,255,0.5),inset_0_-2px_4px_rgba(0,0,0,0.35)] text-white flex flex-col gap-3.5 select-none pointer-events-auto"
+      className="w-full max-w-lg p-5 rounded-[30px] bg-white/[0.08] backdrop-blur-[50px] saturate-[210%] border border-white/25 shadow-[0_35px_90px_rgba(0,0,0,0.85),0_0_30px_rgba(255,255,255,0.1),inset_0_2px_4px_rgba(255,255,255,0.5),inset_0_-2px_4px_rgba(0,0,0,0.35)] text-white flex flex-col gap-3.5 select-none pointer-events-auto overflow-hidden"
     >
-      {/* Top Header */}
-      <div className="flex items-center justify-between pb-2.5 border-b border-white/12">
-        <div className="flex items-center gap-2">
-          <div className="w-5 h-5 rounded-full bg-purple-400/20 flex items-center justify-center">
-            <Activity className="w-3 h-3 text-purple-300" />
-          </div>
-          <span className="text-[11px] font-mono tracking-widest uppercase text-white/80 font-semibold">
-            {isEditing ? "Edit Metric Entry" : "Log Metric Activity"}
-          </span>
-        </div>
-        <button
-          type="button"
-          onClick={onClose}
-          className="w-6 h-6 rounded-full flex items-center justify-center text-white/45 hover:text-white hover:bg-white/10 transition-all cursor-pointer"
-        >
-          <X className="w-3.5 h-3.5" />
-        </button>
-      </div>
+      <AnimatePresence mode="wait" initial={false}>
+        {isManaging ? (
+          <motion.div 
+            key="manage"
+            initial={{ opacity: 0, scale: 0.96 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.96 }}
+            transition={{ type: "spring", stiffness: 400, damping: 30 }}
+            className="w-full flex-1 flex flex-col"
+          >
+            <ManageMetricsView 
+              userId={userId} 
+              onBack={() => setIsManaging(false)} 
+            />
+          </motion.div>
+        ) : (
+          <motion.div
+            key="log"
+            initial={{ opacity: 0, scale: 0.96 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.96 }}
+            transition={{ type: "spring", stiffness: 400, damping: 30 }}
+            className="flex flex-col gap-3.5"
+          >
+            {/* Top Header */}
+            <div className="flex items-center justify-between pb-2.5 border-b border-white/12">
+              <div className="flex items-center gap-2">
+                <div className="w-5 h-5 rounded-full bg-purple-400/20 flex items-center justify-center">
+                  <Activity className="w-3 h-3 text-purple-300" />
+                </div>
+                <span className="text-[11px] font-mono tracking-widest uppercase text-white/80 font-semibold">
+                  {isEditing ? "Edit Metric Entry" : "Log Metric Activity"}
+                </span>
+              </div>
+              <div className="flex items-center gap-1">
+                {!isEditing && (
+                  <button
+                    type="button"
+                    onClick={() => setIsManaging(true)}
+                    className="px-2 py-1 rounded-full bg-white/5 hover:bg-white/10 text-white/60 hover:text-white transition-all cursor-pointer text-[10px] font-semibold uppercase tracking-wider flex items-center gap-1"
+                  >
+                    Manage
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="w-6 h-6 rounded-full flex items-center justify-center text-white/45 hover:text-white hover:bg-white/10 transition-all cursor-pointer"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
 
       {/* Form */}
       <form onSubmit={handleSubmit} className="flex flex-col gap-3">
@@ -218,24 +259,27 @@ export function MetricPane({ entry, userId, onClose, onSuccess }: MetricPaneProp
             </button>
           ) : <div />}
 
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-3.5 py-1.5 rounded-xl border border-white/15 text-xs text-white/60 hover:text-white transition-all cursor-pointer"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={isSubmitting || !selectedDefId}
-              className="px-4 py-1.5 rounded-xl bg-white text-black font-semibold text-xs transition-all shadow-[0_0_20px_rgba(255,255,255,0.7)] cursor-pointer hover:bg-white/90 disabled:opacity-50"
-            >
-              {isSubmitting ? "Saving..." : isEditing ? "Save Entry" : "Log Activity"}
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-3.5 py-1.5 rounded-xl border border-white/15 text-xs text-white/60 hover:text-white transition-all cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={isSubmitting || !selectedDefId}
+                className="px-4 py-1.5 rounded-xl bg-white text-black font-semibold text-xs transition-all shadow-[0_0_20px_rgba(255,255,255,0.7)] cursor-pointer hover:bg-white/90 disabled:opacity-50"
+              >
+                {isSubmitting ? "Saving..." : isEditing ? "Save Entry" : "Log Activity"}
+              </button>
+            </div>
           </div>
-        </div>
-      </form>
+        </form>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }

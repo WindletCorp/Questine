@@ -49,7 +49,7 @@ export function DeckCard({
       onClick={onClick}
     >
       <div className={cn("transition-opacity duration-350 ease-in-out", isFront ? "opacity-100" : "opacity-0 pointer-events-none")}>
-        <div className="flex items-center justify-between gap-3">
+        <div className="deck-card-header flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
             {headerElement ? (
               headerElement

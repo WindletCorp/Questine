@@ -125,7 +125,6 @@ export function RoutinePane({ routine, userId, onClose, onSuccess }: RoutinePane
         <input
           type="text"
           required
-          autoFocus
           value={label}
           onChange={(e) => setLabel(e.target.value)}
           placeholder="Routine title..."

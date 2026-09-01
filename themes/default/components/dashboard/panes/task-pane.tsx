@@ -76,6 +76,14 @@ export function TaskPane({ task, userId, onClose, onSuccess }: TaskPaneProps) {
     }
   };
 
+  const inputRef = React.useRef<HTMLInputElement>(null);
+
+  React.useEffect(() => {
+    if (window.matchMedia("(min-width: 768px)").matches) {
+      setTimeout(() => inputRef.current?.focus(), 100);
+    }
+  }, []);
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 24, scale: 0.97 }}
@@ -109,7 +117,7 @@ export function TaskPane({ task, userId, onClose, onSuccess }: TaskPaneProps) {
         <input
           type="text"
           required
-          autoFocus
+          ref={inputRef}
           value={label}
           onChange={(e) => setLabel(e.target.value)}
           placeholder="What needs to be done?"

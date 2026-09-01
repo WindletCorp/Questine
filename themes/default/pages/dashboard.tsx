@@ -87,7 +87,7 @@ export function Dashboard({ userId }: { userId?: string }) {
       {/* Bidirectional Continuous Infinite Timeline Viewport with Split-View Analytics */}
       <main className="flex-1 w-full relative z-10 flex flex-col min-h-0 overflow-hidden mb-3">
         <DragSplitView 
-          topPanel={<AnalyticsStrip analytics={analytics} />}
+          topPanel={(y) => <AnalyticsStrip analytics={analytics} y={y} />}
           bottomPanel={
             <ContinuousCalendarPane
               daySegments={daySegments}

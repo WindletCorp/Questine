@@ -2,10 +2,10 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { User, LayoutDashboard } from "lucide-react";
+import { LayoutDashboard } from "lucide-react";
 import { GlassButton } from "./glass-button";
 import { usePathname } from "next/navigation";
-import { SyncEngine } from "@/lib/sync/engine";
+import { ProfileMenu } from "./profile-menu";
 
 function getGreeting(): string {
   const hour = new Date().getHours();
@@ -17,22 +17,11 @@ function getGreeting(): string {
 
 export function GlobalHeader() {
   const [greeting, setGreeting] = useState<string | null>(null);
-  const [isSyncing, setIsSyncing] = useState(false);
   const pathname = usePathname();
 
   useEffect(() => {
     setGreeting(getGreeting());
   }, []);
-
-  const handleProfileSync = async () => {
-    if (isSyncing) return;
-    setIsSyncing(true);
-    try {
-      await SyncEngine.fullSync();
-    } finally {
-      setTimeout(() => setIsSyncing(false), 500);
-    }
-  };
 
   return (
     <header className="w-full max-w-5xl mx-auto px-4 md:px-6 pt-4 pb-2 flex justify-between items-center z-50 shrink-0">
@@ -54,14 +43,8 @@ export function GlobalHeader() {
             </GlassButton>
           </Link>
         )}
-        <GlassButton 
-          variant="profile" 
-          aria-label="User Profile & Cloud Sync" 
-          onClick={handleProfileSync}
-          className={isSyncing ? "opacity-50 pointer-events-none" : ""}
-        >
-          <User className="w-4 h-4" />
-        </GlassButton>
+        
+        <ProfileMenu />
       </div>
     </header>
   );

@@ -9,7 +9,7 @@ import type { DaySegment } from "@/lib/hooks/use-continuous-timeline";
 import { updateLocalTask } from "@/lib/local-db/tasks";
 import { createLocalRoutineBlock } from "@/lib/local-db/routine-blocks";
 import { logLocalEntry } from "@/lib/local-db/metrics";
-import { cn } from "@/lib/utils";
+import { cn, toTitleCase } from "@/lib/utils";
 
 const HOUR_HEIGHT = 84; // 84px per hour
 const DAY_HEIGHT = 24 * HOUR_HEIGHT; // 2016px per day segment
@@ -660,7 +660,7 @@ function TimelineActionTooltip({
         badge: "Metric",
         badgeColor: "text-purple-200 bg-purple-500/20 border-purple-400/40",
         title: `+${entry.value} ${entry.definition.unit || ""}`,
-        subtitle: entry.definition.name,
+        subtitle: toTitleCase(entry.definition.name),
       };
     }
     if (item.type === "journal") {

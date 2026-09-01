@@ -45,19 +45,19 @@ export function AppHome({ userId }: { userId?: string }) {
 
 
       {/* Atmospheric Luminous Aura */}
-      <div 
-        className="fixed inset-0 pointer-events-none -z-10 flex items-center justify-center transition-all duration-1000 ease-out"
-      >
-        <div 
-          className="rounded-full transition-all duration-1000 ease-out"
+      <div className="fixed inset-0 pointer-events-none -z-10 flex items-center justify-center">
+        <motion.div 
+          className="rounded-full"
+          animate={{
+            scale: entryModeActive ? 1.4 : 1,
+            opacity: entryModeActive ? 1 : 0.6,
+          }}
+          transition={{ type: "spring", stiffness: 120, damping: 20 }}
           style={{
-            width: entryModeActive ? "520px" : "380px",
-            height: entryModeActive ? "520px" : "380px",
-            background: entryModeActive 
-              ? "radial-gradient(circle, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0.05) 50%, transparent 75%)" 
-              : "radial-gradient(circle, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.02) 50%, transparent 75%)",
+            width: "380px",
+            height: "380px",
+            background: "radial-gradient(circle, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0.02) 50%, transparent 75%)",
             filter: "blur(40px)",
-            transform: entryModeActive ? "scale(1.15)" : "scale(1)",
           }}
         />
       </div>

@@ -37,6 +37,14 @@ export function JournalPane({ journal, userId, onClose, onSuccess }: JournalPane
   const [endTime, setEndTime] = useState(journal?.end_time ? toLocalIso(journal.end_time) : toLocalIso(null, 15));
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const inputRef = React.useRef<HTMLTextAreaElement>(null);
+
+  React.useEffect(() => {
+    if (window.matchMedia("(min-width: 768px)").matches) {
+      setTimeout(() => inputRef.current?.focus(), 100);
+    }
+  }, []);
+
   const applyPrompt = (prompt: string) => {
     setContent((prev) => (prev ? `${prev}\n\n${prompt}\n` : `${prompt}\n`));
   };
@@ -119,7 +127,7 @@ export function JournalPane({ journal, userId, onClose, onSuccess }: JournalPane
       <form onSubmit={handleSubmit} className="flex flex-col gap-3">
         <textarea
           required
-          autoFocus
+          ref={inputRef}
           rows={4}
           value={content}
           onChange={(e) => setContent(e.target.value)}

@@ -5,7 +5,7 @@ import { Check, Clock, Edit2, BookOpen, Activity, Trash2 } from "lucide-react";
 import type { Task, RoutineBlock, Journal } from "@/lib/db/types";
 import type { EnrichedMetricEntry, TimelineItem } from "@/lib/db/types";
 import { updateLocalTask } from "@/lib/local-db/tasks";
-import { cn } from "@/lib/utils";
+import { cn, toTitleCase } from "@/lib/utils";
 import styles from "../../theme.module.css";
 
 interface CardBaseProps {
@@ -194,7 +194,7 @@ export function MetricTimelineCard({ entry, onEdit }: { entry: EnrichedMetricEnt
 
         <div className="flex flex-col min-w-0">
           <div className="flex items-center gap-2">
-            <span className="text-xs font-medium text-white truncate">{entry.definition.name}</span>
+            <span className="text-xs font-medium text-white truncate">{toTitleCase(entry.definition.name)}</span>
             <span className="text-xs font-semibold text-purple-300">
               {entry.value} {entry.definition.unit || ""}
             </span>

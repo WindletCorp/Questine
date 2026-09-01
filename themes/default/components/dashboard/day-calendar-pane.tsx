@@ -7,7 +7,7 @@ import type { TimelineItem, Journal, EnrichedMetricEntry, Task, RoutineBlock } f
 import { updateLocalTask } from "@/lib/local-db/tasks";
 import { deleteLocalJournal } from "@/lib/local-db/journals";
 import { deleteLocalEntry } from "@/lib/local-db/metrics";
-import { cn } from "@/lib/utils";
+import { cn, toTitleCase } from "@/lib/utils";
 
 const HOUR_HEIGHT = 88; // 88px per hour
 const TOTAL_HOURS = 24;
@@ -407,7 +407,7 @@ function TimePaneMarker({
             >
               <div className="flex flex-col">
                 <span className="text-[9px] font-mono uppercase tracking-wider text-purple-300/80">
-                  {entry.definition.name}
+                  {toTitleCase(entry.definition.name)}
                 </span>
                 <span className="text-sm font-bold text-white">
                   +{entry.value} {entry.definition.unit || ""}

@@ -9,7 +9,7 @@ import { deleteLocalRoutineBlock, updateLocalRoutineBlock } from "@/lib/local-db
 import { deleteLocalJournal } from "@/lib/local-db/journals";
 import { deleteLocalEntry } from "@/lib/local-db/metrics";
 import styles from "../../theme.module.css";
-import { cn } from "@/lib/utils";
+import { cn, toTitleCase } from "@/lib/utils";
 
 interface StreamCardProps {
   item: TimelineItem;
@@ -272,7 +272,7 @@ export function StreamCard({ item, onRefresh }: StreamCardProps) {
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2.5 min-w-0">
             <Activity className="w-3.5 h-3.5 text-purple-400 shrink-0" />
-            <span className="text-xs font-medium text-white/90">{entry.definition.name}</span>
+            <span className="text-xs font-medium text-white/90">{toTitleCase(entry.definition.name)}</span>
             <span className="text-xs font-semibold text-purple-300">
               +{entry.value} {entry.definition.unit || ""}
             </span>

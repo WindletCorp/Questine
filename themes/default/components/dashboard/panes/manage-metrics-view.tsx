@@ -37,6 +37,14 @@ export function ManageMetricsView({ userId, onBack }: ManageMetricsViewProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
 
+  const createInputRef = React.useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (viewState === "create" && window.matchMedia("(min-width: 768px)").matches) {
+      setTimeout(() => createInputRef.current?.focus(), 100);
+    }
+  }, [viewState]);
+
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedQuery(searchQuery), 300);
     return () => clearTimeout(timer);
@@ -264,7 +272,7 @@ export function ManageMetricsView({ userId, onBack }: ManageMetricsViewProps) {
                   <input
                     type="text"
                     required
-                    autoFocus
+                    ref={createInputRef}
                     value={newName}
                     onChange={e => setNewName(e.target.value)}
                     placeholder="e.g., Deep Work Hours, Pages Read"

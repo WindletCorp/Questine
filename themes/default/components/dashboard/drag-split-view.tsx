@@ -1,10 +1,10 @@
 "use client";
 
 import React, { useRef, useState, useEffect } from "react";
-import { motion, useMotionValue, animate, PanInfo } from "framer-motion";
+import { motion, useMotionValue, animate, PanInfo, MotionValue } from "framer-motion";
 
 interface DragSplitViewProps {
-  topPanel: React.ReactNode;
+  topPanel: React.ReactNode | ((y: MotionValue<number>) => React.ReactNode);
   bottomPanel: React.ReactNode;
 }
 
@@ -23,8 +23,8 @@ export function DragSplitView({ topPanel, bottomPanel }: DragSplitViewProps) {
     const h = containerRef.current.getBoundingClientRect().height;
     setContainerHeight(h);
     
-    // Animate to 220px (or roughly 25%) default on mount to eliminate excessive top margin
-    animate(y, 220, { type: "spring", stiffness: 300, damping: 30 });
+    // Animate to 240px default on mount for the 30% view
+    animate(y, 240, { type: "spring", stiffness: 300, damping: 30 });
     
     const observer = new ResizeObserver((entries) => {
       setContainerHeight(entries[0].contentRect.height);
@@ -37,18 +37,21 @@ export function DragSplitView({ topPanel, bottomPanel }: DragSplitViewProps) {
   const handleDragEnd = (e: any, info: PanInfo) => {
     const currentY = y.get();
     const snap0 = 0;
-    const snapDefault = 220; // Containerized compact height
-    const snapMax = containerHeight * 0.55;
+    const snap15 = 120; // 15% inline KPIs
+    const snap30 = 240; // 30% standard view
+    const snap100 = containerHeight; // 100% full analytics
     
     const projectedY = currentY + info.velocity.y * 0.1;
     
-    const points = [snap0, snapDefault, snapMax];
+    const points = [snap0, snap15, snap30, snap100];
     const closest = points.reduce((prev, curr) => 
       Math.abs(curr - projectedY) < Math.abs(prev - projectedY) ? curr : prev
     );
     
     animate(y, closest, { type: "spring", stiffness: 400, damping: 32 });
   };
+
+  const renderedTopPanel = typeof topPanel === "function" ? topPanel(y) : topPanel;
 
   return (
     <div ref={containerRef} className="relative w-full h-full overflow-hidden">
@@ -58,8 +61,8 @@ export function DragSplitView({ topPanel, bottomPanel }: DragSplitViewProps) {
         style={{ height: y }}
         className="absolute top-0 left-0 right-0 overflow-hidden z-10"
       >
-        <div className="absolute top-0 left-0 right-0 flex flex-col justify-start">
-           {topPanel}
+        <div className="absolute top-0 left-0 right-0 flex flex-col justify-start h-full">
+           {renderedTopPanel}
         </div>
       </motion.div>
 
@@ -75,7 +78,7 @@ export function DragSplitView({ topPanel, bottomPanel }: DragSplitViewProps) {
       {isMounted && (
         <motion.div
           drag="y"
-          dragConstraints={{ top: 0, bottom: containerHeight * 0.55 }}
+          dragConstraints={{ top: 0, bottom: containerHeight }}
           dragElastic={0.05}
           dragMomentum={false}
           style={{ y }}

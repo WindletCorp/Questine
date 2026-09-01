@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { DeckCard } from "./deck-card";
-import styles from "../theme.module.css";
+import { Calendar } from "lucide-react";
 
 import type { RoutineBlock } from "@/lib/db/types";
 
@@ -17,26 +17,30 @@ export function RoutineCard({
   onClick?: (e: React.MouseEvent) => void;
   routine?: RoutineBlock;
 }) {
-  const [progress, setProgress] = useState(0); 
+  
+  const calculateProgress = () => {
+    if (!routine || !routine.end_time) return 0;
+    const start = new Date(routine.start_time).getTime();
+    const end = new Date(routine.end_time).getTime();
+    const now = Date.now();
+    
+    if (now < start) return 0;
+    if (now > end) return 100;
+    
+    const total = end - start;
+    const elapsed = now - start;
+    return (elapsed / total) * 100;
+  };
 
-  // Calculate live progress
+  const [progress, setProgress] = useState(calculateProgress); 
+
+  // Live update progress periodically without a heavy visual transition lag
   useEffect(() => {
     if (!routine || !routine.end_time) return;
+    setProgress(calculateProgress()); // Ensure it's perfectly in sync on mount
     const interval = setInterval(() => {
-      const start = new Date(routine.start_time).getTime();
-      const end = new Date(routine.end_time).getTime();
-      const now = Date.now();
-      
-      if (now < start) {
-        setProgress(0);
-      } else if (now > end) {
-        setProgress(100);
-      } else {
-        const total = end - start;
-        const elapsed = now - start;
-        setProgress((elapsed / total) * 100);
-      }
-    }, 10000); // update every 10s
+      setProgress(calculateProgress());
+    }, 10000); 
     return () => clearInterval(interval);
   }, [routine]);
 
@@ -45,32 +49,15 @@ export function RoutineCard({
     return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
-  const getDurationString = () => {
-    if (!routine?.end_time) return "Ongoing";
-    const mins = Math.round((new Date(routine.end_time).getTime() - new Date(routine.start_time).getTime()) / 60000);
-    return `${mins}m`;
-  };
-
-  const headerElement = (
-    <div className="time-ring-badge shrink-0 relative w-[38px] h-[38px] rounded-full bg-white/10 border border-white/20 flex flex-col items-center justify-center shadow-[inset_0_1px_1.5px_rgba(255,255,255,0.35)]">
-      {routine && (
-        <div 
-          className={styles.livelyTimerRing}
-        />
-      )}
-      <span className="text-[10px] font-bold text-white font-mono leading-none z-10">{routine ? getDurationString() : "--"}</span>
-    </div>
-  );
-
   return (
     <DeckCard
       position={position}
       isExpanded={isExpanded}
       onClick={onClick}
       title="Routine"
+      icon={<Calendar className="w-4 h-4 text-white/80" />}
       subtitleTop={routine ? `${formatTime(routine.start_time)} – ${formatTime(routine.end_time)}` : "No Active Routine"}
-      subtitleBottom={routine ? routine.category : "Schedule a block"}
-      headerElement={headerElement}
+      subtitleBottom={routine ? routine.label : "Schedule a block"}
       accentColor="amber"
     >
       {routine ? (
@@ -83,7 +70,7 @@ export function RoutineCard({
             <div className="bg-white/80 h-full rounded-full transition-all duration-500" style={{ width: `${progress}%` }}></div>
           </div>
           <p className="text-[11px] text-white/60 leading-relaxed pt-2 line-clamp-2">
-            {routine.label}
+            {routine.category}
           </p>
         </>
       ) : (

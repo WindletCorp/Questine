@@ -36,13 +36,39 @@ export function TasksCard({
     return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
+  const isCurrentTask = () => {
+    if (!task) return false;
+    const now = Date.now();
+    const start = new Date(task.start_time).getTime();
+    
+    // If we have an end time, check bounds. If no end time, we'll just check if start has passed.
+    if (task.end_time) {
+       const end = new Date(task.end_time).getTime();
+       return now >= start && now <= end;
+    }
+    return now >= start;
+  };
+
+  const getTitle = () => {
+    if (!task) return "Next Task";
+    return isCurrentTask() ? "Current Task" : "Next Task";
+  };
+
+  const getExpandedTimeFormat = () => {
+    if (!task) return "";
+    if (task.end_time) {
+      return `${formatTime(task.start_time)} - ${formatTime(task.end_time)}`;
+    }
+    return formatTime(task.start_time);
+  };
+
   return (
     <DeckCard
       position={position}
       isExpanded={isExpanded}
       onClick={onClick}
       icon={<CheckSquare className="w-4 h-4 text-white/80" />}
-      title="Next Task"
+      title={getTitle()}
       subtitleTop={task ? formatTime(task.start_time) : ""}
       subtitleBottom={task ? (task.metadata?.category ?? task.label) : "No scheduled tasks"}
       accentColor="blue"
@@ -62,7 +88,7 @@ export function TasksCard({
               </span>
             </label>
             <span className="text-[9px] font-mono text-white/40 shrink-0 bg-white/5 px-2 py-0.5 rounded-full">
-              {formatTime(task.start_time)}
+              {getExpandedTimeFormat()}
             </span>
           </div>
         ) : (

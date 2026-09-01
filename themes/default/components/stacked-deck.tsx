@@ -16,7 +16,17 @@ interface StackedDeckProps {
 
 export function StackedDeck({ children }: StackedDeckProps) {
   const router = useRouter();
-  const [activeDeckIndex, setActiveDeckIndex] = useState(0);
+  const [activeDeckIndex, setActiveDeckIndex] = useState(() => {
+    if (typeof window !== "undefined") {
+      return Number(sessionStorage.getItem("questine_activeDeckIndex") || 0);
+    }
+    return 0;
+  });
+  
+  useEffect(() => {
+    sessionStorage.setItem("questine_activeDeckIndex", String(activeDeckIndex));
+  }, [activeDeckIndex]);
+
   const [expandedCardIndex, setExpandedCardIndex] = useState(-1);
   const containerRef = useRef<HTMLDivElement>(null);
   const lastScrollTime = useRef(0);

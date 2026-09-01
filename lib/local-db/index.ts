@@ -27,6 +27,14 @@ export interface SyncQueueEntry {
   created_at: string;
 }
 
+export interface LocalChatMessage {
+  id: string;
+  user_id: string;
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+  created_at: string;
+}
+
 export class QuestineDB extends Dexie {
   tasks!: Table<LocalTask, string>;
   routine_blocks!: Table<LocalRoutineBlock, string>;
@@ -47,6 +55,9 @@ export class QuestineDB extends Dexie {
   sync_queue!: Table<SyncQueueEntry, string>;
   meta!: Table<{ key: string; value: any }, string>;
 
+  // AI Chat Local Persistence
+  ai_chat_messages!: Table<LocalChatMessage, string>;
+
   constructor() {
     super("QuestineDB");
     
@@ -64,6 +75,10 @@ export class QuestineDB extends Dexie {
       user_inventory: "id, user_id, item_id, category, is_equipped, updated_at, sync_status",
       sync_queue: "id, table_name, created_at",
       meta: "key"
+    });
+
+    this.version(8).stores({
+      ai_chat_messages: "id, user_id, created_at"
     });
   }
 }

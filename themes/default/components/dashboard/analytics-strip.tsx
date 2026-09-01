@@ -1,17 +1,57 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion, MotionValue, useTransform } from "framer-motion";
 import { CheckCircle2, Calendar, ChevronLeft, ChevronRight, Activity, TrendingUp, Flame, Target } from "lucide-react";
-import type { WeekAnalytics } from "@/lib/local-db/analytics";
+import { fetchRangeAnalytics, type WeekAnalytics, type RangeAnalytics } from "@/lib/local-db/analytics";
+import { cn } from "@/lib/utils";
 
 interface AnalyticsStripProps {
   analytics: WeekAnalytics;
   y: MotionValue<number>;
+  userId: string;
 }
 
-export function AnalyticsStrip({ analytics, y }: AnalyticsStripProps) {
-  const { tasks, routines, metrics } = analytics;
+export function AnalyticsStrip({ analytics, y, userId }: AnalyticsStripProps) {
+  // State for Range selection
+  const [selectedRange, setSelectedRange] = useState<"timeline" | "day" | "week" | "month">("timeline");
+  const [rangeData, setRangeData] = useState<RangeAnalytics | null>(null);
+  const [isLoadingRange, setIsLoadingRange] = useState(false);
+
+  // Fetch range data when selectedRange changes
+  useEffect(() => {
+    if (selectedRange === "timeline") {
+      setRangeData(null);
+      return;
+    }
+    const fetchData = async () => {
+      setIsLoadingRange(true);
+      const now = new Date();
+      let start = new Date();
+      if (selectedRange === "day") {
+        start.setUTCHours(0, 0, 0, 0);
+      } else if (selectedRange === "week") {
+        start.setUTCDate(now.getUTCDate() - 7);
+      } else if (selectedRange === "month") {
+        start.setUTCDate(now.getUTCDate() - 30);
+      }
+      try {
+        const data = await fetchRangeAnalytics(userId, start.toISOString(), now.toISOString());
+        setRangeData(data);
+      } catch (e) {
+        console.error("Failed to fetch range analytics", e);
+      } finally {
+        setIsLoadingRange(false);
+      }
+    };
+    fetchData();
+  }, [selectedRange, userId]);
+
+  // Use range data if available, otherwise fallback to timeline analytics
+  const displayData = rangeData || analytics;
+  const { tasks, routines, metrics } = displayData;
+  const focusScore = rangeData ? rangeData.focusScore : Math.round((tasks.completionRate + routines.adherenceRate) / 2);
+  const momentum = rangeData ? rangeData.momentum : 0;
 
   // Single metric swipe/switch state
   const [activeMetricIndex, setActiveMetricIndex] = useState(0);
@@ -147,7 +187,7 @@ export function AnalyticsStrip({ analytics, y }: AnalyticsStripProps) {
                 <button 
                   onClick={handlePrevMetric}
                   disabled={metrics.length <= 1}
-                  className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-white/10 text-white/40 hover:text-white transition-colors disabled:opacity-30 cursor-pointer"
+                  className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-white/10 text-white/40 hover:text-white transition-colors disabled:opacity-30 cursor-pointer pointer-events-auto"
                 >
                   <ChevronLeft className="w-4 h-4" />
                 </button>
@@ -157,7 +197,7 @@ export function AnalyticsStrip({ analytics, y }: AnalyticsStripProps) {
                 <button 
                   onClick={handleNextMetric}
                   disabled={metrics.length <= 1}
-                  className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-white/10 text-white/40 hover:text-white transition-colors disabled:opacity-30 cursor-pointer"
+                  className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-white/10 text-white/40 hover:text-white transition-colors disabled:opacity-30 cursor-pointer pointer-events-auto"
                 >
                   <ChevronRight className="w-4 h-4" />
                 </button>
@@ -186,53 +226,130 @@ export function AnalyticsStrip({ analytics, y }: AnalyticsStripProps) {
           className="absolute inset-0 p-4 pt-6 flex flex-col gap-4 overflow-y-auto overflow-x-hidden [scrollbar-width:none]"
           style={{ opacity: opStage4, scale: scStage4, pointerEvents: ptrStage4 }}
         >
-          <div className="flex items-center justify-between px-2">
+          {/* Header & Range Selector */}
+          <div className="flex flex-col gap-3 px-2">
             <h2 className="text-lg font-semibold tracking-tight text-white/90 flex items-center gap-2">
               <TrendingUp className="w-5 h-5 text-indigo-400" />
-              Weekly Deep Dive
+              Deep Dive Analytics
             </h2>
-            <div className="text-xs font-mono text-white/40">This Week</div>
-          </div>
-          
-          <div className="grid grid-cols-2 gap-3 mt-2">
-            <div className="bg-gradient-to-br from-indigo-500/10 to-purple-500/5 border border-indigo-500/20 rounded-3xl p-5 flex flex-col gap-2">
-              <div className="flex items-center gap-2 text-indigo-300">
-                <Target className="w-4 h-4" />
-                <span className="text-[11px] font-mono uppercase tracking-widest">Focus Score</span>
-              </div>
-              <div className="text-3xl font-bold text-white tracking-tight">87<span className="text-base text-indigo-300/50 font-normal">%</span></div>
-              <div className="text-xs text-white/50 leading-relaxed mt-1">Based on routine adherence and completed tasks.</div>
-            </div>
-            
-            <div className="bg-gradient-to-br from-orange-500/10 to-amber-500/5 border border-orange-500/20 rounded-3xl p-5 flex flex-col gap-2">
-              <div className="flex items-center gap-2 text-orange-300">
-                <Flame className="w-4 h-4" />
-                <span className="text-[11px] font-mono uppercase tracking-widest">Momentum</span>
-              </div>
-              <div className="text-3xl font-bold text-white tracking-tight">+14<span className="text-base text-orange-300/50 font-normal">%</span></div>
-              <div className="text-xs text-white/50 leading-relaxed mt-1">You are consistently exceeding your planned output.</div>
+            <div className="flex p-1 bg-white/[0.04] border border-white/10 rounded-xl w-fit shadow-inner">
+              {(["timeline", "day", "week", "month"] as const).map((range) => (
+                <button
+                  key={range}
+                  onClick={() => setSelectedRange(range)}
+                  className={cn(
+                    "px-3 py-1 rounded-lg text-[10px] font-mono uppercase tracking-widest transition-all cursor-pointer",
+                    selectedRange === range
+                      ? "bg-indigo-500/20 text-indigo-200 border border-indigo-400/30 shadow-[0_2px_8px_rgba(99,102,241,0.2)]"
+                      : "text-white/40 hover:text-white/70 hover:bg-white/[0.04]"
+                  )}
+                >
+                  {range}
+                </button>
+              ))}
             </div>
           </div>
           
-          <div className="mt-4 flex flex-col gap-3">
-            <h3 className="text-[11px] font-mono uppercase tracking-widest text-white/50 px-2">All Monitored Metrics</h3>
-            {metrics.map((m) => (
-              <div key={m.metricId} className="bg-white/[0.03] border border-white/5 rounded-2xl p-4 flex items-center justify-between group hover:bg-white/[0.05] transition-colors cursor-pointer">
-                <div className="flex flex-col gap-1">
-                  <span className="text-sm font-medium text-white/90">{m.name}</span>
-                  <span className="text-[10px] text-white/40">{m.values.length} entries this week</span>
+          {isLoadingRange ? (
+            <div className="flex-1 flex items-center justify-center h-48">
+              <div className="w-6 h-6 border-2 border-indigo-400/30 border-t-indigo-400 rounded-full animate-spin" />
+            </div>
+          ) : (
+            <>
+              {/* Activity Calendar (GitHub style) */}
+              <div className="mt-2 flex flex-col gap-2 px-2">
+                <span className="text-[11px] font-mono uppercase tracking-widest text-white/50">Activity Heatmap</span>
+                <div className="bg-white/[0.03] border border-white/5 rounded-2xl p-4 flex flex-wrap gap-1.5 shadow-[inset_0_1px_2px_rgba(255,255,255,0.05)]">
+                  {rangeData?.activityDays && rangeData.activityDays.length > 0 ? (
+                    rangeData.activityDays.map((day) => {
+                      const totalActivity = day.taskCount + (day.routineActualMinutes / 15);
+                      const intensity = totalActivity === 0 ? 0 : Math.min(4, Math.ceil(totalActivity / 2));
+                      return (
+                        <div 
+                          key={day.date}
+                          className={cn(
+                            "w-4 h-4 rounded-[4px] transition-all hover:scale-110",
+                            intensity === 0 && "bg-white/[0.04]",
+                            intensity === 1 && "bg-indigo-500/30 border border-indigo-400/20",
+                            intensity === 2 && "bg-indigo-500/50 border border-indigo-400/30",
+                            intensity === 3 && "bg-indigo-500/80 border border-indigo-400/50",
+                            intensity >= 4 && "bg-indigo-400 border border-indigo-300 shadow-[0_0_10px_rgba(129,140,248,0.5)]"
+                          )}
+                          title={`${day.date}: ${day.taskCount} tasks, ${Math.round(day.routineActualMinutes)} routine mins`}
+                        />
+                      );
+                    })
+                  ) : (
+                    <span className="text-xs text-white/40 italic">Select a time range (Day/Week/Month) to view historical activity heatmap.</span>
+                  )}
                 </div>
-                <div className="flex flex-col items-end gap-1">
-                  <span className="text-lg font-bold text-purple-200">{m.latestValue} <span className="text-xs font-normal opacity-50">{m.unit}</span></span>
-                  <div className="w-16 h-4">
-                    {m.values.length >= 2 ? <MetricSparkline values={m.values.map(v => v.value)} /> : null}
+              </div>
+
+              {/* Routine Adherence Chart */}
+              <div className="mt-2 flex flex-col gap-2 px-2">
+                <span className="text-[11px] font-mono uppercase tracking-widest text-white/50">Routine Adherence</span>
+                <div className="bg-white/[0.03] border border-white/5 rounded-2xl p-4 flex flex-col gap-3 shadow-[inset_0_1px_2px_rgba(255,255,255,0.05)]">
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-white/70">Actual Time ({Math.round(routines.totalActualMinutes)}m)</span>
+                    <span className="text-emerald-400 font-bold">{routines.adherenceRate}%</span>
+                  </div>
+                  <div className="w-full h-2 rounded-full bg-white/[0.05] relative overflow-hidden">
+                    <motion.div 
+                      className="absolute left-0 top-0 bottom-0 bg-gradient-to-r from-emerald-500 to-emerald-400 rounded-full shadow-[0_0_10px_rgba(52,211,153,0.5)]"
+                      initial={{ width: 0 }}
+                      animate={{ width: `${Math.min(100, (routines.totalActualMinutes / (routines.totalPlannedMinutes || 1)) * 100)}%` }}
+                    />
+                  </div>
+                  <div className="flex justify-between items-center text-[10px] font-mono text-white/40">
+                    <span>Target: {Math.round(routines.totalPlannedMinutes)}m</span>
                   </div>
                 </div>
               </div>
-            ))}
-          </div>
+
+              {/* Focus & Momentum Grid */}
+              <div className="grid grid-cols-2 gap-3 mt-2">
+                <div className="bg-gradient-to-br from-indigo-500/10 to-purple-500/5 border border-indigo-500/20 rounded-3xl p-5 flex flex-col gap-2 shadow-[inset_0_1px_2px_rgba(255,255,255,0.08)]">
+                  <div className="flex items-center gap-2 text-indigo-300">
+                    <Target className="w-4 h-4" />
+                    <span className="text-[11px] font-mono uppercase tracking-widest">Focus Score</span>
+                  </div>
+                  <div className="text-3xl font-bold text-white tracking-tight">{focusScore}<span className="text-base text-indigo-300/50 font-normal">%</span></div>
+                  <div className="text-xs text-white/50 leading-relaxed mt-1">Based on routine adherence and task velocity.</div>
+                </div>
+                
+                <div className="bg-gradient-to-br from-orange-500/10 to-amber-500/5 border border-orange-500/20 rounded-3xl p-5 flex flex-col gap-2 shadow-[inset_0_1px_2px_rgba(255,255,255,0.08)]">
+                  <div className="flex items-center gap-2 text-orange-300">
+                    <Flame className="w-4 h-4" />
+                    <span className="text-[11px] font-mono uppercase tracking-widest">Momentum</span>
+                  </div>
+                  <div className="text-3xl font-bold text-white tracking-tight">{momentum > 0 ? "+" : ""}{momentum}<span className="text-base text-orange-300/50 font-normal">%</span></div>
+                  <div className="text-xs text-white/50 leading-relaxed mt-1">Consistency compared to your planned baseline.</div>
+                </div>
+              </div>
+              
+              {/* Metrics Grid */}
+              <div className="mt-4 flex flex-col gap-3 pb-8">
+                <h3 className="text-[11px] font-mono uppercase tracking-widest text-white/50 px-2">All Monitored Metrics</h3>
+                {metrics.length === 0 ? (
+                  <span className="text-xs text-white/40 italic px-2">No metrics tracked in this range.</span>
+                ) : metrics.map((m) => (
+                  <div key={m.metricId} className="bg-white/[0.03] border border-white/5 rounded-2xl p-4 flex items-center justify-between group hover:bg-white/[0.05] transition-colors cursor-pointer shadow-[inset_0_1px_2px_rgba(255,255,255,0.05)]">
+                    <div className="flex flex-col gap-1">
+                      <span className="text-sm font-medium text-white/90">{m.name}</span>
+                      <span className="text-[10px] text-white/40">{m.values.length} entries in range</span>
+                    </div>
+                    <div className="flex flex-col items-end gap-1">
+                      <span className="text-lg font-bold text-purple-200">{m.latestValue} <span className="text-xs font-normal opacity-50">{m.unit}</span></span>
+                      <div className="w-16 h-4">
+                        {m.values.length >= 2 ? <MetricSparkline values={m.values.map(v => v.value)} /> : null}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
         </motion.div>
-        
       </div>
     </div>
   );

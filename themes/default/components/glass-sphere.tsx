@@ -15,7 +15,7 @@ export function GlassSphere({ isActive = false, onClick }: GlassSphereProps) {
     <div className={styles.glassSphereWrapper}>
       <motion.div
         animate={{ scale: isActive ? 1.18 : 1 }}
-        transition={{ type: "spring", stiffness: 100, damping: 20, mass: 1.2 }}
+        transition={{ type: "spring", stiffness: 200, damping: 24, mass: 0.8 }}
         className="w-full h-full flex items-center justify-center"
       >
         <button

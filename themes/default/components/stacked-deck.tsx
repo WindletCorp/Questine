@@ -16,16 +16,22 @@ interface StackedDeckProps {
 
 export function StackedDeck({ children }: StackedDeckProps) {
   const router = useRouter();
-  const [activeDeckIndex, setActiveDeckIndex] = useState(() => {
-    if (typeof window !== "undefined") {
-      return Number(sessionStorage.getItem("questine_activeDeckIndex") || 0);
+  const [activeDeckIndex, setActiveDeckIndex] = useState(0);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    const saved = sessionStorage.getItem("questine_activeDeckIndex");
+    if (saved !== null) {
+      setActiveDeckIndex(Number(saved));
     }
-    return 0;
-  });
+    setIsMounted(true);
+  }, []);
   
   useEffect(() => {
-    sessionStorage.setItem("questine_activeDeckIndex", String(activeDeckIndex));
-  }, [activeDeckIndex]);
+    if (isMounted) {
+      sessionStorage.setItem("questine_activeDeckIndex", String(activeDeckIndex));
+    }
+  }, [activeDeckIndex, isMounted]);
 
   const [expandedCardIndex, setExpandedCardIndex] = useState(-1);
   const containerRef = useRef<HTMLDivElement>(null);

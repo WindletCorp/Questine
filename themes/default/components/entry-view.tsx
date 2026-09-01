@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Mic, ArrowUp, Settings } from "lucide-react";
+import { Mic, ArrowUp, Settings, Trash2 } from "lucide-react";
 import { GlassButton } from "./glass-button";
 import styles from "../theme.module.css";
 import { useToastStore } from "@/lib/stores/toast-store";
 import { getLocalUserSettings } from "@/lib/local-db/users";
+import { getLocalChatMessages, saveLocalChatMessage, clearLocalChat } from "@/lib/local-db/chats";
 import Link from "next/link";
 import { ChatView } from "./chat-view";
 import type { ModelMessage } from 'ai';
@@ -22,6 +23,27 @@ export function EntryView({ isActive, onClose, userId }: EntryViewProps) {
   const [showSettingsPrompt, setShowSettingsPrompt] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [messages, setMessages] = useState<ModelMessage[]>([]);
+
+  useEffect(() => {
+    if (userId) {
+      getLocalChatMessages(userId).then(res => {
+        if (res.data) {
+          setMessages(res.data.map(m => ({ role: m.role as any, content: m.content })));
+        }
+      });
+    }
+  }, [userId]);
+
+  const handleClearChat = async () => {
+    if (!userId) return;
+    await clearLocalChat(userId);
+    setMessages([]);
+    useToastStore.getState().addToast({
+      title: "Chat Cleared",
+      message: "Your AI conversation history has been cleared.",
+      type: "success",
+    });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,11 +73,15 @@ export function EntryView({ isActive, onClose, userId }: EntryViewProps) {
       
       const updatedMessages = [...messages, { role: 'user' as const, content: newQuery }];
       setMessages(updatedMessages);
+      await saveLocalChatMessage(userId, 'user', newQuery);
+
+      // Rolling window: keep last 20 messages for context
+      const contextMessages = updatedMessages.slice(-20);
 
       const res = await fetch('/api/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ messages: updatedMessages, userId }),
+          body: JSON.stringify({ messages: contextMessages, userId }),
       });
 
       const data = await res.json();
@@ -65,6 +91,12 @@ export function EntryView({ isActive, onClose, userId }: EntryViewProps) {
       }
 
       setMessages([...updatedMessages, ...(data.responseMessages || [])]);
+      
+      if (data.responseMessages && Array.isArray(data.responseMessages)) {
+        for (const msg of data.responseMessages) {
+          await saveLocalChatMessage(userId, msg.role, msg.content);
+        }
+      }
 
     } catch (err: any) {
       setQuery(newQuery); // restore input
@@ -106,9 +138,14 @@ export function EntryView({ isActive, onClose, userId }: EntryViewProps) {
             </span>
           </div>
           
-          <GlassButton variant="circle" onClick={onClose} className="w-6 h-6 border-transparent bg-transparent shadow-none text-white/40 hover:text-white/80">
-            <span className="text-xs">✕</span>
-          </GlassButton>
+          <div className="flex items-center gap-1">
+            <GlassButton variant="circle" onClick={handleClearChat} className="w-6 h-6 border-transparent bg-transparent shadow-none text-white/40 hover:text-white/80" title="Clear Chat">
+              <Trash2 className="w-3 h-3" />
+            </GlassButton>
+            <GlassButton variant="circle" onClick={onClose} className="w-6 h-6 border-transparent bg-transparent shadow-none text-white/40 hover:text-white/80">
+              <span className="text-xs">✕</span>
+            </GlassButton>
+          </div>
         </div>
 
         <form className="w-full" onSubmit={handleSubmit}>

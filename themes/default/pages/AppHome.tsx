@@ -52,7 +52,7 @@ export function AppHome({ userId }: { userId?: string }) {
             scale: entryModeActive ? 1.4 : 1,
             opacity: entryModeActive ? 1 : 0.6,
           }}
-          transition={{ type: "spring", stiffness: 120, damping: 20 }}
+          transition={{ type: "spring", stiffness: 200, damping: 24, mass: 0.8 }}
           style={{
             width: "380px",
             height: "380px",
@@ -75,40 +75,44 @@ export function AppHome({ userId }: { userId?: string }) {
 
       {/* Lower Slot (Live Context Deck <-> Entry View with Zero Overlap) */}
       <div className="w-full flex flex-col items-center z-20 pb-8 sm:pb-10 relative min-h-[140px] shrink-0">
-        <AnimatePresence mode="wait">
-          {!entryModeActive ? (
-            <motion.div
-              key="deck"
-              initial={{ opacity: 0, y: 30, scale: 0.9 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 30, scale: 0.9 }}
-              transition={{ type: "spring", stiffness: 120, damping: 20, mass: 1 }}
-              className="w-full flex justify-center origin-top"
-            >
-              <StackedDeck>
-                <RoutineCard routine={nextRoutine} />
-                <TasksCard task={nextTask} />
-                <MetricsCard metric={latestMetric} />
-                <JournalCard journal={latestJournal} />
-              </StackedDeck>
-            </motion.div>
-          ) : (
-            <motion.div
-              key="entry"
-              initial={{ opacity: 0, y: 30, scale: 0.9 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 30, scale: 0.9 }}
-              transition={{ type: "spring", stiffness: 120, damping: 20, mass: 1 }}
-              className="w-full max-w-[25rem] origin-top"
-            >
-              <EntryView 
-                userId={userId}
-                isActive={entryModeActive} 
-                onClose={() => setEntryModeActive(false)} 
-              />
-            </motion.div>
-          )}
-        </AnimatePresence>
+        <div className="grid w-full place-items-center">
+          <AnimatePresence>
+            {!entryModeActive ? (
+              <motion.div
+                key="deck"
+                initial={{ opacity: 0, y: 30, scale: 0.9 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 30, scale: 0.9 }}
+                transition={{ type: "spring", stiffness: 200, damping: 24, mass: 0.8 }}
+                className="w-full flex justify-center origin-top"
+                style={{ gridArea: '1 / 1' }}
+              >
+                <StackedDeck>
+                  <RoutineCard routine={nextRoutine} />
+                  <TasksCard task={nextTask} />
+                  <MetricsCard metric={latestMetric} />
+                  <JournalCard journal={latestJournal} />
+                </StackedDeck>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="entry"
+                initial={{ opacity: 0, y: 30, scale: 0.9 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 30, scale: 0.9 }}
+                transition={{ type: "spring", stiffness: 200, damping: 24, mass: 0.8 }}
+                className="w-full max-w-[25rem] origin-top"
+                style={{ gridArea: '1 / 1' }}
+              >
+                <EntryView 
+                  userId={userId}
+                  isActive={entryModeActive} 
+                  onClose={() => setEntryModeActive(false)} 
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       </div>
     </div>
   );

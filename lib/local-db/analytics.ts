@@ -1,4 +1,5 @@
 import type { TimelineItem, EnrichedMetricEntry, Task, RoutineBlock, Journal } from "../db/types";
+import { getTimelineRange } from "./timeline";
 
 export interface TaskAnalytics {
   total: number;
@@ -170,5 +171,74 @@ export function computeWeekAnalytics(items: TimelineItem[]): WeekAnalytics {
       total: totalJournals,
       wordCount,
     },
+  };
+}
+
+export interface RangeAnalytics extends WeekAnalytics {
+  activityDays: {
+    date: string;
+    taskCount: number;
+    routineActualMinutes: number;
+    routinePlannedMinutes: number;
+  }[];
+  focusScore: number;
+  momentum: number;
+}
+
+export async function fetchRangeAnalytics(userId: string, startDate: string, endDate: string): Promise<RangeAnalytics> {
+  const result = await getTimelineRange(userId, startDate, endDate);
+  
+  if (result.error) {
+    console.error("Timeline Range Error:", result.error);
+    throw new Error(`Failed to fetch timeline range: ${result.error.message || result.error}`);
+  }
+
+  const items = result.data;
+  const base = computeWeekAnalytics(items);
+
+  const activityMap = new Map<string, { taskCount: number; routineActualMinutes: number; routinePlannedMinutes: number }>();
+  
+  const curr = new Date(startDate);
+  const end = new Date(endDate);
+  while (curr <= end) {
+    const dateStr = curr.toISOString().split("T")[0];
+    activityMap.set(dateStr, { taskCount: 0, routineActualMinutes: 0, routinePlannedMinutes: 0 });
+    curr.setUTCDate(curr.getUTCDate() + 1);
+  }
+
+  for (const item of items) {
+    const dateStr = item.data.start_time.split("T")[0];
+    const dayStat = activityMap.get(dateStr);
+    if (!dayStat) continue;
+
+    if (item.type === "task" && (item.data as Task).completed_at) {
+      dayStat.taskCount++;
+    } else if (item.type === "routine_block") {
+      const block = item.data as RoutineBlock;
+      const startMs = new Date(block.start_time).getTime();
+      const endMs = new Date(block.end_time).getTime();
+      const mins = Math.max(0, (endMs - startMs) / 60000);
+      if (block.type === "ACTUAL") {
+        dayStat.routineActualMinutes += mins;
+      } else {
+        dayStat.routinePlannedMinutes += mins;
+      }
+    }
+  }
+
+  const activityDays = Array.from(activityMap.entries())
+    .map(([date, stats]) => ({ date, ...stats }))
+    .sort((a, b) => a.date.localeCompare(b.date));
+
+  const focusScore = Math.round((base.tasks.completionRate + base.routines.adherenceRate) / 2);
+  const momentum = base.routines.totalPlannedMinutes > 0 
+    ? Math.round(((base.routines.totalActualMinutes - base.routines.totalPlannedMinutes) / base.routines.totalPlannedMinutes) * 100)
+    : 0;
+
+  return {
+    ...base,
+    activityDays,
+    focusScore,
+    momentum
   };
 }

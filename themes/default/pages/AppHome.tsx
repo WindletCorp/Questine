@@ -56,8 +56,7 @@ export function AppHome({ userId }: { userId?: string }) {
           style={{
             width: "380px",
             height: "380px",
-            background: "radial-gradient(circle, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0.02) 50%, transparent 75%)",
-            filter: "blur(40px)",
+            background: "radial-gradient(circle, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0.05) 40%, rgba(255, 255, 255, 0.01) 60%, transparent 80%)",
           }}
         />
       </div>

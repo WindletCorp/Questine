@@ -27,8 +27,7 @@ export function AppShell({ children }: AppShellProps) {
           style={{
             width: "540px",
             height: "540px",
-            background: "radial-gradient(circle, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.03) 50%, transparent 75%)",
-            filter: "blur(50px)",
+            background: "radial-gradient(circle, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.05) 35%, rgba(255, 255, 255, 0.01) 60%, transparent 80%)",
           }}
         />
       </div>

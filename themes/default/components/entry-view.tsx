@@ -151,7 +151,6 @@ export function EntryView({ isActive, onClose, userId }: EntryViewProps) {
         <form className="w-full" onSubmit={handleSubmit}>
           <div 
             className="flex items-center px-3.5 py-2 w-full rounded-full border border-white/20 bg-white/10 shadow-[0_16px_48px_rgba(0,0,0,0.6),inset_0_1px_2px_rgba(255,255,255,0.45)]"
-            style={{ backdropFilter: "blur(32px) saturate(200%)" }}
           >
             <Mic className="w-3.5 h-3.5 text-white/50 mr-2 shrink-0" />
             <input 

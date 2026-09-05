@@ -86,7 +86,6 @@ export function AppHome({ userId }: { userId?: string }) {
             <>
               <motion.div
                 animate={{
-                  opacity: !entryModeActive ? 1 : 0,
                   y: !entryModeActive ? 0 : 30,
                   scale: !entryModeActive ? 1 : 0.9,
                   pointerEvents: !entryModeActive ? "auto" : "none",

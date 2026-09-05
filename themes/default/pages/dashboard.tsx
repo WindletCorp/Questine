@@ -1,34 +1,21 @@
 "use client";
 
 import React, { useState } from "react";
-import dynamic from "next/dynamic";
 import { User, RotateCw } from "lucide-react";
 import { AnimatePresence } from "framer-motion";
 import { useContinuousTimeline } from "@/lib/hooks/use-continuous-timeline";
 import { SyncEngine } from "@/lib/sync/engine";
 import type { TimelineItem, Task, RoutineBlock, EnrichedMetricEntry, Journal } from "@/lib/db/types";
+import { ContinuousCalendarPane } from "../components/dashboard/continuous-calendar-pane";
 import { DragSplitView } from "../components/dashboard/drag-split-view";
 import { AnalyticsStrip } from "../components/dashboard/analytics-strip";
 import { ContextualFab, type FeatureType } from "../components/dashboard/contextual-fab";
+import { TaskPane } from "../components/dashboard/panes/task-pane";
+import { RoutinePane } from "../components/dashboard/panes/routine-pane";
+import { MetricPane } from "../components/dashboard/panes/metric-pane";
+import { JournalPane } from "../components/dashboard/panes/journal-pane";
 import { computeWeekAnalytics } from "@/lib/local-db/analytics";
 import { cn } from "@/lib/utils";
-
-const ContinuousCalendarPane = dynamic(
-  () => import("../components/dashboard/continuous-calendar-pane").then((mod) => mod.ContinuousCalendarPane),
-  {
-    loading: () => (
-      <div className="w-full h-full flex items-center justify-center border border-white/10 rounded-[28px] bg-white/[0.03] text-white/50 text-sm">
-        Loading Timeline...
-      </div>
-    ),
-    ssr: false,
-  }
-);
-
-const TaskPane = dynamic(() => import("../components/dashboard/panes/task-pane").then((mod) => mod.TaskPane), { ssr: false });
-const RoutinePane = dynamic(() => import("../components/dashboard/panes/routine-pane").then((mod) => mod.RoutinePane), { ssr: false });
-const MetricPane = dynamic(() => import("../components/dashboard/panes/metric-pane").then((mod) => mod.MetricPane), { ssr: false });
-const JournalPane = dynamic(() => import("../components/dashboard/panes/journal-pane").then((mod) => mod.JournalPane), { ssr: false });
 
 type ActivePaneState =
   | { type: "task"; data?: Task | null }
@@ -107,69 +94,60 @@ export function Dashboard({ userId }: { userId?: string }) {
         <DragSplitView 
           topPanel={(y) => <AnalyticsStrip analytics={analytics} y={y} userId={currentUserId} />}
           bottomPanel={
-            mounted ? (
-              <ContinuousCalendarPane
-                daySegments={daySegments}
-                isFetchingEarlier={isFetchingEarlier}
-                isFetchingFuture={isFetchingFuture}
-                onLoadEarlierDays={loadEarlierDays}
-                onLoadFutureDays={loadFutureDays}
-                onEditItem={handleEditItem}
-                onRefresh={refresh}
-              />
-            ) : (
-              <div className="w-full h-full border border-white/10 rounded-[28px] bg-white/[0.03]" />
-            )
+            <ContinuousCalendarPane
+              daySegments={daySegments}
+              isFetchingEarlier={isFetchingEarlier}
+              isFetchingFuture={isFetchingFuture}
+              onLoadEarlierDays={loadEarlierDays}
+              onLoadFutureDays={loadFutureDays}
+              onEditItem={handleEditItem}
+              onRefresh={refresh}
+            />
           }
         />
 
         {/* Dedicated Floating VisionOS Glass Tray Overlay */}
-        <AnimatePresence>
-          {activePane && (
-            <>
-              {/* Invisible Click-Outside Dismiss Area */}
-              <div
-                className="absolute inset-0 z-30 pointer-events-auto"
-                onClick={() => setActivePane(null)}
-              />
+        <div className="absolute inset-0 z-30 pointer-events-none">
+          {/* Invisible Click-Outside Dismiss Area */}
+          <div
+            className={cn(
+              "absolute inset-0 transition-opacity duration-300",
+              activePane ? "pointer-events-auto" : "pointer-events-none"
+            )}
+            onClick={() => setActivePane(null)}
+          />
 
-              <div className="absolute bottom-3 left-4 right-4 z-40 flex justify-center pointer-events-none">
-                {activePane.type === "task" && (
-                  <TaskPane
-                    task={activePane.data}
-                    userId={currentUserId}
-                    onClose={() => setActivePane(null)}
-                    onSuccess={refresh}
-                  />
-                )}
-                {activePane.type === "routine" && (
-                  <RoutinePane
-                    routine={activePane.data}
-                    userId={currentUserId}
-                    onClose={() => setActivePane(null)}
-                    onSuccess={refresh}
-                  />
-                )}
-                {activePane.type === "metric" && (
-                  <MetricPane
-                    entry={activePane.data}
-                    userId={currentUserId}
-                    onClose={() => setActivePane(null)}
-                    onSuccess={refresh}
-                  />
-                )}
-                {activePane.type === "journal" && (
-                  <JournalPane
-                    journal={activePane.data}
-                    userId={currentUserId}
-                    onClose={() => setActivePane(null)}
-                    onSuccess={refresh}
-                  />
-                )}
-              </div>
-            </>
-          )}
-        </AnimatePresence>
+          <div className="absolute bottom-3 left-4 right-4 z-40 flex justify-center pointer-events-none">
+            <TaskPane
+              task={activePane?.type === "task" ? activePane.data : undefined}
+              userId={currentUserId}
+              onClose={() => setActivePane(null)}
+              onSuccess={refresh}
+              isVisible={activePane?.type === "task"}
+            />
+            <RoutinePane
+              routine={activePane?.type === "routine" ? activePane.data : undefined}
+              userId={currentUserId}
+              onClose={() => setActivePane(null)}
+              onSuccess={refresh}
+              isVisible={activePane?.type === "routine"}
+            />
+            <MetricPane
+              entry={activePane?.type === "metric" ? activePane.data : undefined}
+              userId={currentUserId}
+              onClose={() => setActivePane(null)}
+              onSuccess={refresh}
+              isVisible={activePane?.type === "metric"}
+            />
+            <JournalPane
+              journal={activePane?.type === "journal" ? activePane.data : undefined}
+              userId={currentUserId}
+              onClose={() => setActivePane(null)}
+              onSuccess={refresh}
+              isVisible={activePane?.type === "journal"}
+            />
+          </div>
+        </div>
       </main>
 
       {/* Contextual Floating Action Bar (FAB) */}

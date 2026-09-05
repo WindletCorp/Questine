@@ -178,6 +178,7 @@
 }
 
 /* Staggered 0-Opacity State (Hides back cards at 0 opacity during mode transition) */
+.deckTucked .pos0,
 .deckTucked .pos1,
 .deckTucked .pos2,
 .deckTucked .pos3 {
@@ -187,14 +188,13 @@
 
 /* Expandable Grid for Accordion Content */
 .expandableGrid {
-  display: grid;
-  grid-template-rows: 0fr;
-  transition: grid-template-rows 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+  max-height: 0;
+  transition: max-height 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.35s ease;
   opacity: 0;
 }
 
 .expandableGridExpanded {
-  grid-template-rows: 1fr;
+  max-height: 250px;
   opacity: 1;
 }
 

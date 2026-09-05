@@ -12,6 +12,7 @@ interface TaskPaneProps {
   userId: string;
   onClose: () => void;
   onSuccess: () => void;
+  isVisible?: boolean;
 }
 
 const toLocalIso = (dateStr?: string | null, offsetMinutes: number = 0) => {
@@ -21,7 +22,7 @@ const toLocalIso = (dateStr?: string | null, offsetMinutes: number = 0) => {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 };
 
-export function TaskPane({ task, userId, onClose, onSuccess }: TaskPaneProps) {
+export function TaskPane({ task, userId, onClose, onSuccess, isVisible = false }: TaskPaneProps) {
   const isEditing = !!task;
 
   const [label, setLabel] = useState(task?.label || "");
@@ -86,11 +87,16 @@ export function TaskPane({ task, userId, onClose, onSuccess }: TaskPaneProps) {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 24, scale: 0.97 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, y: 24, scale: 0.97 }}
-      transition={{ type: "spring", stiffness: 500, damping: 32 }}
-      className="w-full max-w-lg p-5 rounded-[30px] bg-white/[0.08] backdrop-blur-[50px] saturate-[210%] border border-white/25 shadow-[0_35px_90px_rgba(0,0,0,0.85),0_0_30px_rgba(255,255,255,0.1),inset_0_2px_4px_rgba(255,255,255,0.5),inset_0_-2px_4px_rgba(0,0,0,0.35)] text-white flex flex-col gap-3.5 select-none pointer-events-auto"
+      initial={false}
+      animate={{ 
+        opacity: isVisible ? 1 : 0, 
+        y: isVisible ? 0 : 24, 
+        scale: isVisible ? 1 : 0.96,
+        pointerEvents: isVisible ? "auto" : "none"
+      }}
+      transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+      className="absolute w-full max-w-lg p-5 rounded-[30px] bg-white/[0.08] backdrop-blur-[50px] saturate-[210%] border border-white/25 shadow-[0_35px_90px_rgba(0,0,0,0.85),0_0_30px_rgba(255,255,255,0.1),inset_0_2px_4px_rgba(255,255,255,0.5),inset_0_-2px_4px_rgba(0,0,0,0.35)] text-white flex flex-col gap-3.5 select-none"
+      style={{ willChange: "transform, opacity", transform: "translateZ(0)", zIndex: isVisible ? 10 : 0 }}
     >
       {/* Top Header */}
       <div className="flex items-center justify-between pb-2 border-b border-white/12">

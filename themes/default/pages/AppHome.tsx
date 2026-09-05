@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { getTimelineRange } from "@/lib/local-db/timeline";
@@ -11,7 +12,11 @@ import { RoutineCard } from "../components/routine-card";
 import { TasksCard } from "../components/tasks-card";
 import { MetricsCard } from "../components/metrics-card";
 import { JournalCard } from "../components/journal-card";
-import { EntryView } from "../components/entry-view";
+
+const EntryView = dynamic(() => import("../components/entry-view").then(mod => mod.EntryView), {
+  loading: () => <div className="w-full h-40 flex items-center justify-center text-white/50">Loading entry...</div>,
+  ssr: false,
+});
 export function AppHome({ userId }: { userId?: string }) {
   const [entryModeActive, setEntryModeActive] = useState(false);
   const [timelineItems, setTimelineItems] = useState<TimelineItem[]>([]);

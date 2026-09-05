@@ -142,7 +142,7 @@ export function ContinuousCalendarPane({
     <div
       ref={scrollRef}
       onScroll={handleScroll}
-      className="relative w-full h-full overflow-y-auto select-none rounded-[28px] border border-white/20 bg-white/[0.06] backdrop-blur-[40px] shadow-[0_30px_90px_rgba(0,0,0,0.8),inset_0_2px_4px_rgba(255,255,255,0.4),inset_0_-2px_4px_rgba(0,0,0,0.3)] [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+      className="relative w-full h-full overflow-y-auto select-none rounded-[28px] border border-white/20 bg-white/[0.06] backdrop-blur-md shadow-[0_20px_50px_rgba(0,0,0,0.7),inset_0_2px_4px_rgba(255,255,255,0.4),inset_0_-2px_4px_rgba(0,0,0,0.3)] [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
     >
       {/* Continuous Day Segments Stack */}
       <div className="relative w-full">
@@ -323,7 +323,14 @@ const DaySection = memo(function DaySection({
   }, []);
 
   return (
-    <div className="relative w-full border-b border-white/10" style={{ height: `${DAY_HEIGHT}px` }}>
+    <div
+      className="relative w-full border-b border-white/10"
+      style={{
+        height: `${DAY_HEIGHT}px`,
+        contentVisibility: "auto",
+        containIntrinsicSize: `0 ${DAY_HEIGHT}px`,
+      }}
+    >
       {/* Sticky Day Header */}
       <div className="sticky top-2 z-30 flex items-center justify-between px-3 md:px-4 pointer-events-none">
         <div className="px-2.5 md:px-3 py-1 rounded-full bg-black/70 backdrop-blur-[24px] border border-white/20 shadow-[0_8px_20px_rgba(0,0,0,0.6)] flex items-center gap-1.5 md:gap-2">

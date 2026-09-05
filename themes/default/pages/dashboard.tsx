@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { User, RotateCw } from "lucide-react";
-import { AnimatePresence } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { useContinuousTimeline } from "@/lib/hooks/use-continuous-timeline";
 import { SyncEngine } from "@/lib/sync/engine";
 import type { TimelineItem, Task, RoutineBlock, EnrichedMetricEntry, Journal } from "@/lib/db/types";
@@ -105,49 +105,53 @@ export function Dashboard({ userId }: { userId?: string }) {
             />
           }
         />
-
         {/* Dedicated Floating VisionOS Glass Tray Overlay */}
-        <div className="absolute inset-0 z-30 pointer-events-none">
-          {/* Invisible Click-Outside Dismiss Area */}
-          <div
-            className={cn(
-              "absolute inset-0 transition-opacity duration-300",
-              activePane ? "pointer-events-auto" : "pointer-events-none"
-            )}
-            onClick={() => setActivePane(null)}
-          />
+        <AnimatePresence>
+          {activePane && (
+            <>
+              {/* Invisible Click-Outside Dismiss Area */}
+              <div
+                className="absolute inset-0 z-30 pointer-events-auto"
+                onClick={() => setActivePane(null)}
+              />
 
-          <div className="absolute bottom-3 left-4 right-4 z-40 flex justify-center pointer-events-none">
-            <TaskPane
-              task={activePane?.type === "task" ? activePane.data : undefined}
-              userId={currentUserId}
-              onClose={() => setActivePane(null)}
-              onSuccess={refresh}
-              isVisible={activePane?.type === "task"}
-            />
-            <RoutinePane
-              routine={activePane?.type === "routine" ? activePane.data : undefined}
-              userId={currentUserId}
-              onClose={() => setActivePane(null)}
-              onSuccess={refresh}
-              isVisible={activePane?.type === "routine"}
-            />
-            <MetricPane
-              entry={activePane?.type === "metric" ? activePane.data : undefined}
-              userId={currentUserId}
-              onClose={() => setActivePane(null)}
-              onSuccess={refresh}
-              isVisible={activePane?.type === "metric"}
-            />
-            <JournalPane
-              journal={activePane?.type === "journal" ? activePane.data : undefined}
-              userId={currentUserId}
-              onClose={() => setActivePane(null)}
-              onSuccess={refresh}
-              isVisible={activePane?.type === "journal"}
-            />
-          </div>
-        </div>
+              <div className="absolute bottom-3 left-4 right-4 z-40 flex justify-center pointer-events-none">
+                {activePane.type === "task" && (
+                  <TaskPane
+                    task={activePane.data}
+                    userId={currentUserId}
+                    onClose={() => setActivePane(null)}
+                    onSuccess={refresh}
+                  />
+                )}
+                {activePane.type === "routine" && (
+                  <RoutinePane
+                    routine={activePane.data}
+                    userId={currentUserId}
+                    onClose={() => setActivePane(null)}
+                    onSuccess={refresh}
+                  />
+                )}
+                {activePane.type === "metric" && (
+                  <MetricPane
+                    entry={activePane.data}
+                    userId={currentUserId}
+                    onClose={() => setActivePane(null)}
+                    onSuccess={refresh}
+                  />
+                )}
+                {activePane.type === "journal" && (
+                  <JournalPane
+                    journal={activePane.data}
+                    userId={currentUserId}
+                    onClose={() => setActivePane(null)}
+                    onSuccess={refresh}
+                  />
+                )}
+              </div>
+            </>
+          )}
+        </AnimatePresence>
       </main>
 
       {/* Contextual Floating Action Bar (FAB) */}

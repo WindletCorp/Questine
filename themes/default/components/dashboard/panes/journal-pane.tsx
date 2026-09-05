@@ -100,11 +100,22 @@ export function JournalPane({ journal, userId, onClose, onSuccess, isVisible = f
   return (
     <motion.div
       initial={false}
-      animate={{ 
-        opacity: isVisible ? 1 : 0, 
-        y: isVisible ? 0 : 24, 
-        scale: isVisible ? 1 : 0.96,
-        pointerEvents: isVisible ? "auto" : "none"
+      animate={isVisible ? "open" : "closed"}
+      variants={{
+        open: { 
+          opacity: 1, 
+          y: 0, 
+          scale: 1,
+          pointerEvents: "auto",
+          visibility: "visible"
+        },
+        closed: { 
+          opacity: 0, 
+          y: 24, 
+          scale: 0.96,
+          pointerEvents: "none",
+          transitionEnd: { visibility: "hidden" }
+        }
       }}
       transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
       className="absolute w-full max-w-lg p-5 rounded-[30px] bg-white/[0.08] backdrop-blur-[50px] saturate-[210%] border border-white/25 shadow-[0_35px_90px_rgba(0,0,0,0.85),0_0_30px_rgba(255,255,255,0.1),inset_0_2px_4px_rgba(255,255,255,0.5),inset_0_-2px_4px_rgba(0,0,0,0.35)] text-white flex flex-col gap-3.5 select-none"

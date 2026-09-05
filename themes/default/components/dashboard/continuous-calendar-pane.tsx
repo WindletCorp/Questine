@@ -473,7 +473,7 @@ const VisionOSCardBlock = memo(function VisionOSCardBlock({
           onOpenTooltip(e);
         }}
         className={cn(
-          "absolute rounded-2xl p-2.5 flex flex-col justify-start items-start border transition-all duration-300 group select-none overflow-hidden cursor-pointer",
+          "absolute rounded-2xl p-2.5 flex flex-col justify-start items-start border transition-all duration-300 group select-none backdrop-blur-md overflow-hidden cursor-pointer",
           isCompleted
             ? "bg-gradient-to-br from-emerald-500/[0.14] via-emerald-600/[0.06] to-emerald-700/[0.02] border-emerald-400/30 text-emerald-100 shadow-[0_15px_40px_rgba(0,0,0,0.45),inset_0_1.5px_2px_rgba(52,211,153,0.35)]"
             : "bg-gradient-to-br from-indigo-500/[0.18] via-blue-600/[0.08] to-purple-600/[0.03] border-indigo-400/35 text-indigo-100 shadow-[0_15px_40px_rgba(0,0,0,0.55),inset_0_1.5px_2px_rgba(165,180,252,0.4)] hover:border-indigo-300/60",
@@ -527,7 +527,7 @@ const VisionOSCardBlock = memo(function VisionOSCardBlock({
           onOpenTooltip(e);
         }}
         className={cn(
-          "absolute rounded-2xl p-2.5 flex flex-col justify-start items-start border transition-all duration-300 group select-none overflow-hidden cursor-pointer",
+          "absolute rounded-2xl p-2.5 flex flex-col justify-start items-start border transition-all duration-300 group select-none backdrop-blur-md overflow-hidden cursor-pointer",
           isPlan
             ? "bg-gradient-to-br from-amber-400/[0.16] via-amber-500/[0.08] to-amber-500/[0.03] border-amber-300/35 text-amber-100 shadow-[0_15px_40px_rgba(0,0,0,0.55),inset_0_1.5px_2px_rgba(251,191,36,0.4)] hover:border-amber-300/60"
             : "bg-gradient-to-br from-emerald-400/[0.16] via-emerald-500/[0.08] to-emerald-500/[0.03] border-emerald-300/35 text-emerald-100 shadow-[0_15px_40px_rgba(0,0,0,0.55),inset_0_1.5px_2px_rgba(52,211,153,0.4)] hover:border-emerald-300/60",

@@ -687,18 +687,14 @@ function TimelineActionTooltip({
       {/* Click-outside dismiss backdrop */}
       <div className="fixed inset-0 pointer-events-auto" onClick={onClose} />
 
-      <motion.div
-        initial={{ opacity: 0, scale: 0.94, y: -2 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.94, y: -2 }}
-        transition={{ type: "spring", stiffness: 500, damping: 30 }}
+      <div
         style={{
           position: "fixed",
           left: `${left}px`,
           top: `${top}px`,
           width: `${tooltipWidth}px`,
         }}
-        className="p-3.5 rounded-[26px] bg-white/[0.08] backdrop-blur-[50px] saturate-[210%] border border-white/25 shadow-[0_35px_90px_rgba(0,0,0,0.85),0_0_30px_rgba(255,255,255,0.1),inset_0_2px_4px_rgba(255,255,255,0.5),inset_0_-2px_4px_rgba(0,0,0,0.35)] flex flex-col gap-2.5 pointer-events-auto text-white"
+        className="p-3.5 rounded-[26px] bg-white/[0.08] backdrop-blur-[50px] saturate-[210%] border border-white/25 shadow-[0_35px_90px_rgba(0,0,0,0.85),0_0_30px_rgba(255,255,255,0.1),inset_0_2px_4px_rgba(255,255,255,0.5),inset_0_-2px_4px_rgba(0,0,0,0.35)] flex flex-col gap-2.5 pointer-events-auto text-white animate-in fade-in zoom-in-95 duration-150"
       >
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -768,16 +764,14 @@ function TimelineActionTooltip({
 
         {/* Edit Button */}
         <div className="flex items-center justify-end pt-2 border-t border-white/10">
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.96 }}
+          <button
             onClick={() => onEdit(item)}
-            className="px-3.5 py-1.5 rounded-xl bg-white text-black font-semibold text-xs transition-all shadow-[0_0_15px_rgba(255,255,255,0.6)] cursor-pointer hover:bg-white/90"
+            className="px-3.5 py-1.5 rounded-xl bg-white text-black font-semibold text-xs transition-all shadow-[0_0_15px_rgba(255,255,255,0.6)] cursor-pointer hover:bg-white/90 active:scale-95"
           >
             Edit
-          </motion.button>
+          </button>
         </div>
-      </motion.div>
+      </div>
     </div>,
     document.body
   );

@@ -4,6 +4,8 @@ import { useState, useEffect, useRef, Children, cloneElement, ReactElement } fro
 import { useRouter } from "next/navigation";
 import styles from "../theme.module.css";
 
+import { cn } from "@/lib/utils";
+
 interface CardComponentProps {
   position?: 0 | 1 | 2 | 3;
   isExpanded?: boolean;
@@ -12,26 +14,24 @@ interface CardComponentProps {
 
 interface StackedDeckProps {
   children: ReactElement<CardComponentProps>[];
+  entryModeActive?: boolean;
 }
 
-export function StackedDeck({ children }: StackedDeckProps) {
+export function StackedDeck({ children, entryModeActive = false }: StackedDeckProps) {
   const router = useRouter();
   const [activeDeckIndex, setActiveDeckIndex] = useState(0);
-  const [isMounted, setIsMounted] = useState(false);
+  const [isFannedOut, setIsFannedOut] = useState(!entryModeActive);
 
   useEffect(() => {
-    const saved = sessionStorage.getItem("questine_activeDeckIndex");
-    if (saved !== null) {
-      setActiveDeckIndex(Number(saved));
+    if (entryModeActive) {
+      setIsFannedOut(false);
+    } else {
+      const timer = setTimeout(() => {
+        setIsFannedOut(true);
+      }, 200);
+      return () => clearTimeout(timer);
     }
-    setIsMounted(true);
-  }, []);
-  
-  useEffect(() => {
-    if (isMounted) {
-      sessionStorage.setItem("questine_activeDeckIndex", String(activeDeckIndex));
-    }
-  }, [activeDeckIndex, isMounted]);
+  }, [entryModeActive]);
 
   const [expandedCardIndex, setExpandedCardIndex] = useState(-1);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -147,7 +147,7 @@ export function StackedDeck({ children }: StackedDeckProps) {
   return (
     <div
       ref={containerRef}
-      className={styles.deckPerspective}
+      className={cn(styles.deckPerspective, !isFannedOut && styles.deckTucked)}
       onWheel={handleWheel}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}

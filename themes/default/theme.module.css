@@ -177,6 +177,14 @@
   pointer-events: auto;
 }
 
+/* Staggered 0-Opacity State (Hides back cards at 0 opacity during mode transition) */
+.deckTucked .pos1,
+.deckTucked .pos2,
+.deckTucked .pos3 {
+  opacity: 0 !important;
+  transition: opacity 0.35s ease;
+}
+
 /* Expandable Grid for Accordion Content */
 .expandableGrid {
   display: grid;

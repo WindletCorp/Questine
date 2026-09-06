@@ -44,8 +44,8 @@ export function DeckCard({
 
   return (
     <div 
-      className={cn(styles.deckCard, styles.glassPanel, "p-4", styles[`pos${position}` as keyof typeof styles], accent?.border)}
-      style={accent ? { boxShadow: `0 20px 50px rgba(0,0,0,0.6), inset 0 1px 1.5px rgba(255,255,255,0.35), inset 0 -1px 1px rgba(0,0,0,0.25), ${accent.glow}` } : undefined}
+      className={cn(styles.deckCard, styles.glassPanel, "p-4", styles[`pos${position}` as keyof typeof styles], isFront && accent?.border)}
+      style={isFront && accent ? { boxShadow: `0 20px 50px rgba(0,0,0,0.6), inset 0 1px 1.5px rgba(255,255,255,0.35), inset 0 -1px 1px rgba(0,0,0,0.25), ${accent.glow}` } : undefined}
       onClick={onClick}
     >
       <div className={cn("transition-opacity duration-350 ease-in-out", isFront ? "opacity-100" : "opacity-0 pointer-events-none")}>

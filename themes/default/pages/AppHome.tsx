@@ -41,11 +41,16 @@ export function AppHome({ userId }: { userId?: string }) {
     return () => clearInterval(timer);
   }, [userId]);
 
-  // Extract exactly one of each type
   const nextTask = timelineItems.find(i => i.type === "task" && !(i.data as Task).completed_at)?.data as Task | undefined;
   const nextRoutine = timelineItems.find(i => i.type === "routine_block" && new Date((i.data as RoutineBlock).end_time).getTime() > Date.now())?.data as RoutineBlock | undefined;
   const latestMetric = timelineItems.slice().reverse().find(i => i.type === "metric_entry")?.data as EnrichedMetricEntry | undefined;
   const latestJournal = timelineItems.slice().reverse().find(i => i.type === "journal")?.data as Journal | undefined;
+
+  if (!mounted) {
+    return (
+      <div className="relative flex flex-col justify-between p-5 md:p-6 antialiased select-none flex-1 h-full w-full max-w-lg mx-auto opacity-0" />
+    );
+  }
 
   return (
     <div className="relative flex flex-col justify-between p-5 md:p-6 antialiased select-none flex-1 h-full w-full max-w-lg mx-auto">
@@ -82,45 +87,42 @@ export function AppHome({ userId }: { userId?: string }) {
       {/* Lower Slot (Live Context Deck <-> Entry View with Zero Overlap) */}
       <div className="w-full flex flex-col items-center z-20 pb-8 sm:pb-10 relative min-h-[140px] shrink-0">
         <div className="grid w-full place-items-center">
-          {mounted && (
-            <>
-              <motion.div
-                animate={{
-                  y: !entryModeActive ? 0 : 30,
-                  scale: !entryModeActive ? 1 : 0.9,
-                  pointerEvents: !entryModeActive ? "auto" : "none",
-                }}
-                transition={{ type: "spring", stiffness: 200, damping: 24, mass: 0.8 }}
-                className="w-full flex justify-center origin-top [grid-area:1/1] isolate"
-              >
-                <StackedDeck entryModeActive={entryModeActive}>
-                  <RoutineCard routine={nextRoutine} />
-                  <TasksCard task={nextTask} />
-                  <MetricsCard metric={latestMetric} />
-                  <JournalCard journal={latestJournal} />
-                </StackedDeck>
-              </motion.div>
+          <motion.div
+            animate={{
+              y: !entryModeActive ? 0 : 30,
+              scale: !entryModeActive ? 1 : 0.9,
+              opacity: !entryModeActive ? 1 : 0,
+              pointerEvents: !entryModeActive ? "auto" : "none",
+            }}
+            transition={{ type: "spring", stiffness: 200, damping: 24, mass: 0.8 }}
+            className="w-full flex justify-center origin-top [grid-area:1/1] isolate"
+          >
+            <StackedDeck entryModeActive={entryModeActive}>
+              <RoutineCard routine={nextRoutine} />
+              <TasksCard task={nextTask} />
+              <MetricsCard metric={latestMetric} />
+              <JournalCard journal={latestJournal} />
+            </StackedDeck>
+          </motion.div>
 
-              <AnimatePresence>
-                {entryModeActive && (
-                  <motion.div
-                    key="entry"
-                    initial={{ opacity: 0, y: 30, scale: 0.9 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 30, scale: 0.9 }}
-                    transition={{ type: "spring", stiffness: 200, damping: 24, mass: 0.8 }}
-                    className="w-full max-w-[25rem] origin-top [grid-area:1/1]"
-                  >
-                    <EntryView 
-                      userId={userId}
-                      isActive={entryModeActive} 
-                      onClose={() => setEntryModeActive(false)} 
-                    />
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </>
-          )}
+          <AnimatePresence mode="wait">
+            {entryModeActive && (
+              <motion.div
+                key="entry"
+                initial={{ opacity: 0, y: 30, scale: 0.9 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 30, scale: 0.9 }}
+                transition={{ type: "spring", stiffness: 200, damping: 24, mass: 0.8 }}
+                className="w-full max-w-[25rem] origin-top [grid-area:1/1]"
+              >
+                <EntryView 
+                  userId={userId}
+                  isActive={entryModeActive} 
+                  onClose={() => setEntryModeActive(false)} 
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </div>
     </div>

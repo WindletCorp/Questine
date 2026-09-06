@@ -20,7 +20,7 @@ interface StackedDeckProps {
 export function StackedDeck({ children, entryModeActive = false }: StackedDeckProps) {
   const router = useRouter();
   const [activeDeckIndex, setActiveDeckIndex] = useState(0);
-  const [isFannedOut, setIsFannedOut] = useState(!entryModeActive);
+  const [isFannedOut, setIsFannedOut] = useState(false);
 
   useEffect(() => {
     if (entryModeActive) {

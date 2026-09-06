@@ -95,14 +95,14 @@
 
 /* visionOS Glass Panel */
 .glassPanel {
-  background: rgba(20, 20, 30, 0.85);
-  backdrop-filter: blur(28px) saturate(190%);
-  -webkit-backdrop-filter: blur(28px) saturate(190%);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.07);
+  backdrop-filter: blur(16px) saturate(160%);
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.16);
   border-radius: 32px;
   box-shadow: 
-    0 30px 90px rgba(0, 0, 0, 0.7),
-    inset 0 1px 1.5px rgba(255, 255, 255, 0.4),
+    0 15px 35px rgba(0, 0, 0, 0.5),
+    inset 0 1px 1.5px rgba(255, 255, 255, 0.35),
     inset 0 -1px 1px rgba(0, 0, 0, 0.25);
   will-change: transform;
   transform: translateZ(0);
@@ -178,7 +178,6 @@
 }
 
 /* Staggered 0-Opacity State (Hides back cards at 0 opacity during mode transition) */
-.deckTucked .pos0,
 .deckTucked .pos1,
 .deckTucked .pos2,
 .deckTucked .pos3 {

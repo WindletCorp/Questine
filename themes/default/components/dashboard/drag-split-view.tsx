@@ -12,8 +12,8 @@ export function DragSplitView({ topPanel, bottomPanel }: DragSplitViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const containerHeightRef = useRef<number>(1000);
   
-  // y represents the exact pixel split point from the top
-  const y = useMotionValue(240);
+  // y represents the exact pixel split point from the top (0 on SSR, spring-animates to 240 on mount)
+  const y = useMotionValue(0);
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
@@ -23,6 +23,9 @@ export function DragSplitView({ topPanel, bottomPanel }: DragSplitViewProps) {
     const h = containerRef.current.getBoundingClientRect().height;
     containerHeightRef.current = h;
     
+    // Animate to 240px default on mount for 30% view
+    animate(y, 240, { type: "spring", stiffness: 300, damping: 30 });
+    
     const observer = new ResizeObserver((entries) => {
       if (entries[0]) {
         containerHeightRef.current = entries[0].contentRect.height;
@@ -31,7 +34,7 @@ export function DragSplitView({ topPanel, bottomPanel }: DragSplitViewProps) {
     observer.observe(containerRef.current);
     
     return () => observer.disconnect();
-  }, []);
+  }, [y]);
 
   const handleDragEnd = (e: any, info: PanInfo) => {
     const currentY = y.get();

@@ -17,6 +17,11 @@ import { EntryView } from "../components/entry-view";
 export function AppHome({ userId }: { userId?: string }) {
   const [entryModeActive, setEntryModeActive] = useState(false);
   const [timelineItems, setTimelineItems] = useState<TimelineItem[]>([]);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     async function loadData() {
@@ -41,7 +46,11 @@ export function AppHome({ userId }: { userId?: string }) {
   const latestMetric = timelineItems.slice().reverse().find(i => i.type === "metric_entry")?.data as EnrichedMetricEntry | undefined;
   const latestJournal = timelineItems.slice().reverse().find(i => i.type === "journal")?.data as Journal | undefined;
 
-
+  if (!mounted) {
+    return (
+      <div className="relative flex flex-col justify-between p-5 md:p-6 antialiased select-none flex-1 h-full w-full max-w-lg mx-auto opacity-0" />
+    );
+  }
 
   return (
     <div className="relative flex flex-col justify-between p-5 md:p-6 antialiased select-none flex-1 h-full w-full max-w-lg mx-auto">

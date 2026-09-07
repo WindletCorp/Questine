@@ -15,8 +15,13 @@ import { JournalCard } from "../components/journal-card";
 import { EntryView } from "../components/entry-view";
 
 export function AppHome({ userId }: { userId?: string }) {
+  const [mounted, setMounted] = useState(false);
   const [entryModeActive, setEntryModeActive] = useState(false);
   const [timelineItems, setTimelineItems] = useState<TimelineItem[]>([]);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     async function loadData() {
@@ -37,7 +42,7 @@ export function AppHome({ userId }: { userId?: string }) {
   }, [userId]);
 
   const nextTask = timelineItems.find(i => i.type === "task" && !(i.data as Task).completed_at)?.data as Task | undefined;
-  const nextRoutine = timelineItems.find(i => i.type === "routine_block" && new Date((i.data as RoutineBlock).end_time).getTime() > Date.now())?.data as RoutineBlock | undefined;
+  const nextRoutine = mounted ? timelineItems.find(i => i.type === "routine_block" && new Date((i.data as RoutineBlock).end_time).getTime() > Date.now())?.data as RoutineBlock | undefined : undefined;
   const latestMetric = timelineItems.slice().reverse().find(i => i.type === "metric_entry")?.data as EnrichedMetricEntry | undefined;
   const latestJournal = timelineItems.slice().reverse().find(i => i.type === "journal")?.data as Journal | undefined;
 
@@ -48,6 +53,7 @@ export function AppHome({ userId }: { userId?: string }) {
       {/* Atmospheric Luminous Aura */}
       <div className="fixed inset-0 pointer-events-none -z-10 flex items-center justify-center">
         <motion.div 
+          suppressHydrationWarning
           className="rounded-full"
           animate={{
             scale: entryModeActive ? 1.4 : 1,
@@ -77,6 +83,7 @@ export function AppHome({ userId }: { userId?: string }) {
       <div className="w-full flex flex-col items-center z-20 pb-8 sm:pb-10 relative min-h-[140px] shrink-0">
         <div className="grid w-full place-items-center">
           <motion.div
+            suppressHydrationWarning
             animate={{
               y: !entryModeActive ? 0 : 30,
               scale: !entryModeActive ? 1 : 0.9,
